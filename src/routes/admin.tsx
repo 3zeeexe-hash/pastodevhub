@@ -136,8 +136,8 @@ function AdminLogin({ signedInAs }: { signedInAs: string | null }) {
     setError(null);
     setBusy(true);
     try {
-      const { email } = await prepare({ data: { username: username.trim(), password } });
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const session = await prepare({ data: { username: username.trim(), password } });
+      const { error: signInError } = await supabase.auth.setSession(session);
       if (signInError) throw signInError;
       toast.success("Masuk sebagai admin");
     } catch (err) {
