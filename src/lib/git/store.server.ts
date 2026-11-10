@@ -192,6 +192,7 @@ const MAX_COMMIT_ROWS = 300;
  * new commits in history, and moves the ref.
  */
 export async function applyPush(db: Db, repo: RepoInfo, userId: string, oldHead: string | null, newHead: string, store: ObjectStore, incoming: ParsedObject[]) {
+  const known = new Set(store.keys());
   for (const o of incoming) store.set(o.sha, o);
   const newCommit = parseCommit(need(store, newHead, "commit").data);
   const newFlat = flattenTree(store, newCommit.tree);
@@ -201,11 +202,12 @@ export async function applyPush(db: Db, repo: RepoInfo, userId: string, oldHead:
 
   // New commits on the first-parent chain, newest first.
   const chain: { sha: string; c: ReturnType<typeof parseCommit> }[] = [];
-  for (let sha: string | undefined = newHead; sha && sha !== oldHead && chain.length < MAX_COMMIT_ROWS; ) {
+  for (let sha: string | undefined = newHead; sha && sha !== oldHead && !known.has(sha) && chain.length < MAX_COMMIT_ROWS; ) {
     const c = parseCommit(need(store, sha, "commit").data);
     chain.push({ sha, c });
     sha = c.parents[0];
   }
+  if (!chain.length) chain.push({ sha: newHead, c: { ...newCommit, message: `Reset branch ke ${newHead.slice(0, 7)}` } });
 
   // Working tree diff against what the web currently shows.
   const current = await loadFiles(db, repo.id);
