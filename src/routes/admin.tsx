@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Copy, Github, KeyRound, Loader2, LogOut, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
-import { formatRupiah } from "@/lib/market";
+import { errMsg, formatRupiah } from "@/lib/market";
+import { getAdminGithubSettings, prepareAdminLogin, saveAdminGithubSettings } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +53,7 @@ function AdminPage() {
   }, [data?.settings?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
-  if (!isAdmin) return <main className="mx-auto max-w-xl px-4 py-20 text-center"><ShieldCheck className="mx-auto size-10 text-muted-foreground" /><h1 className="mt-3 text-xl font-semibold">Khusus admin</h1></main>;
+  if (!isAdmin) return <AdminLogin signedInAs={user ? (user.email ?? "akun lain") : null} />;
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault();
@@ -76,7 +78,10 @@ function AdminPage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
-      <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="size-6 text-primary" /> Admin</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="size-6 text-primary" /> Admin</h1>
+        <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()}><LogOut /> Keluar</Button>
+      </div>
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-semibold">Pembayaran perlu diverifikasi ({data?.reviews.length ?? 0})</h2>
         <ul className="mt-3 divide-y divide-border text-sm">
@@ -114,6 +119,113 @@ function AdminPage() {
         <div className="sm:col-span-2"><Label htmlFor="pi">Instruksi pembayaran</Label><Textarea id="pi" value={f.payment_instructions} onChange={(e) => setF({ ...f, payment_instructions: e.target.value })} /></div>
         <Button className="sm:w-fit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Simpan</Button>
       </form>
+      <GithubSettingsForm />
     </main>
+  );
+}
+
+function AdminLogin({ signedInAs }: { signedInAs: string | null }) {
+  const prepare = useServerFn(prepareAdminLogin);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const { email } = await prepare({ data: { username: username.trim(), password } });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+      toast.success("Masuk sebagai admin");
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="bg-hero flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
+      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6 shadow-glow" aria-label="Login admin">
+        <div className="text-center">
+          <ShieldCheck className="mx-auto size-10 text-primary" />
+          <h1 className="mt-3 text-2xl font-bold">Login admin</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Khusus pengelola Pastodev.</p>
+        </div>
+        {signedInAs && (
+          <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
+            Kamu sedang masuk sebagai {signedInAs}, yang bukan admin. Login di sini akan mengganti akun yang aktif.
+          </p>
+        )}
+        <div><Label htmlFor="admin-username">Username</Label><Input id="admin-username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required maxLength={60} /></div>
+        <div><Label htmlFor="admin-password">Kata sandi</Label><Input id="admin-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required maxLength={200} /></div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <Button className="w-full" disabled={busy || !username.trim() || !password}>
+          {busy ? <Loader2 className="animate-spin" /> : <KeyRound />} Masuk
+        </Button>
+      </form>
+    </main>
+  );
+}
+
+function GithubSettingsForm() {
+  const load = useServerFn(getAdminGithubSettings);
+  const save = useServerFn(saveAdminGithubSettings);
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({ queryKey: ["admin-github"], queryFn: () => load() });
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (data) setClientId(data.clientId); }, [data?.clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (clientId.trim() && !data?.hasSecret && !clientSecret.trim()) { toast.error("Isi Client secret juga."); return; }
+    setBusy(true);
+    try {
+      await save({ data: { clientId: clientId.trim(), clientSecret: clientSecret.trim() } });
+      setClientSecret("");
+      toast.success(clientId.trim() ? "Pengaturan GitHub disimpan" : "Pengaturan GitHub dihapus");
+      qc.invalidateQueries({ queryKey: ["admin-github"] });
+    } catch (err) {
+      toast.error(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const connected = !!data?.clientId && data.hasSecret;
+  return (
+    <form onSubmit={submit} className="grid gap-3 rounded-xl border border-border bg-card p-5 sm:grid-cols-2" aria-label="Pengaturan GitHub">
+      <div className="sm:col-span-2">
+        <h2 className="flex items-center gap-2 font-semibold"><Github className="size-5 text-primary" /> Aplikasi GitHub</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Dipakai developer untuk menghubungkan akun GitHub, impor, dan ekspor repo. Buat di GitHub → Settings → Developer settings → OAuth Apps.
+        </p>
+        <p className="mt-2 text-sm">
+          Status: {isLoading ? "memuat…" : connected ? <b className="text-success">Aktif</b> : data?.envFallback ? <b>Memakai pengaturan server</b> : <b className="text-destructive">Belum diatur</b>}
+          {data?.updatedAt && <span className="text-muted-foreground"> · diperbarui {timeAgo(data.updatedAt)}</span>}
+        </p>
+        {error && <p className="mt-2 text-sm text-destructive">{errMsg(error)}</p>}
+      </div>
+      {data?.callbackUrl && (
+        <div className="sm:col-span-2">
+          <Label htmlFor="gh-callback">Authorization callback URL (tempel di GitHub)</Label>
+          <div className="flex gap-2">
+            <Input id="gh-callback" readOnly value={data.callbackUrl} className="font-mono text-xs" />
+            <Button type="button" variant="outline" size="icon" aria-label="Salin callback URL" onClick={() => { navigator.clipboard.writeText(data.callbackUrl); toast.success("Disalin"); }}><Copy /></Button>
+          </div>
+        </div>
+      )}
+      <div><Label htmlFor="gh-client-id">Client ID</Label><Input id="gh-client-id" value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Ov23li…" maxLength={100} autoComplete="off" /></div>
+      <div>
+        <Label htmlFor="gh-client-secret">Client secret</Label>
+        <Input id="gh-client-secret" type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} placeholder={data?.hasSecret ? "Tersimpan — kosongkan jika tidak diganti" : "Tempel client secret"} maxLength={200} autoComplete="new-password" />
+      </div>
+      <Button className="sm:w-fit" disabled={busy || isLoading}>{busy && <Loader2 className="animate-spin" />} Simpan GitHub</Button>
+    </form>
   );
 }
