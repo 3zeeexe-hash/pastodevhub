@@ -8,6 +8,7 @@ import { applyPush, ensureSynced, getDb, packFor, type RepoInfo } from "@/lib/gi
 export const GIT_PATH = /^\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/(info\/refs|git-upload-pack|git-receive-pack)$/;
 type Service = "git-upload-pack" | "git-receive-pack";
 const AGENT = "agent=pastodev/1.0";
+const bin = (b: Uint8Array) => b as unknown as BodyInit;
 
 function text(status: number, body: string, extra: Record<string, string> = {}) {
   return new Response(`${body}\n`, { status, headers: { "content-type": "text/plain; charset=utf-8", ...extra } });
@@ -54,7 +55,7 @@ function advertise(service: Service, repo: RepoInfo, head: string | null) {
     lines.push(pkt(head ? `${head} ${branch}\0${caps}\n` : `${ZERO} capabilities^{}\0${caps}\n`));
   }
   lines.push(FLUSH);
-  return new Response(concat(lines), {
+  return new Response(bin(concat(lines)), {
     headers: { "content-type": `application/x-${service}-advertisement`, "cache-control": "no-cache" },
   });
 }
@@ -106,11 +107,11 @@ function uploadPack(body: Uint8Array, store: Map<string, unknown>, head: string 
   for (const w of wants) if (!store.has(w)) return text(400, `Objek ${w} tidak ada (repo baru saja berubah? coba lagi).`);
   const common = haves.filter((h) => store.has(h));
   if (!done) {
-    return new Response(common.length ? pkt(`ACK ${common[0]}\n`) : pkt("NAK\n"), { headers });
+    return new Response(bin(common.length ? pkt(`ACK ${common[0]}\n`) : pkt("NAK\n")), { headers });
   }
-  if (!wants.length || !head) return new Response(pkt("NAK\n"), { headers });
+  if (!wants.length || !head) return new Response(bin(pkt("NAK\n")), { headers });
   const pack = packFor(store as never, wants, common);
-  return new Response(concat([common.length ? pkt(`ACK ${common[0]}\n`) : pkt("NAK\n"), pack]), { headers });
+  return new Response(bin(concat([common.length ? pkt(`ACK ${common[0]}\n`) : pkt("NAK\n"), pack])), { headers });
 }
 
 async function receivePack(db: Awaited<ReturnType<typeof getDb>>, repo: RepoInfo, userId: string, body: Uint8Array, head: string | null, store: Awaited<ReturnType<typeof ensureSynced>>["store"]) {
@@ -122,7 +123,7 @@ async function receivePack(db: Awaited<ReturnType<typeof getDb>>, repo: RepoInfo
   });
   const status: Uint8Array[] = [];
   const respond = (unpack: string) =>
-    new Response(concat([pkt(`unpack ${unpack}\n`), ...status, FLUSH]), { headers: { "content-type": "application/x-git-receive-pack-result", "cache-control": "no-cache" } });
+    new Response(bin(concat([pkt(`unpack ${unpack}\n`), ...status, FLUSH])), { headers: { "content-type": "application/x-git-receive-pack-result", "cache-control": "no-cache" } });
 
   let incoming: ParsedObject[] = [];
   if (offset < body.length) {
