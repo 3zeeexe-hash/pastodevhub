@@ -12,22 +12,22 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthProvider } from "@/lib/auth";
+import { SiteHeader } from "@/components/site-header";
+import { AccountTypePrompt } from "@/components/account-type-prompt";
+import { SiteFooter } from "@/components/site-footer";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
+        <h1 className="font-mono text-7xl font-bold text-primary">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Halaman tidak ditemukan</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Halaman yang kamu cari tidak ada atau sudah dipindahkan.</p>
         <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
+          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+            Ke beranda
           </Link>
         </div>
       </div>
@@ -35,22 +35,32 @@ function NotFoundComponent() {
   );
 }
 
+// After a new deploy, an open tab may ask for page code that no longer exists.
+// Reload once to pick up the current version instead of showing a blank screen.
+const STALE_CHUNK_RE = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+function reloadOnceForStaleChunk() {
+  if (typeof window === "undefined") return false;
+  const key = "pastodev-chunk-reload";
+  const last = Number(window.sessionStorage.getItem(key) ?? 0);
+  if (Date.now() - last < 10_000) return false;
+  window.sessionStorage.setItem(key, String(Date.now()));
+  window.location.reload();
+  return true;
+}
+
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (STALE_CHUNK_RE.test(String(error instanceof Error ? error.message : error)) && reloadOnceForStaleChunk()) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Halaman gagal dimuat</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Ada yang salah di sisi kami. Coba muat ulang atau kembali ke beranda.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -59,13 +69,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Coba lagi
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
+          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
+            Ke beranda
           </a>
         </div>
       </div>
@@ -75,27 +82,24 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
-    // Replace these placeholders with the app's name and description when first building the app.
-    // Each content route, / included, must still set its own head(). Never add og:image or
-    // twitter:image here: every page without its own would inherit the root's preview image.
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Pastodev — Komunitas Developer" },
+      { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
+      { name: "author", content: "Pastodev" },
+      { name: "theme-color", content: "#0d1020" },
+      { property: "og:site_name", content: "Pastodev" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -106,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="id" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -120,11 +124,28 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    const onPreloadError = (e: Event) => {
+      if (reloadOnceForStaleChunk()) e.preventDefault();
+    };
+    window.addEventListener("vite:preloadError", onPreloadError);
+    return () => window.removeEventListener("vite:preloadError", onPreloadError);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AuthProvider>
+        <div className="flex min-h-screen flex-col bg-background font-sans">
+          <SiteHeader />
+          <div className="flex-1">
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </div>
+          <SiteFooter />
+        </div>
+        <AccountTypePrompt />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

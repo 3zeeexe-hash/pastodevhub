@@ -1,0 +1,83 @@
+// Admin sign-in (username + password from server env) and admin-only platform settings.
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { adminEmailFor, checkAdminCredentials } from "@/lib/admin-rules";
+
+/**
+ * Checks the admin username/password against ADMIN_USERNAME / ADMIN_PASSWORD,
+ * makes sure the admin account exists with the admin role, and returns the
+ * sign-in email so the browser can sign in normally (session stays saved).
+ */
+export const prepareAdminLogin = createServerFn({ method: "POST" })
+  .inputValidator((input: { username: string; password: string }) =>
+    z.object({ username: z.string().min(1).max(60), password: z.string().min(1).max(200) }).parse(input))
+  .handler(async ({ data }) => {
+    const env = { username: process.env["ADMIN_USERNAME"], password: process.env["ADMIN_PASSWORD"] };
+    if (!env.username || !env.password) throw new Error("Login admin belum diatur di server.");
+    if (!checkAdminCredentials(data, env)) {
+      await new Promise((r) => setTimeout(r, 800));
+      throw new Error("Username atau kata sandi admin salah.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = adminEmailFor(env.username, process.env["ADMIN_EMAIL"]);
+
+    // Find or create the admin account, keeping its password in sync with the env value.
+    let userId: string | null = null;
+    for (let page = 1; page <= 20 && !userId; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      userId = list.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
+      if (list.users.length < 200) break;
+    }
+    if (userId) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: env.password, email_confirm: true });
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+        email, password: env.password, email_confirm: true,
+        user_metadata: { username: env.username.toLowerCase(), full_name: "Admin Pastodev", account_type: "client" },
+      });
+      if (error || !created.user) throw new Error(error?.message ?? "Gagal membuat akun admin.");
+      userId = created.user.id;
+    }
+    const { error: roleErr } = await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+    if (roleErr) throw new Error(roleErr.message);
+    return { email };
+  });
+
+async function assertAdmin(context: { supabase: any; userId: string }) {
+  const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (error || !data) throw new Error("Khusus admin.");
+}
+
+function callbackUrl() {
+  const request = getRequest();
+  if (!request) return "";
+  const url = new URL(request.url);
+  const sandboxHost = url.hostname === "localhost" ? request.headers.get("x-forwarded-host") : null;
+  return new URL("/api/oauth/github/return", sandboxHost ? `https://${sandboxHost}` : url.origin).toString();
+}
+
+export const getAdminGithubSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { readGithubSettingsForAdmin } = await import("@/lib/platform-secrets.server");
+    return { ...(await readGithubSettingsForAdmin()), callbackUrl: callbackUrl() };
+  });
+
+export const saveAdminGithubSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; clientSecret: string }) =>
+    z.object({
+      clientId: z.string().trim().max(100).regex(/^[A-Za-z0-9._-]*$/, "Client ID tidak valid"),
+      clientSecret: z.string().trim().max(200),
+    }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { writeGithubSettings } = await import("@/lib/platform-secrets.server");
+    await writeGithubSettings(data.clientId, data.clientSecret || null);
+    return { ok: true };
+  });
