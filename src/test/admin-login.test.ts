@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminEmailFor, checkAdminCredentials } from "@/lib/admin-rules";
+import { adminEmailFor, checkAdminCredentials, isMissingFunctionError } from "@/lib/admin-rules";
 
 const env = { username: "Admin", password: "Rahasia-123" };
 
@@ -24,6 +24,13 @@ describe("admin login", () => {
   it("refuses every login when admin login is not configured", () => {
     expect(checkAdminCredentials({ username: "", password: "" }, {})).toBe(false);
     expect(checkAdminCredentials({ username: "admin", password: "x" }, { username: "admin" })).toBe(false);
+  });
+
+  it("recognises a missing database function (setup SQL not run yet)", () => {
+    expect(isMissingFunctionError({ code: "PGRST202", message: "x" })).toBe(true);
+    expect(isMissingFunctionError({ message: "Could not find the function public.claim_admin_role(_code) in the schema cache" })).toBe(true);
+    expect(isMissingFunctionError({ code: "P0001", message: "Kode admin salah" })).toBe(false);
+    expect(isMissingFunctionError(null)).toBe(false);
   });
 
   it("uses a fixed internal email for the admin account", () => {
