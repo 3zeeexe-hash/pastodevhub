@@ -3,6 +3,7 @@ import { Bot, Briefcase, Search, FileCode2, FolderKanban, Images, LayoutDashboar
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
+import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/studio")({
   component: StudioLayout,
 });
 
-const NAV = [
+const NAV: NavGroup[] = [
   { group: "Jualan", items: [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
     { to: "/studio/karya", label: "Karya", Icon: Package },
@@ -41,7 +42,7 @@ const NAV = [
   { group: "Akun", items: [
     { to: "/settings", label: "Pengaturan", Icon: Settings },
   ] },
-] as const;
+];
 
 function StudioLayout() {
   const { user, profile, loading } = useAuth();
@@ -58,24 +59,8 @@ function StudioLayout() {
     );
   }
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[220px_1fr]">
-      <aside className="md:sticky md:top-20 md:self-start">
-        <nav className="flex gap-1 overflow-x-auto pb-2 md:flex-col md:gap-4 md:overflow-visible md:pb-0">
-          {NAV.map(({ group, items }) => (
-            <div key={group} className="flex shrink-0 gap-1 md:flex-col">
-              <p className="hidden px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:block">{group}</p>
-              {items.map(({ to, label, Icon, ...rest }) => (
-                <Link key={to} to={to} activeOptions={{ exact: "exact" in rest }}
-                  className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                  activeProps={{ className: "bg-accent font-semibold text-foreground" }}>
-                  <Icon className="size-4" />{label}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </nav>
-      </aside>
-      <section className="min-w-0"><Outlet /></section>
-    </div>
+    <SideNavLayout title="Studio developer" nav={NAV}>
+      <Outlet />
+    </SideNavLayout>
   );
 }
