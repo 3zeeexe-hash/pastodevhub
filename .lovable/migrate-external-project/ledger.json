@@ -8,24 +8,24 @@
  },
  {
   "capability": "schema",
-  "source": "drizzle/migrations/0000_pastodev_schema.sql",
+  "source": "pastodevcom-main.zip types + migrations",
   "outcome": "migrate",
   "status": "verified",
-  "next_action": "apply extended schema to Lovable Cloud"
+  "next_action": "schema, rules and storage recreated in this project's Lovable Cloud"
  },
  {
   "capability": "records",
   "source": "previous Lovable Cloud database",
   "outcome": "migrate",
   "status": "pending",
-  "next_action": "user to export tables as CSV if they want old data"
+  "next_action": "old data stayed in the previous backend; user may export CSV or skip"
  },
  {
   "capability": "auth identities",
   "source": "Cloud auth (email + Google)",
   "outcome": "migrate",
   "status": "implemented",
-  "next_action": "old users must sign up again unless user exports"
+  "next_action": "old users sign up again; admin account auto-created on first admin login"
  },
  {
   "capability": "github integration",
@@ -40,5 +40,19 @@
   "outcome": "add",
   "status": "verified",
   "next_action": "logo + favicon"
+ },
+ {
+  "capability": "admin login",
+  "source": "roadmap",
+  "outcome": "add",
+  "status": "verified",
+  "next_action": "none"
+ },
+ {
+  "capability": "secrets",
+  "source": "ADMIN_USERNAME, ADMIN_PASSWORD, APP_USER_CONNECTION_KEY_SECRET",
+  "outcome": "migrate",
+  "status": "verified",
+  "next_action": "GitHub OAuth app keys entered by owner in /admin"
  }
 ]

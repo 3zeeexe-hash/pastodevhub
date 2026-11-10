@@ -13,7 +13,11 @@
 - [ ] Developer store: custom HTML design, shareable store link
 - [ ] Developer profile shows headline, skills, links, portfolio, karya, jasa, store link
 - [ ] AI repo editor: chat/build/fix with the developer's own Gemini or OpenAI key
-- [ ] Admin page (payment settings, verify payments, payouts)
-- [ ] Verify GitHub import/export live — needs GitHub OAuth app keys from the user
+- [x] Admin page (payment settings, verify payments, payouts)
+- [x] Import Pastodev ZIP into this project + new Lovable Cloud (schema, storage, sign-in)
+- [x] Admin panel: admin login form (ADMIN_USERNAME/ADMIN_PASSWORD) + GitHub OAuth app form
+- [x] Community home page: big search box + lowongan, developer, karya, diskusi sections
+- [x] Automated tests for job rules and admin login
+- [ ] Verify GitHub import/export live — waiting on the owner's GitHub OAuth app Client ID/secret (enter in /admin)
 - [ ] Old Pastodev data (repos/posts) — waiting on CSV exports from the user, or skip
 - [ ] Real bank account / QRIS details + platform fee — waiting on the owner
