@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, Download, LayoutDashboard, LibraryBig, MessageSquare, Plus, Receipt, Search, Settings, Users, Wrench } from "lucide-react";
+import { Briefcase, Download, Plus, Receipt, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { formatRupiah, type OrderStatus } from "@/lib/market";
@@ -9,28 +9,10 @@ import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
 import { JobStatusBadge } from "@/components/job-card";
 import { OrderStatusBadge } from "@/components/order-status";
-import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
+import { SideNavLayout } from "@/components/side-nav-layout";
+import { CLIENT_NAV } from "@/components/side-navs";
 
-const CLIENT_NAV: NavGroup[] = [
-  { group: "Utama", items: [
-    { to: "/dashboard", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
-    { to: "/pesanan", label: "Pesanan saya", Icon: Receipt },
-  ] },
-  { group: "Proyek", items: [
-    { to: "/lowongan/baru", label: "Pasang lowongan", Icon: Plus },
-    { to: "/lowongan", label: "Semua lowongan", Icon: Briefcase },
-  ] },
-  { group: "Cari", items: [
-    { to: "/search", label: "Cari developer", Icon: Search, search: { q: "", type: "users" } },
-    { to: "/jasa", label: "Pesan jasa", Icon: Wrench },
-    { to: "/karya", label: "Beli karya", Icon: Download },
-    { to: "/katalog", label: "Katalog", Icon: LibraryBig },
-  ] },
-  { group: "Komunitas", items: [
-    { to: "/discuss", label: "Diskusi", Icon: MessageSquare },
-    { to: "/settings", label: "Pengaturan", Icon: Settings },
-  ] },
-];
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({

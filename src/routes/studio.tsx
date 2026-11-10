@@ -1,9 +1,10 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Bot, Briefcase, Search, FileCode2, FolderKanban, Images, LayoutDashboard, Package, Receipt, Settings, Share2, Store, Wrench } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
-import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
+import { SideNavLayout } from "@/components/side-nav-layout";
+import { DEV_NAV } from "@/components/side-navs";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -20,29 +21,7 @@ export const Route = createFileRoute("/studio")({
   component: StudioLayout,
 });
 
-const NAV: NavGroup[] = [
-  { group: "Jualan", items: [
-    { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
-    { to: "/studio/karya", label: "Karya", Icon: Package },
-    { to: "/studio/jasa", label: "Jasa", Icon: Wrench },
-    { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban },
-    { to: "/pesanan", label: "Pesanan", Icon: Receipt },
-  ] },
-  { group: "Freelance", items: [
-    { to: "/lowongan", label: "Cari lowongan", Icon: Search },
-    { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase },
-  ] },
-  { group: "Tools", items: [
-    { to: "/studio/hosting", label: "Hosting HTML", Icon: FileCode2 },
-    { to: "/studio/files", label: "Berbagi file", Icon: Share2 },
-    { to: "/studio/images", label: "Cloud gambar", Icon: Images },
-    { to: "/studio/toko", label: "Toko saya", Icon: Store },
-    { to: "/studio/ai", label: "AI untuk repo", Icon: Bot },
-  ] },
-  { group: "Akun", items: [
-    { to: "/settings", label: "Pengaturan", Icon: Settings },
-  ] },
-];
+
 
 function StudioLayout() {
   const { user, profile, loading } = useAuth();
@@ -59,7 +38,7 @@ function StudioLayout() {
     );
   }
   return (
-    <SideNavLayout title="Studio developer" nav={NAV}>
+    <SideNavLayout title="Studio developer" nav={DEV_NAV}>
       <Outlet />
     </SideNavLayout>
   );
