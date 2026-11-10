@@ -21,7 +21,11 @@
 - [ ] Verify GitHub import/export live — waiting on the owner's GitHub OAuth app Client ID/secret (enter in /admin)
 - [ ] Old Pastodev data (repos/posts) — waiting on CSV exports from the user, or skip
 - [ ] Real bank account / QRIS details + platform fee — waiting on the owner
-- [ ] Admin: Google sign-in via the owner's own Firebase project (web config + service-account JSON upload)
-- [ ] Repos work with real git over HTTPS: clone / pull / push from the terminal like GitHub (personal access tokens)
-- [ ] Studio (developer + client): mobile-friendly side menu instead of horizontally scrolling buttons
+- [x] Admin: Google sign-in via the owner's own Firebase project (web config + service-account JSON upload)
+- [x] Repos work with real git over HTTPS: clone / pull / push from the terminal like GitHub (personal access tokens)
+- [x] Studio (developer + client): mobile-friendly side menu instead of horizontally scrolling buttons
 - [ ] SEO for Google Search: per-page meta, robots.txt, sitemap, structured data
+- [ ] Admin feature switches: turn each feature on/off (enforced in the database, hidden in menus)
+- [ ] Admin full control: users (ban, admin role, account type), content moderation, orders, payouts, payments, integrations, site announcement
+- [ ] New admin dashboard with its own sidebar
+- [ ] Verify Firebase Google sign-in live — waiting on the owner's Firebase setup
