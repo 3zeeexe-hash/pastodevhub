@@ -1,0 +1,19 @@
+# Roadmap
+- [x] Migrate Pastodev code + schema to Lovable Cloud
+- [x] Logo + favicon from uploaded mascot
+- [x] GitHub-like repos: file tree, folders, README, commits/diff, issues, pull requests (from forks), forks, stars, settings, ZIP download, upload
+- [x] Sign in: email, Google, Lovable (GitHub sign-in is not supported by Lovable Cloud)
+- [x] Connect GitHub per user: import repos, export/push repos, pull updates
+- [x] Client / Developer account type at sign-up (+ prompt for existing/Google users)
+- [x] Karya: upload projects, free download or paid
+- [x] Jasa: services, order form, accept/decline, chat, deliver, complete
+- [ ] Fix GitHub import showing "[object Object]" + send full changed files in chat
+- [ ] Developer sidebar menu with tools (+ header links to Studio/Karya/Jasa/Pesanan)
+- [ ] File hosting: HTML pages, file sharing, image cloud — each gets a URL
+- [ ] Developer store: custom HTML design, shareable store link
+- [ ] Developer profile shows headline, skills, links, portfolio, karya, jasa, store link
+- [ ] AI repo editor: chat/build/fix with the developer's own Gemini or OpenAI key
+- [ ] Admin page (payment settings, verify payments, payouts)
+- [ ] Verify GitHub import/export live — needs GitHub OAuth app keys from the user
+- [ ] Old Pastodev data (repos/posts) — waiting on CSV exports from the user, or skip
+- [ ] Real bank account / QRIS details + platform fee — waiting on the owner

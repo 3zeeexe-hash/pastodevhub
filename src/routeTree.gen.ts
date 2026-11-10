@@ -10,33 +10,709 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UsernameRouteImport } from './routes/$username'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as ImportRouteImport } from './routes/import'
+import { Route as KatalogRouteImport } from './routes/katalog'
+import { Route as NewRouteImport } from './routes/new'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StudioRouteImport } from './routes/studio'
+import { Route as UsernameRepoRouteImport } from './routes/$username_.$repo'
+import { Route as DiscussIndexRouteImport } from './routes/discuss.index'
+import { Route as DiscussIdRouteImport } from './routes/discuss.$id'
+import { Route as FSlugRouteImport } from './routes/f.$slug'
+import { Route as JasaIndexRouteImport } from './routes/jasa.index'
+import { Route as JasaIdRouteImport } from './routes/jasa.$id'
+import { Route as KaryaIndexRouteImport } from './routes/karya.index'
+import { Route as KaryaIdRouteImport } from './routes/karya.$id'
+import { Route as LowonganIndexRouteImport } from './routes/lowongan.index'
+import { Route as LowonganIdRouteImport } from './routes/lowongan.$id'
+import { Route as LowonganBaruRouteImport } from './routes/lowongan.baru'
+import { Route as PesananIndexRouteImport } from './routes/pesanan.index'
+import { Route as PesananIdRouteImport } from './routes/pesanan.$id'
+import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioAiRouteImport } from './routes/studio.ai'
+import { Route as StudioFilesRouteImport } from './routes/studio.files'
+import { Route as StudioHostingRouteImport } from './routes/studio.hosting'
+import { Route as StudioImagesRouteImport } from './routes/studio.images'
+import { Route as StudioLamaranRouteImport } from './routes/studio.lamaran'
+import { Route as StudioPortofolioRouteImport } from './routes/studio.portofolio'
+import { Route as StudioTokoRouteImport } from './routes/studio.toko'
+import { Route as TokoUsernameRouteImport } from './routes/toko.$username'
+import { Route as UsernameRepoIndexRouteImport } from './routes/$username_.$repo.index'
+import { Route as UsernameRepoAiRouteImport } from './routes/$username_.$repo.ai'
+import { Route as UsernameRepoCommitsRouteImport } from './routes/$username_.$repo.commits'
+import { Route as UsernameRepoNewRouteImport } from './routes/$username_.$repo.new'
+import { Route as UsernameRepoSettingsRouteImport } from './routes/$username_.$repo.settings'
+import { Route as StudioJasaIndexRouteImport } from './routes/studio.jasa.index'
+import { Route as StudioJasaIdRouteImport } from './routes/studio.jasa.$id'
+import { Route as StudioKaryaIndexRouteImport } from './routes/studio.karya.index'
+import { Route as StudioKaryaIdRouteImport } from './routes/studio.karya.$id'
+import { Route as UsernameRepoBlobSplatRouteImport } from './routes/$username_.$repo.blob.$'
+import { Route as UsernameRepoCommitIdRouteImport } from './routes/$username_.$repo.commit.$id'
+import { Route as UsernameRepoEditSplatRouteImport } from './routes/$username_.$repo.edit.$'
+import { Route as UsernameRepoIssuesIndexRouteImport } from './routes/$username_.$repo.issues.index'
+import { Route as UsernameRepoIssuesNumberRouteImport } from './routes/$username_.$repo.issues.$number'
+import { Route as UsernameRepoIssuesNewRouteImport } from './routes/$username_.$repo.issues.new'
+import { Route as UsernameRepoPullsIndexRouteImport } from './routes/$username_.$repo.pulls.index'
+import { Route as UsernameRepoPullsNumberRouteImport } from './routes/$username_.$repo.pulls.$number'
+import { Route as UsernameRepoPullsNewRouteImport } from './routes/$username_.$repo.pulls.new'
+import { Route as UsernameRepoTreeSplatRouteImport } from './routes/$username_.$repo.tree.$'
+import { Route as ApiOauthGithubReturnRouteImport } from './routes/api/oauth/github/return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsernameRoute = UsernameRouteImport.update({
+  id: '/$username',
+  path: '/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KatalogRoute = KatalogRouteImport.update({
+  id: '/katalog',
+  path: '/katalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewRoute = NewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsernameRepoRoute = UsernameRepoRouteImport.update({
+  id: '/$username_/$repo',
+  path: '/$username/$repo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscussIndexRoute = DiscussIndexRouteImport.update({
+  id: '/discuss/',
+  path: '/discuss/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscussIdRoute = DiscussIdRouteImport.update({
+  id: '/discuss/$id',
+  path: '/discuss/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FSlugRoute = FSlugRouteImport.update({
+  id: '/f/$slug',
+  path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JasaIndexRoute = JasaIndexRouteImport.update({
+  id: '/jasa/',
+  path: '/jasa/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JasaIdRoute = JasaIdRouteImport.update({
+  id: '/jasa/$id',
+  path: '/jasa/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KaryaIndexRoute = KaryaIndexRouteImport.update({
+  id: '/karya/',
+  path: '/karya/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KaryaIdRoute = KaryaIdRouteImport.update({
+  id: '/karya/$id',
+  path: '/karya/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LowonganIndexRoute = LowonganIndexRouteImport.update({
+  id: '/lowongan/',
+  path: '/lowongan/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LowonganIdRoute = LowonganIdRouteImport.update({
+  id: '/lowongan/$id',
+  path: '/lowongan/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LowonganBaruRoute = LowonganBaruRouteImport.update({
+  id: '/lowongan/baru',
+  path: '/lowongan/baru',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PesananIndexRoute = PesananIndexRouteImport.update({
+  id: '/pesanan/',
+  path: '/pesanan/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PesananIdRoute = PesananIdRouteImport.update({
+  id: '/pesanan/$id',
+  path: '/pesanan/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioAiRoute = StudioAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioFilesRoute = StudioFilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioHostingRoute = StudioHostingRouteImport.update({
+  id: '/hosting',
+  path: '/hosting',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioImagesRoute = StudioImagesRouteImport.update({
+  id: '/images',
+  path: '/images',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioLamaranRoute = StudioLamaranRouteImport.update({
+  id: '/lamaran',
+  path: '/lamaran',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioPortofolioRoute = StudioPortofolioRouteImport.update({
+  id: '/portofolio',
+  path: '/portofolio',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioTokoRoute = StudioTokoRouteImport.update({
+  id: '/toko',
+  path: '/toko',
+  getParentRoute: () => StudioRoute,
+} as any)
+const TokoUsernameRoute = TokoUsernameRouteImport.update({
+  id: '/toko/$username',
+  path: '/toko/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsernameRepoIndexRoute = UsernameRepoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoAiRoute = UsernameRepoAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoCommitsRoute = UsernameRepoCommitsRouteImport.update({
+  id: '/commits',
+  path: '/commits',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoNewRoute = UsernameRepoNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoSettingsRoute = UsernameRepoSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const StudioJasaIndexRoute = StudioJasaIndexRouteImport.update({
+  id: '/jasa/',
+  path: '/jasa/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioJasaIdRoute = StudioJasaIdRouteImport.update({
+  id: '/jasa/$id',
+  path: '/jasa/$id',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioKaryaIndexRoute = StudioKaryaIndexRouteImport.update({
+  id: '/karya/',
+  path: '/karya/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioKaryaIdRoute = StudioKaryaIdRouteImport.update({
+  id: '/karya/$id',
+  path: '/karya/$id',
+  getParentRoute: () => StudioRoute,
+} as any)
+const UsernameRepoBlobSplatRoute = UsernameRepoBlobSplatRouteImport.update({
+  id: '/blob/$',
+  path: '/blob/$',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoCommitIdRoute = UsernameRepoCommitIdRouteImport.update({
+  id: '/commit/$id',
+  path: '/commit/$id',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoEditSplatRoute = UsernameRepoEditSplatRouteImport.update({
+  id: '/edit/$',
+  path: '/edit/$',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoIssuesIndexRoute = UsernameRepoIssuesIndexRouteImport.update({
+  id: '/issues/',
+  path: '/issues/',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoIssuesNumberRoute =
+  UsernameRepoIssuesNumberRouteImport.update({
+    id: '/issues/$number',
+    path: '/issues/$number',
+    getParentRoute: () => UsernameRepoRoute,
+  } as any)
+const UsernameRepoIssuesNewRoute = UsernameRepoIssuesNewRouteImport.update({
+  id: '/issues/new',
+  path: '/issues/new',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoPullsIndexRoute = UsernameRepoPullsIndexRouteImport.update({
+  id: '/pulls/',
+  path: '/pulls/',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoPullsNumberRoute = UsernameRepoPullsNumberRouteImport.update({
+  id: '/pulls/$number',
+  path: '/pulls/$number',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoPullsNewRoute = UsernameRepoPullsNewRouteImport.update({
+  id: '/pulls/new',
+  path: '/pulls/new',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const UsernameRepoTreeSplatRoute = UsernameRepoTreeSplatRouteImport.update({
+  id: '/tree/$',
+  path: '/tree/$',
+  getParentRoute: () => UsernameRepoRoute,
+} as any)
+const ApiOauthGithubReturnRoute = ApiOauthGithubReturnRouteImport.update({
+  id: '/api/oauth/github/return',
+  path: '/api/oauth/github/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$username': typeof UsernameRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
+  '/import': typeof ImportRoute
+  '/katalog': typeof KatalogRoute
+  '/new': typeof NewRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/studio': typeof StudioRouteWithChildren
+  '/$username/$repo': typeof UsernameRepoRouteWithChildren
+  '/discuss/$id': typeof DiscussIdRoute
+  '/f/$slug': typeof FSlugRoute
+  '/jasa/$id': typeof JasaIdRoute
+  '/karya/$id': typeof KaryaIdRoute
+  '/lowongan/$id': typeof LowonganIdRoute
+  '/lowongan/baru': typeof LowonganBaruRoute
+  '/pesanan/$id': typeof PesananIdRoute
+  '/studio/ai': typeof StudioAiRoute
+  '/studio/files': typeof StudioFilesRoute
+  '/studio/hosting': typeof StudioHostingRoute
+  '/studio/images': typeof StudioImagesRoute
+  '/studio/lamaran': typeof StudioLamaranRoute
+  '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/toko': typeof StudioTokoRoute
+  '/toko/$username': typeof TokoUsernameRoute
+  '/discuss/': typeof DiscussIndexRoute
+  '/jasa/': typeof JasaIndexRoute
+  '/karya/': typeof KaryaIndexRoute
+  '/lowongan/': typeof LowonganIndexRoute
+  '/pesanan/': typeof PesananIndexRoute
+  '/studio/': typeof StudioIndexRoute
+  '/$username/$repo/ai': typeof UsernameRepoAiRoute
+  '/$username/$repo/commits': typeof UsernameRepoCommitsRoute
+  '/$username/$repo/new': typeof UsernameRepoNewRoute
+  '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
+  '/studio/jasa/$id': typeof StudioJasaIdRoute
+  '/studio/karya/$id': typeof StudioKaryaIdRoute
+  '/$username/$repo/': typeof UsernameRepoIndexRoute
+  '/studio/jasa/': typeof StudioJasaIndexRoute
+  '/studio/karya/': typeof StudioKaryaIndexRoute
+  '/$username/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
+  '/$username/$repo/commit/$id': typeof UsernameRepoCommitIdRoute
+  '/$username/$repo/edit/$': typeof UsernameRepoEditSplatRoute
+  '/$username/$repo/issues/$number': typeof UsernameRepoIssuesNumberRoute
+  '/$username/$repo/issues/new': typeof UsernameRepoIssuesNewRoute
+  '/$username/$repo/pulls/$number': typeof UsernameRepoPullsNumberRoute
+  '/$username/$repo/pulls/new': typeof UsernameRepoPullsNewRoute
+  '/$username/$repo/tree/$': typeof UsernameRepoTreeSplatRoute
+  '/api/oauth/github/return': typeof ApiOauthGithubReturnRoute
+  '/$username/$repo/issues/': typeof UsernameRepoIssuesIndexRoute
+  '/$username/$repo/pulls/': typeof UsernameRepoPullsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$username': typeof UsernameRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
+  '/import': typeof ImportRoute
+  '/katalog': typeof KatalogRoute
+  '/new': typeof NewRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/discuss/$id': typeof DiscussIdRoute
+  '/f/$slug': typeof FSlugRoute
+  '/jasa/$id': typeof JasaIdRoute
+  '/karya/$id': typeof KaryaIdRoute
+  '/lowongan/$id': typeof LowonganIdRoute
+  '/lowongan/baru': typeof LowonganBaruRoute
+  '/pesanan/$id': typeof PesananIdRoute
+  '/studio/ai': typeof StudioAiRoute
+  '/studio/files': typeof StudioFilesRoute
+  '/studio/hosting': typeof StudioHostingRoute
+  '/studio/images': typeof StudioImagesRoute
+  '/studio/lamaran': typeof StudioLamaranRoute
+  '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/toko': typeof StudioTokoRoute
+  '/toko/$username': typeof TokoUsernameRoute
+  '/discuss': typeof DiscussIndexRoute
+  '/jasa': typeof JasaIndexRoute
+  '/karya': typeof KaryaIndexRoute
+  '/lowongan': typeof LowonganIndexRoute
+  '/pesanan': typeof PesananIndexRoute
+  '/studio': typeof StudioIndexRoute
+  '/$username/$repo/ai': typeof UsernameRepoAiRoute
+  '/$username/$repo/commits': typeof UsernameRepoCommitsRoute
+  '/$username/$repo/new': typeof UsernameRepoNewRoute
+  '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
+  '/studio/jasa/$id': typeof StudioJasaIdRoute
+  '/studio/karya/$id': typeof StudioKaryaIdRoute
+  '/$username/$repo': typeof UsernameRepoIndexRoute
+  '/studio/jasa': typeof StudioJasaIndexRoute
+  '/studio/karya': typeof StudioKaryaIndexRoute
+  '/$username/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
+  '/$username/$repo/commit/$id': typeof UsernameRepoCommitIdRoute
+  '/$username/$repo/edit/$': typeof UsernameRepoEditSplatRoute
+  '/$username/$repo/issues/$number': typeof UsernameRepoIssuesNumberRoute
+  '/$username/$repo/issues/new': typeof UsernameRepoIssuesNewRoute
+  '/$username/$repo/pulls/$number': typeof UsernameRepoPullsNumberRoute
+  '/$username/$repo/pulls/new': typeof UsernameRepoPullsNewRoute
+  '/$username/$repo/tree/$': typeof UsernameRepoTreeSplatRoute
+  '/api/oauth/github/return': typeof ApiOauthGithubReturnRoute
+  '/$username/$repo/issues': typeof UsernameRepoIssuesIndexRoute
+  '/$username/$repo/pulls': typeof UsernameRepoPullsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$username': typeof UsernameRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
+  '/import': typeof ImportRoute
+  '/katalog': typeof KatalogRoute
+  '/new': typeof NewRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/studio': typeof StudioRouteWithChildren
+  '/$username_/$repo': typeof UsernameRepoRouteWithChildren
+  '/discuss/$id': typeof DiscussIdRoute
+  '/f/$slug': typeof FSlugRoute
+  '/jasa/$id': typeof JasaIdRoute
+  '/karya/$id': typeof KaryaIdRoute
+  '/lowongan/$id': typeof LowonganIdRoute
+  '/lowongan/baru': typeof LowonganBaruRoute
+  '/pesanan/$id': typeof PesananIdRoute
+  '/studio/ai': typeof StudioAiRoute
+  '/studio/files': typeof StudioFilesRoute
+  '/studio/hosting': typeof StudioHostingRoute
+  '/studio/images': typeof StudioImagesRoute
+  '/studio/lamaran': typeof StudioLamaranRoute
+  '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/toko': typeof StudioTokoRoute
+  '/toko/$username': typeof TokoUsernameRoute
+  '/discuss/': typeof DiscussIndexRoute
+  '/jasa/': typeof JasaIndexRoute
+  '/karya/': typeof KaryaIndexRoute
+  '/lowongan/': typeof LowonganIndexRoute
+  '/pesanan/': typeof PesananIndexRoute
+  '/studio/': typeof StudioIndexRoute
+  '/$username_/$repo/ai': typeof UsernameRepoAiRoute
+  '/$username_/$repo/commits': typeof UsernameRepoCommitsRoute
+  '/$username_/$repo/new': typeof UsernameRepoNewRoute
+  '/$username_/$repo/settings': typeof UsernameRepoSettingsRoute
+  '/studio/jasa/$id': typeof StudioJasaIdRoute
+  '/studio/karya/$id': typeof StudioKaryaIdRoute
+  '/$username_/$repo/': typeof UsernameRepoIndexRoute
+  '/studio/jasa/': typeof StudioJasaIndexRoute
+  '/studio/karya/': typeof StudioKaryaIndexRoute
+  '/$username_/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
+  '/$username_/$repo/commit/$id': typeof UsernameRepoCommitIdRoute
+  '/$username_/$repo/edit/$': typeof UsernameRepoEditSplatRoute
+  '/$username_/$repo/issues/$number': typeof UsernameRepoIssuesNumberRoute
+  '/$username_/$repo/issues/new': typeof UsernameRepoIssuesNewRoute
+  '/$username_/$repo/pulls/$number': typeof UsernameRepoPullsNumberRoute
+  '/$username_/$repo/pulls/new': typeof UsernameRepoPullsNewRoute
+  '/$username_/$repo/tree/$': typeof UsernameRepoTreeSplatRoute
+  '/api/oauth/github/return': typeof ApiOauthGithubReturnRoute
+  '/$username_/$repo/issues/': typeof UsernameRepoIssuesIndexRoute
+  '/$username_/$repo/pulls/': typeof UsernameRepoPullsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$username'
+    | '/admin'
+    | '/auth'
+    | '/dashboard'
+    | '/explore'
+    | '/import'
+    | '/katalog'
+    | '/new'
+    | '/reset-password'
+    | '/search'
+    | '/settings'
+    | '/studio'
+    | '/$username/$repo'
+    | '/discuss/$id'
+    | '/f/$slug'
+    | '/jasa/$id'
+    | '/karya/$id'
+    | '/lowongan/$id'
+    | '/lowongan/baru'
+    | '/pesanan/$id'
+    | '/studio/ai'
+    | '/studio/files'
+    | '/studio/hosting'
+    | '/studio/images'
+    | '/studio/lamaran'
+    | '/studio/portofolio'
+    | '/studio/toko'
+    | '/toko/$username'
+    | '/discuss/'
+    | '/jasa/'
+    | '/karya/'
+    | '/lowongan/'
+    | '/pesanan/'
+    | '/studio/'
+    | '/$username/$repo/ai'
+    | '/$username/$repo/commits'
+    | '/$username/$repo/new'
+    | '/$username/$repo/settings'
+    | '/studio/jasa/$id'
+    | '/studio/karya/$id'
+    | '/$username/$repo/'
+    | '/studio/jasa/'
+    | '/studio/karya/'
+    | '/$username/$repo/blob/$'
+    | '/$username/$repo/commit/$id'
+    | '/$username/$repo/edit/$'
+    | '/$username/$repo/issues/$number'
+    | '/$username/$repo/issues/new'
+    | '/$username/$repo/pulls/$number'
+    | '/$username/$repo/pulls/new'
+    | '/$username/$repo/tree/$'
+    | '/api/oauth/github/return'
+    | '/$username/$repo/issues/'
+    | '/$username/$repo/pulls/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$username'
+    | '/admin'
+    | '/auth'
+    | '/dashboard'
+    | '/explore'
+    | '/import'
+    | '/katalog'
+    | '/new'
+    | '/reset-password'
+    | '/search'
+    | '/settings'
+    | '/discuss/$id'
+    | '/f/$slug'
+    | '/jasa/$id'
+    | '/karya/$id'
+    | '/lowongan/$id'
+    | '/lowongan/baru'
+    | '/pesanan/$id'
+    | '/studio/ai'
+    | '/studio/files'
+    | '/studio/hosting'
+    | '/studio/images'
+    | '/studio/lamaran'
+    | '/studio/portofolio'
+    | '/studio/toko'
+    | '/toko/$username'
+    | '/discuss'
+    | '/jasa'
+    | '/karya'
+    | '/lowongan'
+    | '/pesanan'
+    | '/studio'
+    | '/$username/$repo/ai'
+    | '/$username/$repo/commits'
+    | '/$username/$repo/new'
+    | '/$username/$repo/settings'
+    | '/studio/jasa/$id'
+    | '/studio/karya/$id'
+    | '/$username/$repo'
+    | '/studio/jasa'
+    | '/studio/karya'
+    | '/$username/$repo/blob/$'
+    | '/$username/$repo/commit/$id'
+    | '/$username/$repo/edit/$'
+    | '/$username/$repo/issues/$number'
+    | '/$username/$repo/issues/new'
+    | '/$username/$repo/pulls/$number'
+    | '/$username/$repo/pulls/new'
+    | '/$username/$repo/tree/$'
+    | '/api/oauth/github/return'
+    | '/$username/$repo/issues'
+    | '/$username/$repo/pulls'
+  id:
+    | '__root__'
+    | '/'
+    | '/$username'
+    | '/admin'
+    | '/auth'
+    | '/dashboard'
+    | '/explore'
+    | '/import'
+    | '/katalog'
+    | '/new'
+    | '/reset-password'
+    | '/search'
+    | '/settings'
+    | '/studio'
+    | '/$username_/$repo'
+    | '/discuss/$id'
+    | '/f/$slug'
+    | '/jasa/$id'
+    | '/karya/$id'
+    | '/lowongan/$id'
+    | '/lowongan/baru'
+    | '/pesanan/$id'
+    | '/studio/ai'
+    | '/studio/files'
+    | '/studio/hosting'
+    | '/studio/images'
+    | '/studio/lamaran'
+    | '/studio/portofolio'
+    | '/studio/toko'
+    | '/toko/$username'
+    | '/discuss/'
+    | '/jasa/'
+    | '/karya/'
+    | '/lowongan/'
+    | '/pesanan/'
+    | '/studio/'
+    | '/$username_/$repo/ai'
+    | '/$username_/$repo/commits'
+    | '/$username_/$repo/new'
+    | '/$username_/$repo/settings'
+    | '/studio/jasa/$id'
+    | '/studio/karya/$id'
+    | '/$username_/$repo/'
+    | '/studio/jasa/'
+    | '/studio/karya/'
+    | '/$username_/$repo/blob/$'
+    | '/$username_/$repo/commit/$id'
+    | '/$username_/$repo/edit/$'
+    | '/$username_/$repo/issues/$number'
+    | '/$username_/$repo/issues/new'
+    | '/$username_/$repo/pulls/$number'
+    | '/$username_/$repo/pulls/new'
+    | '/$username_/$repo/tree/$'
+    | '/api/oauth/github/return'
+    | '/$username_/$repo/issues/'
+    | '/$username_/$repo/pulls/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  UsernameRoute: typeof UsernameRoute
+  AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
+  ExploreRoute: typeof ExploreRoute
+  ImportRoute: typeof ImportRoute
+  KatalogRoute: typeof KatalogRoute
+  NewRoute: typeof NewRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
+  StudioRoute: typeof StudioRouteWithChildren
+  UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
+  DiscussIdRoute: typeof DiscussIdRoute
+  FSlugRoute: typeof FSlugRoute
+  JasaIdRoute: typeof JasaIdRoute
+  KaryaIdRoute: typeof KaryaIdRoute
+  LowonganIdRoute: typeof LowonganIdRoute
+  LowonganBaruRoute: typeof LowonganBaruRoute
+  PesananIdRoute: typeof PesananIdRoute
+  TokoUsernameRoute: typeof TokoUsernameRoute
+  DiscussIndexRoute: typeof DiscussIndexRoute
+  JasaIndexRoute: typeof JasaIndexRoute
+  KaryaIndexRoute: typeof KaryaIndexRoute
+  LowonganIndexRoute: typeof LowonganIndexRoute
+  PesananIndexRoute: typeof PesananIndexRoute
+  ApiOauthGithubReturnRoute: typeof ApiOauthGithubReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +724,489 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$username': {
+      id: '/$username'
+      path: '/$username'
+      fullPath: '/$username'
+      preLoaderRoute: typeof UsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/katalog': {
+      id: '/katalog'
+      path: '/katalog'
+      fullPath: '/katalog'
+      preLoaderRoute: typeof KatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new': {
+      id: '/new'
+      path: '/new'
+      fullPath: '/new'
+      preLoaderRoute: typeof NewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$username_/$repo': {
+      id: '/$username_/$repo'
+      path: '/$username/$repo'
+      fullPath: '/$username/$repo'
+      preLoaderRoute: typeof UsernameRepoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discuss/': {
+      id: '/discuss/'
+      path: '/discuss'
+      fullPath: '/discuss/'
+      preLoaderRoute: typeof DiscussIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discuss/$id': {
+      id: '/discuss/$id'
+      path: '/discuss/$id'
+      fullPath: '/discuss/$id'
+      preLoaderRoute: typeof DiscussIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$slug': {
+      id: '/f/$slug'
+      path: '/f/$slug'
+      fullPath: '/f/$slug'
+      preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jasa/': {
+      id: '/jasa/'
+      path: '/jasa'
+      fullPath: '/jasa/'
+      preLoaderRoute: typeof JasaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jasa/$id': {
+      id: '/jasa/$id'
+      path: '/jasa/$id'
+      fullPath: '/jasa/$id'
+      preLoaderRoute: typeof JasaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/karya/': {
+      id: '/karya/'
+      path: '/karya'
+      fullPath: '/karya/'
+      preLoaderRoute: typeof KaryaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/karya/$id': {
+      id: '/karya/$id'
+      path: '/karya/$id'
+      fullPath: '/karya/$id'
+      preLoaderRoute: typeof KaryaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lowongan/': {
+      id: '/lowongan/'
+      path: '/lowongan'
+      fullPath: '/lowongan/'
+      preLoaderRoute: typeof LowonganIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lowongan/$id': {
+      id: '/lowongan/$id'
+      path: '/lowongan/$id'
+      fullPath: '/lowongan/$id'
+      preLoaderRoute: typeof LowonganIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lowongan/baru': {
+      id: '/lowongan/baru'
+      path: '/lowongan/baru'
+      fullPath: '/lowongan/baru'
+      preLoaderRoute: typeof LowonganBaruRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pesanan/': {
+      id: '/pesanan/'
+      path: '/pesanan'
+      fullPath: '/pesanan/'
+      preLoaderRoute: typeof PesananIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pesanan/$id': {
+      id: '/pesanan/$id'
+      path: '/pesanan/$id'
+      fullPath: '/pesanan/$id'
+      preLoaderRoute: typeof PesananIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/': {
+      id: '/studio/'
+      path: '/'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/ai': {
+      id: '/studio/ai'
+      path: '/ai'
+      fullPath: '/studio/ai'
+      preLoaderRoute: typeof StudioAiRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/files': {
+      id: '/studio/files'
+      path: '/files'
+      fullPath: '/studio/files'
+      preLoaderRoute: typeof StudioFilesRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/hosting': {
+      id: '/studio/hosting'
+      path: '/hosting'
+      fullPath: '/studio/hosting'
+      preLoaderRoute: typeof StudioHostingRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/images': {
+      id: '/studio/images'
+      path: '/images'
+      fullPath: '/studio/images'
+      preLoaderRoute: typeof StudioImagesRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/lamaran': {
+      id: '/studio/lamaran'
+      path: '/lamaran'
+      fullPath: '/studio/lamaran'
+      preLoaderRoute: typeof StudioLamaranRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/portofolio': {
+      id: '/studio/portofolio'
+      path: '/portofolio'
+      fullPath: '/studio/portofolio'
+      preLoaderRoute: typeof StudioPortofolioRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/toko': {
+      id: '/studio/toko'
+      path: '/toko'
+      fullPath: '/studio/toko'
+      preLoaderRoute: typeof StudioTokoRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/toko/$username': {
+      id: '/toko/$username'
+      path: '/toko/$username'
+      fullPath: '/toko/$username'
+      preLoaderRoute: typeof TokoUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$username_/$repo/': {
+      id: '/$username_/$repo/'
+      path: '/'
+      fullPath: '/$username/$repo/'
+      preLoaderRoute: typeof UsernameRepoIndexRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/ai': {
+      id: '/$username_/$repo/ai'
+      path: '/ai'
+      fullPath: '/$username/$repo/ai'
+      preLoaderRoute: typeof UsernameRepoAiRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/commits': {
+      id: '/$username_/$repo/commits'
+      path: '/commits'
+      fullPath: '/$username/$repo/commits'
+      preLoaderRoute: typeof UsernameRepoCommitsRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/new': {
+      id: '/$username_/$repo/new'
+      path: '/new'
+      fullPath: '/$username/$repo/new'
+      preLoaderRoute: typeof UsernameRepoNewRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/settings': {
+      id: '/$username_/$repo/settings'
+      path: '/settings'
+      fullPath: '/$username/$repo/settings'
+      preLoaderRoute: typeof UsernameRepoSettingsRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/studio/jasa/': {
+      id: '/studio/jasa/'
+      path: '/jasa'
+      fullPath: '/studio/jasa/'
+      preLoaderRoute: typeof StudioJasaIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/jasa/$id': {
+      id: '/studio/jasa/$id'
+      path: '/jasa/$id'
+      fullPath: '/studio/jasa/$id'
+      preLoaderRoute: typeof StudioJasaIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/karya/': {
+      id: '/studio/karya/'
+      path: '/karya'
+      fullPath: '/studio/karya/'
+      preLoaderRoute: typeof StudioKaryaIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/karya/$id': {
+      id: '/studio/karya/$id'
+      path: '/karya/$id'
+      fullPath: '/studio/karya/$id'
+      preLoaderRoute: typeof StudioKaryaIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/$username_/$repo/blob/$': {
+      id: '/$username_/$repo/blob/$'
+      path: '/blob/$'
+      fullPath: '/$username/$repo/blob/$'
+      preLoaderRoute: typeof UsernameRepoBlobSplatRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/commit/$id': {
+      id: '/$username_/$repo/commit/$id'
+      path: '/commit/$id'
+      fullPath: '/$username/$repo/commit/$id'
+      preLoaderRoute: typeof UsernameRepoCommitIdRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/edit/$': {
+      id: '/$username_/$repo/edit/$'
+      path: '/edit/$'
+      fullPath: '/$username/$repo/edit/$'
+      preLoaderRoute: typeof UsernameRepoEditSplatRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/issues/': {
+      id: '/$username_/$repo/issues/'
+      path: '/issues'
+      fullPath: '/$username/$repo/issues/'
+      preLoaderRoute: typeof UsernameRepoIssuesIndexRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/issues/$number': {
+      id: '/$username_/$repo/issues/$number'
+      path: '/issues/$number'
+      fullPath: '/$username/$repo/issues/$number'
+      preLoaderRoute: typeof UsernameRepoIssuesNumberRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/issues/new': {
+      id: '/$username_/$repo/issues/new'
+      path: '/issues/new'
+      fullPath: '/$username/$repo/issues/new'
+      preLoaderRoute: typeof UsernameRepoIssuesNewRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/pulls/': {
+      id: '/$username_/$repo/pulls/'
+      path: '/pulls'
+      fullPath: '/$username/$repo/pulls/'
+      preLoaderRoute: typeof UsernameRepoPullsIndexRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/pulls/$number': {
+      id: '/$username_/$repo/pulls/$number'
+      path: '/pulls/$number'
+      fullPath: '/$username/$repo/pulls/$number'
+      preLoaderRoute: typeof UsernameRepoPullsNumberRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/pulls/new': {
+      id: '/$username_/$repo/pulls/new'
+      path: '/pulls/new'
+      fullPath: '/$username/$repo/pulls/new'
+      preLoaderRoute: typeof UsernameRepoPullsNewRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/$username_/$repo/tree/$': {
+      id: '/$username_/$repo/tree/$'
+      path: '/tree/$'
+      fullPath: '/$username/$repo/tree/$'
+      preLoaderRoute: typeof UsernameRepoTreeSplatRouteImport
+      parentRoute: typeof UsernameRepoRoute
+    }
+    '/api/oauth/github/return': {
+      id: '/api/oauth/github/return'
+      path: '/api/oauth/github/return'
+      fullPath: '/api/oauth/github/return'
+      preLoaderRoute: typeof ApiOauthGithubReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface StudioRouteChildren {
+  StudioAiRoute: typeof StudioAiRoute
+  StudioFilesRoute: typeof StudioFilesRoute
+  StudioHostingRoute: typeof StudioHostingRoute
+  StudioImagesRoute: typeof StudioImagesRoute
+  StudioLamaranRoute: typeof StudioLamaranRoute
+  StudioPortofolioRoute: typeof StudioPortofolioRoute
+  StudioTokoRoute: typeof StudioTokoRoute
+  StudioIndexRoute: typeof StudioIndexRoute
+  StudioJasaIdRoute: typeof StudioJasaIdRoute
+  StudioKaryaIdRoute: typeof StudioKaryaIdRoute
+  StudioJasaIndexRoute: typeof StudioJasaIndexRoute
+  StudioKaryaIndexRoute: typeof StudioKaryaIndexRoute
+}
+
+const StudioRouteChildren: StudioRouteChildren = {
+  StudioAiRoute: StudioAiRoute,
+  StudioFilesRoute: StudioFilesRoute,
+  StudioHostingRoute: StudioHostingRoute,
+  StudioImagesRoute: StudioImagesRoute,
+  StudioLamaranRoute: StudioLamaranRoute,
+  StudioPortofolioRoute: StudioPortofolioRoute,
+  StudioTokoRoute: StudioTokoRoute,
+  StudioIndexRoute: StudioIndexRoute,
+  StudioJasaIdRoute: StudioJasaIdRoute,
+  StudioKaryaIdRoute: StudioKaryaIdRoute,
+  StudioJasaIndexRoute: StudioJasaIndexRoute,
+  StudioKaryaIndexRoute: StudioKaryaIndexRoute,
+}
+
+const StudioRouteWithChildren =
+  StudioRoute._addFileChildren(StudioRouteChildren)
+
+interface UsernameRepoRouteChildren {
+  UsernameRepoAiRoute: typeof UsernameRepoAiRoute
+  UsernameRepoCommitsRoute: typeof UsernameRepoCommitsRoute
+  UsernameRepoNewRoute: typeof UsernameRepoNewRoute
+  UsernameRepoSettingsRoute: typeof UsernameRepoSettingsRoute
+  UsernameRepoIndexRoute: typeof UsernameRepoIndexRoute
+  UsernameRepoBlobSplatRoute: typeof UsernameRepoBlobSplatRoute
+  UsernameRepoCommitIdRoute: typeof UsernameRepoCommitIdRoute
+  UsernameRepoEditSplatRoute: typeof UsernameRepoEditSplatRoute
+  UsernameRepoIssuesNumberRoute: typeof UsernameRepoIssuesNumberRoute
+  UsernameRepoIssuesNewRoute: typeof UsernameRepoIssuesNewRoute
+  UsernameRepoPullsNumberRoute: typeof UsernameRepoPullsNumberRoute
+  UsernameRepoPullsNewRoute: typeof UsernameRepoPullsNewRoute
+  UsernameRepoTreeSplatRoute: typeof UsernameRepoTreeSplatRoute
+  UsernameRepoIssuesIndexRoute: typeof UsernameRepoIssuesIndexRoute
+  UsernameRepoPullsIndexRoute: typeof UsernameRepoPullsIndexRoute
+}
+
+const UsernameRepoRouteChildren: UsernameRepoRouteChildren = {
+  UsernameRepoAiRoute: UsernameRepoAiRoute,
+  UsernameRepoCommitsRoute: UsernameRepoCommitsRoute,
+  UsernameRepoNewRoute: UsernameRepoNewRoute,
+  UsernameRepoSettingsRoute: UsernameRepoSettingsRoute,
+  UsernameRepoIndexRoute: UsernameRepoIndexRoute,
+  UsernameRepoBlobSplatRoute: UsernameRepoBlobSplatRoute,
+  UsernameRepoCommitIdRoute: UsernameRepoCommitIdRoute,
+  UsernameRepoEditSplatRoute: UsernameRepoEditSplatRoute,
+  UsernameRepoIssuesNumberRoute: UsernameRepoIssuesNumberRoute,
+  UsernameRepoIssuesNewRoute: UsernameRepoIssuesNewRoute,
+  UsernameRepoPullsNumberRoute: UsernameRepoPullsNumberRoute,
+  UsernameRepoPullsNewRoute: UsernameRepoPullsNewRoute,
+  UsernameRepoTreeSplatRoute: UsernameRepoTreeSplatRoute,
+  UsernameRepoIssuesIndexRoute: UsernameRepoIssuesIndexRoute,
+  UsernameRepoPullsIndexRoute: UsernameRepoPullsIndexRoute,
+}
+
+const UsernameRepoRouteWithChildren = UsernameRepoRoute._addFileChildren(
+  UsernameRepoRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  UsernameRoute: UsernameRoute,
+  AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
+  ExploreRoute: ExploreRoute,
+  ImportRoute: ImportRoute,
+  KatalogRoute: KatalogRoute,
+  NewRoute: NewRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
+  StudioRoute: StudioRouteWithChildren,
+  UsernameRepoRoute: UsernameRepoRouteWithChildren,
+  DiscussIdRoute: DiscussIdRoute,
+  FSlugRoute: FSlugRoute,
+  JasaIdRoute: JasaIdRoute,
+  KaryaIdRoute: KaryaIdRoute,
+  LowonganIdRoute: LowonganIdRoute,
+  LowonganBaruRoute: LowonganBaruRoute,
+  PesananIdRoute: PesananIdRoute,
+  TokoUsernameRoute: TokoUsernameRoute,
+  DiscussIndexRoute: DiscussIndexRoute,
+  JasaIndexRoute: JasaIndexRoute,
+  KaryaIndexRoute: KaryaIndexRoute,
+  LowonganIndexRoute: LowonganIndexRoute,
+  PesananIndexRoute: PesananIndexRoute,
+  ApiOauthGithubReturnRoute: ApiOauthGithubReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
