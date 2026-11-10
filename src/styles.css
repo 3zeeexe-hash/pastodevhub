@@ -39,6 +39,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-merged: var(--merged);
   --color-merged-foreground: var(--merged-foreground);
   --color-star: var(--star);
@@ -89,6 +91,8 @@
   --star: oklch(0.84 0.15 85);
   --success: oklch(0.7 0.15 150);
   --success-foreground: oklch(0.16 0.03 266);
+  --warning: oklch(0.8 0.15 75);
+  --warning-foreground: oklch(0.16 0.03 266);
   --merged: oklch(0.68 0.12 245);
   --merged-foreground: oklch(0.16 0.03 266);
   --diff-add: oklch(0.7 0.15 150 / 16%);
