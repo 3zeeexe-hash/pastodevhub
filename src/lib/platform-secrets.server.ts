@@ -1,6 +1,7 @@
 // Server-only: platform settings the admin sets in the panel (GitHub OAuth app).
 // Stored in a table only the server can read; the client secret is encrypted.
 import { decryptConnectionKey, encryptConnectionKey } from "@/lib/connectionKeyCrypto.server";
+import type { FirebaseWebConfig } from "@/lib/firebase-config";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -46,7 +47,6 @@ export async function writeGithubSettings(clientId: string, clientSecret: string
 }
 
 // ---------- Firebase (Google sign-in with the owner's own Firebase project) ----------
-import type { FirebaseWebConfig } from "@/lib/firebase-config";
 
 export type FirebaseSettings = { enabled: boolean; config: FirebaseWebConfig | null; projectId: string | null; clientEmail: string | null; hasServiceAccount: boolean; updatedAt: string | null };
 
@@ -56,7 +56,7 @@ export async function readFirebaseSettings(): Promise<FirebaseSettings> {
     .select("firebase_enabled,firebase_config,firebase_project_id,firebase_client_email,firebase_service_account_ciphertext,updated_at").eq("id", 1).maybeSingle();
   return {
     enabled: !!data?.firebase_enabled,
-    config: (data?.firebase_config as FirebaseWebConfig | null) ?? null,
+    config: (data?.firebase_config as unknown as FirebaseWebConfig | null) ?? null,
     projectId: data?.firebase_project_id ?? null,
     clientEmail: data?.firebase_client_email ?? null,
     hasServiceAccount: !!data?.firebase_service_account_ciphertext,
