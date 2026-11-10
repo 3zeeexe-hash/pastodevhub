@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { BookMarked, Briefcase, Package, Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RepoCard, type RepoCardData } from "@/components/repo-card";
 import { AvatarMini } from "@/components/avatar-mini";
@@ -11,13 +11,8 @@ import { JobCard } from "@/components/job-card";
 import { JOB_SELECT, type JobCardData } from "@/lib/jobs";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { SEARCH_TYPES } from "@/lib/search-types";
 
-export const SEARCH_TYPES = [
-  ["users", "Developer", Users],
-  ["repos", "Proyek", BookMarked],
-  ["karya", "Karya", Package],
-  ["jobs", "Lowongan", Briefcase],
-] as const;
 const searchSchema = z.object({ q: z.string().catch(""), type: z.enum(["repos", "users", "karya", "jobs"]).catch("repos") });
 
 export const Route = createFileRoute("/search")({

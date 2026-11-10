@@ -11,7 +11,7 @@ import { brandMarkUrl } from "@/components/brand";
 import { JobCard } from "@/components/job-card";
 import { ProductCard, PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 import { JOB_SELECT, type JobCardData } from "@/lib/jobs";
-import { SEARCH_TYPES } from "@/routes/search";
+import { SEARCH_TYPES } from "@/lib/search-types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
