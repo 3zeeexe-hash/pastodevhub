@@ -8,6 +8,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { Markdown } from "@/components/markdown";
 import { CodeMenu } from "@/components/repo/code-menu";
 import { PathCrumbs } from "@/components/repo/path-crumbs";
+import { EmptyRepoGitHelp } from "@/components/repo/git-clone";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function CodeBrowser({ data, dir }: { data: RepoData; dir: string }) {
@@ -62,6 +63,7 @@ export function CodeBrowser({ data, dir }: { data: RepoData; dir: string }) {
                   <Button asChild size="sm" variant="outline"><Link to="/$username/$repo/new" params={{ username, repo: repo.name }} search={{ dir: "", mode: "upload" }}>Upload file</Link></Button>
                 </div>
               )}
+              {data.isOwner && <EmptyRepoGitHelp username={username} repo={repo.name} branch={repo.default_branch} />}
             </div>
           ) : (
             <table className="w-full text-sm">

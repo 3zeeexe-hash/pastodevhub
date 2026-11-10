@@ -4,6 +4,7 @@ import { Code2, Download, Github, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { RepoData } from "@/lib/repo-data";
+import { CopyLine, gitUrl } from "@/components/repo/git-clone";
 
 export function CodeMenu({ data }: { data: RepoData }) {
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,13 @@ export function CodeMenu({ data }: { data: RepoData }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild><Button size="sm"><Code2 /> Code</Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-[min(20rem,calc(100vw-1rem))]">
+        <DropdownMenuLabel>Clone lewat HTTPS</DropdownMenuLabel>
+        <div className="space-y-1 px-2 pb-2">
+          <CopyLine value={`git clone ${gitUrl(data.owner.username, data.repo.name)}`} label="perintah clone" />
+          <p className="text-[11px] text-muted-foreground">Push/pull pakai token git dari Pengaturan sebagai kata sandi.</p>
+        </div>
+        <DropdownMenuSeparator />
         <DropdownMenuLabel>Bagikan repositori</DropdownMenuLabel>
         <div className="flex gap-1 px-2 pb-2">
           <input readOnly value={url} className="flex-1 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs" aria-label="URL repositori" />
