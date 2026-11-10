@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { isFeatureOn } from "@/lib/features";
+import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
@@ -16,10 +18,10 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
-  { to: "/explore", label: "Proyek", Icon: BookMarked },
-  { to: "/katalog", label: "Katalog", Icon: LayoutGrid },
-  { to: "/lowongan", label: "Lowongan", Icon: Briefcase },
-  { to: "/discuss", label: "Diskusi", Icon: MessageSquare },
+  { to: "/explore", label: "Proyek", Icon: BookMarked, feature: null },
+  { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
+  { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
+  { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
 ] as const;
 
 export function SiteHeader() {
@@ -28,6 +30,9 @@ export function SiteHeader() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const isDev = profile?.account_type === "developer";
+  const { flags } = useSiteConfig();
+  const on = (key: Parameters<typeof isFeatureOn>[1]) => isFeatureOn(flags, key);
+  const nav = NAV.filter((n) => !n.feature || on(n.feature));
   const dashTo = isDev ? "/studio" : "/dashboard";
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); setOpen(false); navigate({ to: "/search", search: { q, type: "users" } }); };
   return (
@@ -47,7 +52,7 @@ export function SiteHeader() {
               <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent">
                 <Users className="size-4 text-primary" />Developer
               </Link>
-              {NAV.map((n) => (
+              {nav.map((n) => (
                 <Link key={n.to} to={n.to} onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent" activeProps={{ className: "bg-accent font-semibold" }}>
                   <n.Icon className="size-4 text-primary" />{n.label}
@@ -68,7 +73,7 @@ export function SiteHeader() {
         </Link>
         <nav className="ml-3 hidden items-center gap-0.5 text-sm lg:flex">
           <Link to="/search" search={{ q: "", type: "users" }} className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">Developer</Link>
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <Link key={n.to} to={n.to}
               className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" activeProps={{ className: "text-foreground" }}>{n.label}</Link>
           ))}
@@ -87,11 +92,11 @@ export function SiteHeader() {
                   <Button size="sm" variant="outline" aria-label="Buat baru"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {!isDev && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
-                  {isDev && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
-                  <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild><Link to="/discuss"><MessageSquare /> Diskusi baru</Link></DropdownMenuItem>
+                  {!isDev && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
+                  {isDev && on("karya") && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
+                  {on("repos") && <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>}
+                  {on("github") && <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>}
+                  {on("discuss") && <DropdownMenuItem asChild><Link to="/discuss"><MessageSquare /> Diskusi baru</Link></DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
@@ -111,8 +116,8 @@ export function SiteHeader() {
                   <DropdownMenuSeparator />
                   {isDev && (
                     <>
-                      <DropdownMenuItem asChild><Link to="/studio/lamaran"><Briefcase /> Lamaran saya</Link></DropdownMenuItem>
-                      <DropdownMenuItem asChild><Link to="/toko/$username" params={{ username: profile.username }}><Store /> Toko kamu</Link></DropdownMenuItem>
+                      {on("jobs") && <DropdownMenuItem asChild><Link to="/studio/lamaran"><Briefcase /> Lamaran saya</Link></DropdownMenuItem>}
+                      {on("toko") && <DropdownMenuItem asChild><Link to="/toko/$username" params={{ username: profile.username }}><Store /> Toko kamu</Link></DropdownMenuItem>}
                     </>
                   )}
                   <DropdownMenuItem asChild><Link to="/pesanan"><Receipt /> Pesanan</Link></DropdownMenuItem>
