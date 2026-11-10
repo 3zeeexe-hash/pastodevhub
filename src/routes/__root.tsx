@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -17,6 +18,8 @@ import { SiteHeader } from "@/components/site-header";
 import { AccountTypePrompt } from "@/components/account-type-prompt";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
+import { AnnouncementBar, FeatureGate } from "@/components/site-status";
+import { siteConfigQuery } from "@/lib/site-config.functions";
 
 function NotFoundComponent() {
   return (
@@ -102,6 +105,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(siteConfigQuery),
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -124,6 +128,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { pathname } = useLocation();
+  const adminArea = pathname === "/admin" || pathname.startsWith("/admin/");
   useEffect(() => {
     const onPreloadError = (e: Event) => {
       if (reloadOnceForStaleChunk()) e.preventDefault();
@@ -135,14 +141,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col bg-background font-sans">
-          <SiteHeader />
-          <div className="flex-1">
-            {/* Required: nested routes render here. */}
-            <Outlet />
+        {adminArea ? (
+          // The admin dashboard has its own full-screen shell with a sidebar.
+          <div className="min-h-screen bg-background font-sans"><Outlet /></div>
+        ) : (
+          <div className="flex min-h-screen flex-col bg-background font-sans">
+            <SiteHeader />
+            <AnnouncementBar />
+            <div className="flex-1">
+              {/* Required: nested routes render here. */}
+              <FeatureGate><Outlet /></FeatureGate>
+            </div>
+            <SiteFooter />
           </div>
-          <SiteFooter />
-        </div>
+        )}
         <AccountTypePrompt />
         <Toaster />
       </AuthProvider>

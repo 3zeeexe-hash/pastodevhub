@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           account_name: string | null
           account_number: string | null
+          announcement: string | null
+          announcement_level: string
           bank_name: string | null
           fee_percent: number
           id: number
@@ -28,6 +30,8 @@ export type Database = {
         Insert: {
           account_name?: string | null
           account_number?: string | null
+          announcement?: string | null
+          announcement_level?: string
           bank_name?: string | null
           fee_percent?: number
           id?: number
@@ -38,6 +42,8 @@ export type Database = {
         Update: {
           account_name?: string | null
           account_number?: string | null
+          announcement?: string | null
+          announcement_level?: string
           bank_name?: string | null
           fee_percent?: number
           id?: number
@@ -160,6 +166,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          enabled: boolean
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       follows: {
         Row: {
@@ -1361,6 +1388,8 @@ export type Database = {
         }[]
       }
       ensure_my_profile: { Args: never; Returns: undefined }
+      feature_allowed: { Args: { _key: string }; Returns: boolean }
+      feature_enabled: { Args: { _key: string }; Returns: boolean }
       handle_new_user_row: { Args: { u: unknown }; Returns: undefined }
       has_role: {
         Args: {

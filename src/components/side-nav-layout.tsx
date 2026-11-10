@@ -5,8 +5,10 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { isFeatureOn, type FeatureKey } from "@/lib/features";
+import { useSiteConfig } from "@/lib/use-site-config";
 
-export type NavItem = { to: string; label: string; Icon: LucideIcon; exact?: boolean; search?: Record<string, string> };
+export type NavItem = { to: string; label: string; Icon: LucideIcon; exact?: boolean; search?: Record<string, string>; feature?: FeatureKey };
 export type NavGroup = { group: string; items: NavItem[] };
 
 function isActive(pathname: string, item: NavItem) {
@@ -39,8 +41,12 @@ function NavList({ nav, pathname, onNavigate }: { nav: NavGroup[]; pathname: str
 }
 
 /** Page shell with a side menu: fixed column on desktop, slide-out drawer on phones. */
-export function SideNavLayout({ title, nav, children }: { title: string; nav: NavGroup[]; children: ReactNode }) {
+export function SideNavLayout({ title, nav: allNav, children }: { title: string; nav: NavGroup[]; children: ReactNode }) {
   const { pathname } = useLocation();
+  const { flags } = useSiteConfig();
+  const nav = allNav
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || isFeatureOn(flags, i.feature)) }))
+    .filter((g) => g.items.length > 0);
   const [open, setOpen] = useState(false);
   const current = nav.flatMap((g) => g.items).find((i) => isActive(pathname, i));
   return (

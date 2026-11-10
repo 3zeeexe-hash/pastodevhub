@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794342570044,
+      "tag": "0000_admin_feature_flags_and_moderation",
+      "breakpoints": true
+    }
+  ]
 }
