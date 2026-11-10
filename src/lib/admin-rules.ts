@@ -19,6 +19,12 @@ export function checkAdminCredentials(
   return user && pass;
 }
 
+/** True when PostgREST says the called database function does not exist (setup SQL not run yet). */
+export function isMissingFunctionError(error: { code?: string | undefined; message?: string | undefined } | null | undefined) {
+  if (!error) return false;
+  return error.code === "PGRST202" || /could not find the function|schema cache/i.test(error.message ?? "");
+}
+
 /** Internal sign-in email for the admin account (never shown to visitors). */
 export function adminEmailFor(username: string, override?: string | undefined) {
   if (override && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(override)) return override.toLowerCase();
