@@ -15,6 +15,8 @@ export const Route = createFileRoute("/f/$slug")({
       GET: async ({ params }) => {
         const slug = params.slug.toLowerCase();
         if (!SLUG_RE.test(slug)) return notFound();
+        const { data: hostingOn } = await supabase.rpc("feature_enabled", { _key: "hosting" });
+        if (hostingOn === false) return notFound();
         const { data: row } = await supabase.from("hosted_files").select("kind,name,storage_path,content_type").eq("slug", slug).maybeSingle();
         if (!row) return notFound();
         const { data: blob, error } = await supabase.storage.from("hosting").download(row.storage_path);

@@ -39,6 +39,7 @@ export const prepareAdminLogin = createServerFn({ method: "POST" })
     } else {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         email, password: accountPassword, email_confirm: true,
+        app_metadata: { pastodev_admin: true },
         user_metadata: { username: env.username.toLowerCase(), full_name: "Admin Pastodev", account_type: "client" },
       });
       if (error || !created.user) throw new Error(error?.message ?? "Gagal membuat akun admin.");

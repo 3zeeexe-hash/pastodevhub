@@ -20,8 +20,15 @@ const fullNameSchema = z.string().regex(/^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{
 
 type Db = Parameters<typeof getConnectionForUser>[0];
 
+/** Stops every GitHub call while the admin has switched the GitHub feature off. */
+async function requireGithubFeature(db: Db) {
+  const { data } = await (db as any).rpc("feature_allowed", { _key: "github" });
+  if (data === false) throw new Error("Fitur GitHub sedang dinonaktifkan admin.");
+}
+
 /** Loads the user's GitHub token once per request. */
 async function tokenFor(db: Db, userId: string) {
+  await requireGithubFeature(db);
   const conn = await getConnectionForUser(db, userId, CONNECTOR);
   if (!conn) throw new Error("GITHUB_NOT_CONNECTED");
   if (!conn.key) throw new Error("GITHUB_RECONNECT");
@@ -73,7 +80,8 @@ export const githubStatus = createServerFn({ method: "GET" })
 
 export const startGithubConnect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await requireGithubFeature(context.supabase);
     const { getGithubOAuthConfig } = await import("@/lib/platform-secrets.server");
     const cfg = await getGithubOAuthConfig();
     if (!cfg) throw new Error("Koneksi GitHub belum diatur admin. Atur Client ID & Secret di panel Admin.");

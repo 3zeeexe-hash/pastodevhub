@@ -73,6 +73,8 @@ export async function handleGit(request: Request): Promise<Response> {
     if (action === "info/refs" ? request.method !== "GET" : request.method !== "POST") return text(405, "Metode tidak didukung.");
 
     const db = await getDb();
+    const { data: gitOn } = await (db as any).rpc("feature_enabled", { _key: "git_http" });
+    if (gitOn === false) return text(503, "Git lewat terminal sedang dinonaktifkan admin Pastodev.");
     const repo = await findRepo(db, owner, name);
     const userId = await authUser(request, db);
     if (userId === "bad") return unauthorized();
