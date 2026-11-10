@@ -18,6 +18,16 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+// Git smart HTTP (clone/pull/push from the terminal) lives at /<user>/<repo>.git/...
+const GIT_PATH = /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?(?:\.git)?\/(info\/refs|git-upload-pack|git-receive-pack)$/;
+const gitMiddleware = createMiddleware().server(async ({ next, request }) => {
+  if (GIT_PATH.test(new URL(request.url).pathname)) {
+    const { handleGit } = await import("./lib/git/http.server");
+    return handleGit(request);
+  }
+  return next();
+});
+
 // Start installs this automatically when src/start.ts is absent; defining the
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests.
@@ -33,5 +43,5 @@ const csrfMiddleware = createCsrfMiddleware({
 // project did not intentionally replace it.
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [gitMiddleware, errorMiddleware, csrfMiddleware],
 }));
