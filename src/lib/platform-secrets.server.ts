@@ -44,3 +44,39 @@ export async function writeGithubSettings(clientId: string, clientSecret: string
   const { error } = await db.from("platform_secrets").upsert(row as never);
   if (error) throw new Error(error.message);
 }
+
+// ---------- Firebase (Google sign-in with the owner's own Firebase project) ----------
+import type { FirebaseWebConfig } from "@/lib/firebase-config";
+
+export type FirebaseSettings = { enabled: boolean; config: FirebaseWebConfig | null; projectId: string | null; clientEmail: string | null; hasServiceAccount: boolean; updatedAt: string | null };
+
+export async function readFirebaseSettings(): Promise<FirebaseSettings> {
+  const db = await admin();
+  const { data } = await db.from("platform_secrets")
+    .select("firebase_enabled,firebase_config,firebase_project_id,firebase_client_email,firebase_service_account_ciphertext,updated_at").eq("id", 1).maybeSingle();
+  return {
+    enabled: !!data?.firebase_enabled,
+    config: (data?.firebase_config as FirebaseWebConfig | null) ?? null,
+    projectId: data?.firebase_project_id ?? null,
+    clientEmail: data?.firebase_client_email ?? null,
+    hasServiceAccount: !!data?.firebase_service_account_ciphertext,
+    updatedAt: data?.updated_at ?? null,
+  };
+}
+
+export async function writeFirebaseSettings(input: { enabled: boolean; config: FirebaseWebConfig | null; serviceAccount: { json: string; clientEmail: string } | null; clear: boolean }) {
+  const db = await admin();
+  const row: Record<string, unknown> = { id: 1, updated_at: new Date().toISOString() };
+  if (input.clear) {
+    Object.assign(row, { firebase_enabled: false, firebase_config: null, firebase_project_id: null, firebase_client_email: null, firebase_service_account_ciphertext: null });
+  } else {
+    row["firebase_enabled"] = input.enabled;
+    if (input.config) { row["firebase_config"] = input.config; row["firebase_project_id"] = input.config.projectId; }
+    if (input.serviceAccount) {
+      row["firebase_service_account_ciphertext"] = encryptConnectionKey(input.serviceAccount.json);
+      row["firebase_client_email"] = input.serviceAccount.clientEmail;
+    }
+  }
+  const { error } = await db.from("platform_secrets").upsert(row as never);
+  if (error) throw new Error(error.message);
+}

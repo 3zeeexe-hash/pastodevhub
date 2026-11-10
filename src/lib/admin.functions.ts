@@ -83,3 +83,50 @@ export const saveAdminGithubSettings = createServerFn({ method: "POST" })
     await writeGithubSettings(data.clientId, data.clientSecret || null);
     return { ok: true };
   });
+
+export const getAdminFirebaseSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { readFirebaseSettings } = await import("@/lib/platform-secrets.server");
+    const request = getRequest();
+    let origin = "";
+    if (request) {
+      const url = new URL(request.url);
+      const sandboxHost = url.hostname === "localhost" ? request.headers.get("x-forwarded-host") : null;
+      origin = sandboxHost ?? url.host;
+    }
+    return { ...(await readFirebaseSettings()), siteDomain: origin };
+  });
+
+export const saveAdminFirebaseSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { enabled: boolean; configText: string; serviceAccountJson: string; clear?: boolean | undefined }) =>
+    z.object({
+      enabled: z.boolean(),
+      configText: z.string().max(5000),
+      serviceAccountJson: z.string().max(20000),
+      clear: z.boolean().optional(),
+    }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { parseFirebaseConfig, parseServiceAccount } = await import("@/lib/firebase-config");
+    const { readFirebaseSettings, writeFirebaseSettings } = await import("@/lib/platform-secrets.server");
+    if (data.clear) {
+      await writeFirebaseSettings({ enabled: false, config: null, serviceAccount: null, clear: true });
+      return { ok: true };
+    }
+    const current = await readFirebaseSettings();
+    const config = data.configText.trim() ? parseFirebaseConfig(data.configText) : null;
+    const sa = data.serviceAccountJson.trim() ? parseServiceAccount(data.serviceAccountJson) : null;
+    const projectId = config?.projectId ?? current.projectId;
+    if (sa && projectId && sa.projectId !== projectId) throw new Error(`Service account milik project "${sa.projectId}", tapi config web milik "${projectId}".`);
+    if (data.enabled && !(config ?? current.config)) throw new Error("Isi config Firebase dulu sebelum mengaktifkan.");
+    await writeFirebaseSettings({
+      enabled: data.enabled,
+      config,
+      serviceAccount: sa ? { json: data.serviceAccountJson.trim(), clientEmail: sa.clientEmail } : null,
+      clear: false,
+    });
+    return { ok: true };
+  });
