@@ -1,7 +1,7 @@
 // Pure SEO helpers: page meta + structured data for Google (safe on server and client).
 
 export const SITE_NAME = "Pastodev";
-export type SeoInfo = { title: string; description: string; image?: string | undefined; type: "website" | "article" | "product" | "profile"; jsonLd?: Record<string, unknown> | undefined; noindex?: boolean };
+export type SeoInfo = { title: string; description: string; image?: string | undefined; type: "website" | "article" | "product" | "profile"; /** Pre-serialized JSON-LD. */ jsonLd?: string | undefined; noindex?: boolean | undefined };
 
 /** Plain-text summary for meta descriptions: strips markdown/HTML and cuts at ~155 chars on a word. */
 export function summarize(text: string | null | undefined, max = 155) {
@@ -41,7 +41,7 @@ export function seoHead(info: SeoInfo | null | undefined, fallback: { title: str
   return {
     meta,
     links: path ? [{ rel: "canonical", href: path }] : [],
-    scripts: info?.jsonLd ? [{ type: "application/ld+json", children: JSON.stringify(info.jsonLd) }] : [],
+    scripts: info?.jsonLd ? [{ type: "application/ld+json", children: info.jsonLd }] : [],
   };
 }
 

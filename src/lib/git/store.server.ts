@@ -237,7 +237,7 @@ export async function applyPush(db: Db, repo: RepoInfo, userId: string, oldHead:
   }
 
   // History rows: the head commit carries the full diff, older ones list changed paths.
-  const headChanges = [
+  const headChanges: { path: string; type: string; before?: string | undefined; after?: string | undefined }[] = [
     ...upserts.map((u) => ({ path: u.path, type: u.before === undefined ? "add" : "modify", before: u.before, after: u.content })),
     ...deletes.map((p) => ({ path: p, type: "delete", before: current.get(p) })),
   ];
