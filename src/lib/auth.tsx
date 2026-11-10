@@ -19,8 +19,8 @@ export type Profile = {
   links: unknown;
   available_for_hire: boolean;
 };
-type Ctx = { user: User | null; profile: Profile | null; loading: boolean; isAdmin: boolean };
-const AuthCtx = createContext<Ctx>({ user: null, profile: null, loading: true, isAdmin: false });
+type Ctx = { user: User | null; profile: Profile | null; loading: boolean; isAdmin: boolean; adminLoading: boolean };
+const AuthCtx = createContext<Ctx>({ user: null, profile: null, loading: true, isAdmin: false, adminLoading: false });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return (again.data ?? null) as Profile | null;
     },
   });
-  const { data: isAdmin } = useQuery({
+  const { data: isAdmin, isPending: adminPending } = useQuery({
     queryKey: ["me-admin", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return !!data;
     },
   });
-  return <AuthCtx.Provider value={{ user, profile: profile ?? null, loading, isAdmin: !!isAdmin }}>{children}</AuthCtx.Provider>;
+  return <AuthCtx.Provider value={{ user, profile: profile ?? null, loading, isAdmin: !!isAdmin, adminLoading: !!user && adminPending }}>{children}</AuthCtx.Provider>;
 }
 export const useAuth = () => useContext(AuthCtx);
 

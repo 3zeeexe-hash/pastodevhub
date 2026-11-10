@@ -31,7 +31,7 @@ export const Route = createFileRoute("/admin")({
 type Settings = { bank_name: string; account_number: string; account_name: string; qris_url: string; payment_instructions: string; fee_percent: string };
 
 function AdminPage() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, adminLoading } = useAuth();
   const qc = useQueryClient();
   const [f, setF] = useState<Settings>({ bank_name: "", account_number: "", account_name: "", qris_url: "", payment_instructions: "", fee_percent: "10" });
   const [busy, setBusy] = useState(false);
@@ -52,7 +52,7 @@ function AdminPage() {
     if (s) setF({ bank_name: s.bank_name ?? "", account_number: s.account_number ?? "", account_name: s.account_name ?? "", qris_url: s.qris_url ?? "", payment_instructions: s.payment_instructions ?? "", fee_percent: String(s.fee_percent ?? 10) });
   }, [data?.settings?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (loading || adminLoading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
   if (!isAdmin) return <AdminLogin signedInAs={user ? (user.email ?? "akun lain") : null} />;
 
   async function saveSettings(e: React.FormEvent) {
