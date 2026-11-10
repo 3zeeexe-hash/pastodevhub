@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Bot, Briefcase, Search, FileCode2, FolderKanban, Images, LayoutDashboard, Package, Receipt, Settings, Share2, Store, Wrench } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
+import { SideNavLayout } from "@/components/side-nav-layout";
+import { DEV_NAV } from "@/components/side-navs";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -19,29 +21,7 @@ export const Route = createFileRoute("/studio")({
   component: StudioLayout,
 });
 
-const NAV = [
-  { group: "Jualan", items: [
-    { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
-    { to: "/studio/karya", label: "Karya", Icon: Package },
-    { to: "/studio/jasa", label: "Jasa", Icon: Wrench },
-    { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban },
-    { to: "/pesanan", label: "Pesanan", Icon: Receipt },
-  ] },
-  { group: "Freelance", items: [
-    { to: "/lowongan", label: "Cari lowongan", Icon: Search },
-    { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase },
-  ] },
-  { group: "Tools", items: [
-    { to: "/studio/hosting", label: "Hosting HTML", Icon: FileCode2 },
-    { to: "/studio/files", label: "Berbagi file", Icon: Share2 },
-    { to: "/studio/images", label: "Cloud gambar", Icon: Images },
-    { to: "/studio/toko", label: "Toko saya", Icon: Store },
-    { to: "/studio/ai", label: "AI untuk repo", Icon: Bot },
-  ] },
-  { group: "Akun", items: [
-    { to: "/settings", label: "Pengaturan", Icon: Settings },
-  ] },
-] as const;
+
 
 function StudioLayout() {
   const { user, profile, loading } = useAuth();
@@ -58,24 +38,8 @@ function StudioLayout() {
     );
   }
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[220px_1fr]">
-      <aside className="md:sticky md:top-20 md:self-start">
-        <nav className="flex gap-1 overflow-x-auto pb-2 md:flex-col md:gap-4 md:overflow-visible md:pb-0">
-          {NAV.map(({ group, items }) => (
-            <div key={group} className="flex shrink-0 gap-1 md:flex-col">
-              <p className="hidden px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:block">{group}</p>
-              {items.map(({ to, label, Icon, ...rest }) => (
-                <Link key={to} to={to} activeOptions={{ exact: "exact" in rest }}
-                  className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                  activeProps={{ className: "bg-accent font-semibold text-foreground" }}>
-                  <Icon className="size-4" />{label}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </nav>
-      </aside>
-      <section className="min-w-0"><Outlet /></section>
-    </div>
+    <SideNavLayout title="Studio developer" nav={DEV_NAV}>
+      <Outlet />
+    </SideNavLayout>
   );
 }

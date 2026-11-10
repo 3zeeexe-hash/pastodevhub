@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { SignInCta } from "@/components/sign-in-cta";
 import { AvatarMini } from "@/components/avatar-mini";
 import { GithubConnectCard } from "@/components/github-connect";
+import { GitTokensCard } from "@/components/git-tokens";
 import { ImageUpload } from "@/components/image-upload";
 import { AccountTypePicker } from "@/components/account-type-picker";
 
@@ -116,6 +117,7 @@ function Settings() {
         </form>
         <h2 className="mt-10 border-b border-border pb-2 text-lg font-semibold">Koneksi</h2>
         <div className="mt-4"><GithubConnectCard /></div>
+        <div className="mt-4"><GitTokensCard /></div>
       </div>
       <aside className="text-center md:pt-16">
         <div className="inline-block"><AvatarMini name={f.username || "?"} url={f.avatar_url || null} size={160} /></div>

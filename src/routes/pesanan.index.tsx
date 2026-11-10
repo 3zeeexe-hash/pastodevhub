@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { formatRupiah, type OrderStatus } from "@/lib/market";
 import { Button } from "@/components/ui/button";
+import { AccountSideNav } from "@/components/side-navs";
 import { SignInCta } from "@/components/sign-in-cta";
 import { OrderStatusBadge } from "@/components/order-status";
 import { AvatarMini } from "@/components/avatar-mini";
@@ -38,7 +39,7 @@ function Orders() {
   if (loading) return null;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk melihat pesanan kamu." /></main>;
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
+    <AccountSideNav>
       <h1 className="text-2xl font-bold">Pesanan</h1>
       {profile?.account_type === "developer" && (
         <div className="mt-4 flex gap-2">
@@ -63,6 +64,6 @@ function Orders() {
         })}
         {!isLoading && data.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Belum ada pesanan.</p>}
       </div>
-    </main>
+    </AccountSideNav>
   );
 }

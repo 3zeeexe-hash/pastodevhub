@@ -194,6 +194,100 @@ export type Database = {
           },
         ]
       }
+      git_objects: {
+        Row: {
+          created_at: string
+          data: string
+          repo_id: string
+          sha: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          repo_id: string
+          sha: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          repo_id?: string
+          sha?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "git_objects_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      git_refs: {
+        Row: {
+          name: string
+          repo_id: string
+          sha: string
+          synced_commit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          name: string
+          repo_id: string
+          sha: string
+          synced_commit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          repo_id?: string
+          sha?: string
+          synced_commit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "git_refs_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      git_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          token_hash?: string
+          token_prefix?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hosted_files: {
         Row: {
           content_type: string
@@ -675,18 +769,33 @@ export type Database = {
       }
       platform_secrets: {
         Row: {
+          firebase_client_email: string | null
+          firebase_config: Json | null
+          firebase_enabled: boolean
+          firebase_project_id: string | null
+          firebase_service_account_ciphertext: string | null
           github_client_id: string | null
           github_client_secret_ciphertext: string | null
           id: number
           updated_at: string
         }
         Insert: {
+          firebase_client_email?: string | null
+          firebase_config?: Json | null
+          firebase_enabled?: boolean
+          firebase_project_id?: string | null
+          firebase_service_account_ciphertext?: string | null
           github_client_id?: string | null
           github_client_secret_ciphertext?: string | null
           id?: number
           updated_at?: string
         }
         Update: {
+          firebase_client_email?: string | null
+          firebase_config?: Json | null
+          firebase_enabled?: boolean
+          firebase_project_id?: string | null
+          firebase_service_account_ciphertext?: string | null
           github_client_id?: string | null
           github_client_secret_ciphertext?: string | null
           id?: number
