@@ -7,7 +7,7 @@ import { adminEmailFor, checkAdminCredentials } from "@/lib/admin-rules";
 
 /**
  * Checks the admin username/password against ADMIN_USERNAME / ADMIN_PASSWORD,
- * makes sure the admin account exists with the admin role, signs it in on the server,
+ * signs the admin account in on the server (no service-role key needed; see admin-login.server.ts),
  * and returns the session so the browser keeps the admin signed in.
  */
 export const prepareAdminLogin = createServerFn({ method: "POST" })
@@ -20,34 +20,12 @@ export const prepareAdminLogin = createServerFn({ method: "POST" })
       await new Promise((r) => setTimeout(r, 800));
       throw new Error("Username atau kata sandi admin salah.");
     }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { adminAccountPassword, signInAdmin } = await import("@/lib/admin-login.server");
-    const accountPassword = adminAccountPassword(env.password);
-    const email = adminEmailFor(env.username, process.env["ADMIN_EMAIL"]);
-
-    // Find or create the admin account, keeping its password in sync with the env value.
-    let userId: string | null = null;
-    for (let page = 1; page <= 20 && !userId; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error) throw new Error(error.message);
-      userId = list.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
-      if (list.users.length < 200) break;
-    }
-    if (userId) {
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: accountPassword, email_confirm: true });
-      if (error) throw new Error(error.message);
-    } else {
-      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email, password: accountPassword, email_confirm: true,
-        app_metadata: { pastodev_admin: true },
-        user_metadata: { username: env.username.toLowerCase(), full_name: "Admin Pastodev", account_type: "client" },
-      });
-      if (error || !created.user) throw new Error(error?.message ?? "Gagal membuat akun admin.");
-      userId = created.user.id;
-    }
-    const { error: roleErr } = await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
-    if (roleErr) throw new Error(roleErr.message);
-    return await signInAdmin(email, accountPassword);
+    const { loginAdmin } = await import("@/lib/admin-login.server");
+    return await loginAdmin({
+      username: env.username,
+      adminPassword: env.password,
+      email: adminEmailFor(env.username, process.env["ADMIN_EMAIL"]),
+    });
   });
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
