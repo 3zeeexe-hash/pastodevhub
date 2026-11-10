@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, Download, MessageSquare, Plus, Receipt, Search, Users, Wrench } from "lucide-react";
+import { Briefcase, Download, LayoutDashboard, LibraryBig, MessageSquare, Plus, Receipt, Search, Settings, Users, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { formatRupiah, type OrderStatus } from "@/lib/market";
@@ -9,6 +9,28 @@ import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
 import { JobStatusBadge } from "@/components/job-card";
 import { OrderStatusBadge } from "@/components/order-status";
+import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
+
+const CLIENT_NAV: NavGroup[] = [
+  { group: "Utama", items: [
+    { to: "/dashboard", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
+    { to: "/pesanan", label: "Pesanan saya", Icon: Receipt },
+  ] },
+  { group: "Proyek", items: [
+    { to: "/lowongan/baru", label: "Pasang lowongan", Icon: Plus },
+    { to: "/lowongan", label: "Semua lowongan", Icon: Briefcase },
+  ] },
+  { group: "Cari", items: [
+    { to: "/search", label: "Cari developer", Icon: Search, search: { q: "", type: "users" } },
+    { to: "/jasa", label: "Pesan jasa", Icon: Wrench },
+    { to: "/karya", label: "Beli karya", Icon: Download },
+    { to: "/katalog", label: "Katalog", Icon: LibraryBig },
+  ] },
+  { group: "Komunitas", items: [
+    { to: "/discuss", label: "Diskusi", Icon: MessageSquare },
+    { to: "/settings", label: "Pengaturan", Icon: Settings },
+  ] },
+];
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -54,7 +76,8 @@ function Dashboard() {
   ];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
+    <SideNavLayout title="Dashboard client" nav={CLIENT_NAV}>
+    <div className="space-y-6">
       <section className="bg-hero overflow-hidden rounded-2xl border border-border p-6">
         <p className="font-mono text-sm text-primary">dashboard client</p>
         <h1 className="mt-1 text-2xl font-bold md:text-3xl">Halo, {profile?.display_name || profile?.username} 👋</h1>
@@ -76,7 +99,7 @@ function Dashboard() {
         ))}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border p-4">
             <h2 className="font-semibold">Lowongan saya</h2>
@@ -124,18 +147,9 @@ function Dashboard() {
               {orders.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">Belum ada pesanan.</li>}
             </ul>
           </section>
-          <section className="grid grid-cols-2 gap-2 text-sm">
-            {[
-              { to: "/jasa", label: "Pesan jasa", Icon: Wrench },
-              { to: "/karya", label: "Beli karya", Icon: Download },
-              { to: "/discuss", label: "Diskusi", Icon: MessageSquare },
-              { to: "/settings", label: "Pengaturan", Icon: Users },
-            ].map(({ to, label, Icon }) => (
-              <Link key={to} to={to} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 hover:border-primary/60"><Icon className="size-4 text-primary" />{label}</Link>
-            ))}
-          </section>
         </div>
       </div>
-    </main>
+    </div>
+    </SideNavLayout>
   );
 }
