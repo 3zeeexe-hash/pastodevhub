@@ -21,6 +21,9 @@ async function anon() {
   });
 }
 
+/** Serialize JSON-LD safely for a <script> tag. */
+const ld = (o: unknown) => JSON.stringify(o).replace(/</g, "\\u003c");
+
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 export const getSeoInfo = createServerFn({ method: "GET" })
@@ -57,7 +60,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
           description: summarize(row["summary"] || row["description"]) || `${label} dari developer Indonesia di ${SITE_NAME}.`,
           image: row["cover_url"] ?? undefined,
           type: "product",
-          jsonLd: {
+          jsonLd: ld({
             "@context": "https://schema.org",
             "@type": data.kind === "product" ? "Product" : "Service",
             name: row["title"],
@@ -66,7 +69,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
             ...(data.kind === "product"
               ? { brand: { "@type": "Brand", name: seller?.display_name || seller?.username || SITE_NAME }, offers: { "@type": "Offer", priceCurrency: "IDR", price, availability: "https://schema.org/InStock" } }
               : { provider: { "@type": "Person", name: seller?.display_name || seller?.username }, areaServed: "ID", offers: { "@type": "Offer", priceCurrency: "IDR", price } }),
-          },
+          }),
         };
       }
       if (data.kind === "post" && uuid) {
@@ -77,7 +80,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
           title: `${p.title} — Diskusi | ${SITE_NAME}`,
           description: summarize(p.body) || p.title,
           type: "article",
-          jsonLd: ld({ "@context": "https://schema.org", "@type": "DiscussionForumPosting", headline: p.title, text: summarize(p.body, 500), datePublished: p.created_at, author: { "@type": "Person", name: author?.username ?? "anggota" } },
+          jsonLd: ld({ "@context": "https://schema.org", "@type": "DiscussionForumPosting", headline: p.title, text: summarize(p.body, 500), datePublished: p.created_at, author: { "@type": "Person", name: author?.username ?? "anggota" } }),
         };
       }
       if (data.kind === "profile") {
@@ -90,7 +93,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
           description: summarize(p.bio || `${role}${p.skills?.length ? ` · ${p.skills.slice(0, 6).join(", ")}` : ""}${p.location ? ` · ${p.location}` : ""}. Lihat repositori, karya, dan jasa ${name} di ${SITE_NAME}.`),
           image: p.avatar_url ?? undefined,
           type: "profile",
-          jsonLd: ld({ "@context": "https://schema.org", "@type": "ProfilePage", mainEntity: { "@type": "Person", name, alternateName: p.username, description: p.headline ?? undefined, ...(p.avatar_url ? { image: p.avatar_url } : {}), knowsAbout: p.skills ?? [] } },
+          jsonLd: ld({ "@context": "https://schema.org", "@type": "ProfilePage", mainEntity: { "@type": "Person", name, alternateName: p.username, description: p.headline ?? undefined, ...(p.avatar_url ? { image: p.avatar_url } : {}), knowsAbout: p.skills ?? [] } }),
         };
       }
       if (data.kind === "repo" && data.extra) {
@@ -102,7 +105,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
           title: `${owner.username}/${r.name}${r.description ? `: ${summarize(r.description, 60)}` : ""} | ${SITE_NAME}`,
           description: summarize(r.description) || `Repositori ${r.name} oleh ${owner.username} di ${SITE_NAME}: kode, issue, dan pull request.`,
           type: "website",
-          jsonLd: ld({ "@context": "https://schema.org", "@type": "SoftwareSourceCode", name: r.name, description: r.description ?? undefined, programmingLanguage: r.language ?? undefined, keywords: (r.topics ?? []).join(", ") || undefined, author: { "@type": "Person", name: owner.username }, dateModified: r.updated_at },
+          jsonLd: ld({ "@context": "https://schema.org", "@type": "SoftwareSourceCode", name: r.name, description: r.description ?? undefined, programmingLanguage: r.language ?? undefined, keywords: (r.topics ?? []).join(", ") || undefined, author: { "@type": "Person", name: owner.username }, dateModified: r.updated_at }),
         };
       }
       return null;
