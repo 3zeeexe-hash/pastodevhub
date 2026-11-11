@@ -28,4 +28,6 @@
 - [ ] Admin feature switches: turn each feature on/off (enforced in the database, hidden in menus)
 - [ ] Admin full control: users (ban, admin role, account type), content moderation, orders, payouts, payments, integrations, site announcement
 - [ ] New admin dashboard with its own sidebar
+- [ ] Fix hosted files/images/HTML links showing "tidak ditemukan" after upload
+- [ ] Home sections + Daftar button follow feature switches; sign-up closed handled cleanly
 - [ ] Verify Firebase Google sign-in live — waiting on the owner's Firebase setup
