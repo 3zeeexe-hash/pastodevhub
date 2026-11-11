@@ -2,11 +2,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { queryOptions } from "@tanstack/react-query";
 import type { FeatureFlags } from "@/lib/features";
+import { normalizeSiteUrl, resolveSiteOrigin } from "@/lib/site-url";
 
-export type SiteConfig = { flags: FeatureFlags; announcement: string | null; announcementLevel: "info" | "warning" };
+export type SiteConfig = {
+  flags: FeatureFlags;
+  announcement: string | null;
+  announcementLevel: "info" | "warning";
+  /** Public origin of the site, e.g. https://pastodev.com (env SITE_URL, else the address of the request). */
+  siteUrl: string | null;
+  /** Google Search Console meta-tag token (env GOOGLE_SITE_VERIFICATION). */
+  googleVerification: string | null;
+};
 
 export const getSiteConfig = createServerFn({ method: "GET" }).handler(async (): Promise<SiteConfig> => {
-  const empty: SiteConfig = { flags: {}, announcement: null, announcementLevel: "info" };
+  let siteUrl: string | null = null;
+  try {
+    const { getRequestUrl } = await import("@tanstack/react-start/server");
+    siteUrl = resolveSiteOrigin(process.env["SITE_URL"], getRequestUrl({ xForwardedHost: true, xForwardedProto: true }).href);
+  } catch {
+    siteUrl = normalizeSiteUrl(process.env["SITE_URL"]);
+  }
+  const googleVerification = (process.env["GOOGLE_SITE_VERIFICATION"] ?? "").trim().replace(/^google-site-verification[=:]\s*/i, "") || null;
+  const empty: SiteConfig = { flags: {}, announcement: null, announcementLevel: "info", siteUrl, googleVerification };
   try {
     const { createClient } = await import("@supabase/supabase-js");
     const url = process.env["SUPABASE_URL"];
@@ -30,7 +47,7 @@ export const getSiteConfig = createServerFn({ method: "GET" }).handler(async ():
     const out: FeatureFlags = {};
     for (const row of flags.data ?? []) out[row.key] = row.enabled;
     const s = settings.data as { announcement: string | null; announcement_level: string } | null;
-    return { flags: out, announcement: s?.announcement?.trim() || null, announcementLevel: s?.announcement_level === "warning" ? "warning" : "info" };
+    return { flags: out, announcement: s?.announcement?.trim() || null, announcementLevel: s?.announcement_level === "warning" ? "warning" : "info", siteUrl, googleVerification };
   } catch (e) {
     console.error("site config failed", e);
     return empty;
