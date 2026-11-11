@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { RepoCard, type RepoCardData } from "@/components/repo-card";
 import { ContributionGraph } from "@/components/contribution-graph";
 import { Markdown } from "@/components/markdown";
@@ -99,7 +100,10 @@ function Profile() {
         <div className="flex items-center gap-4 md:block">
           <AvatarMini name={p.username} url={p.avatar_url} size={220} />
         </div>
-        <h1 className="mt-4 text-2xl font-bold leading-tight">{p.display_name || p.username}</h1>
+        <h1 className="mt-4 flex items-center gap-1.5 text-2xl font-bold leading-tight">
+          <span className="min-w-0 break-words">{p.display_name || p.username}</span>
+          <VerifiedBadge username={p.username} verified={(p as unknown as { is_verified?: boolean }).is_verified} size={22} />
+        </h1>
         <p className="font-mono text-lg text-muted-foreground">{p.username}</p>
         {p.headline && <p className="mt-2 font-medium">{p.headline}</p>}
         {isDev && p.available_for_hire && <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"><BadgeCheck className="size-3.5" /> Terbuka untuk proyek</p>}

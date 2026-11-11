@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RepoCard, type RepoCardData } from "@/components/repo-card";
 import { AvatarMini } from "@/components/avatar-mini";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { ProductCard, PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 import { JobCard } from "@/components/job-card";
 import { JOB_SELECT, type JobCardData } from "@/lib/jobs";
@@ -108,7 +109,7 @@ function SearchPage() {
                 <div className="flex items-center gap-3">
                   <AvatarMini name={u.username} url={u.avatar_url} size={48} />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{u.display_name || u.username}</p>
+                    <p className="flex items-center gap-1 font-semibold"><span className="truncate">{u.display_name || u.username}</span><VerifiedBadge username={u.username} size={16} /></p>
                     <p className="truncate font-mono text-xs text-muted-foreground">@{u.username}{u.location ? ` · ${u.location}` : ""}</p>
                   </div>
                 </div>
