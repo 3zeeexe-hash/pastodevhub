@@ -1,8 +1,8 @@
 // Server-only helpers for the admin sign-in.
 //
-// The sign-in itself only needs the PUBLISHABLE key, so it works without SUPABASE_SERVICE_ROLE_KEY
-// (self-hosted deploys, or a backend that was never connected). The service-role key is used only as
-// an optional extra when it happens to be present: to repair an out-of-sync admin account.
+// Everything here uses only the PUBLISHABLE key — SUPABASE_SERVICE_ROLE_KEY is never needed,
+// so it works the same on Lovable and on a self-hosted deploy (Firebase, Cloud Run, …).
+// After a successful login the server registers its proof (server-db.server.ts) with the admin session.
 import { createHmac } from "node:crypto";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { isMissingFunctionError } from "@/lib/admin-rules";
@@ -83,52 +83,23 @@ async function claimAdminRole(client: SupabaseClient, adminPassword: string) {
   throw new Error(error.message);
 }
 
-/** Optional: only when SUPABASE_SERVICE_ROLE_KEY exists. Creates/repairs the admin account and its role. */
-async function provisionWithServiceRole(username: string, email: string, accountPassword: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let userId: string | null = null;
-  for (let page = 1; page <= 20 && !userId; page++) {
-    const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw new Error(error.message);
-    userId = list.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
-    if (list.users.length < 200) break;
-  }
-  if (userId) {
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: accountPassword, email_confirm: true });
-    if (error) throw new Error(error.message);
-  } else {
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email, password: accountPassword, email_confirm: true,
-      app_metadata: { pastodev_admin: true },
-      user_metadata: { username: username.toLowerCase(), full_name: "Admin Pastodev", account_type: "client" },
-    });
-    if (error || !created.user) throw new Error(error?.message ?? "Gagal membuat akun admin.");
-    userId = created.user.id;
-  }
-  const { error: roleErr } = await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
-  if (roleErr) throw new Error(roleErr.message);
-}
-
 /**
  * Signs the admin in on the server and returns the session tokens for the browser.
- * Order: plain sign-in → (service key, if present) repair the account → create the account with the
- * publishable key → make sure the account has the admin role.
+ * Order: plain sign-in → create the account with the publishable key → make sure it has the admin
+ * role → register the server proof so GitHub, Firebase and terminal git work without a service key.
  */
 export async function loginAdmin(input: { username: string; adminPassword: string; email: string }) {
   const accountPassword = adminAccountPassword(input.adminPassword);
-  const hasServiceKey = !!process.env["SUPABASE_SERVICE_ROLE_KEY"];
   const client = publicClient();
 
   let session = await signIn(client, input.email, accountPassword);
-  if (!session && hasServiceKey) {
-    await provisionWithServiceRole(input.username, input.email, accountPassword);
-    session = await signIn(client, input.email, accountPassword);
-  }
   if (!session) session = await signUpAdmin(client, input.username, input.email, accountPassword);
 
   if (!(await hasAdminRole(client, session.user.id))) {
     await claimAdminRole(client, input.adminPassword);
     if (!(await hasAdminRole(client, session.user.id))) throw new Error("Akun ini belum punya role admin.");
   }
+  const { registerServerProof } = await import("@/lib/server-db.server");
+  await registerServerProof(client);
   return { access_token: session.access_token, refresh_token: session.refresh_token };
 }
