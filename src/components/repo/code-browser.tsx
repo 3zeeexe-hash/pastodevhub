@@ -20,6 +20,11 @@ export function CodeBrowser({ data, dir }: { data: RepoData; dir: string }) {
   const isRoot = dir === "";
   const dirExists = isRoot || files.some((f) => f.path.startsWith(`${dir}/`));
 
+  // Like GitHub: a brand-new empty repo opens on "Quick setup" with the git commands.
+  if (isRoot && files.length === 0 && data.isOwner) {
+    return <EmptyRepoGitHelp username={username} repo={repo.name} branch={repo.default_branch} />;
+  }
+
   return (
     <div className={isRoot ? "grid gap-6 lg:grid-cols-[1fr_300px]" : ""}>
       <div className="min-w-0 space-y-4">
@@ -57,13 +62,6 @@ export function CodeBrowser({ data, dir }: { data: RepoData; dir: string }) {
           ) : entries.length === 0 ? (
             <div className="p-8 text-center">
               <p className="font-semibold">Repositori ini masih kosong</p>
-              {data.isOwner && (
-                <div className="mt-3 flex justify-center gap-2">
-                  <Button asChild size="sm"><Link to="/$username/$repo/new" params={{ username, repo: repo.name }} search={{ dir: "", mode: "create" }}>Buat file baru</Link></Button>
-                  <Button asChild size="sm" variant="outline"><Link to="/$username/$repo/new" params={{ username, repo: repo.name }} search={{ dir: "", mode: "upload" }}>Upload file</Link></Button>
-                </div>
-              )}
-              {data.isOwner && <EmptyRepoGitHelp username={username} repo={repo.name} branch={repo.default_branch} />}
             </div>
           ) : (
             <table className="w-full text-sm">
