@@ -6,14 +6,14 @@ import {
   signature, utf8, type GitObject, type ObjType, type ParsedObject,
 } from "@/lib/git/core";
 
-type Db = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
+import { serverDb, type Db } from "@/lib/server-db.server";
 export type RepoInfo = { id: string; owner_id: string; name: string; default_branch: string; is_private: boolean };
 export type ObjectStore = Map<string, GitObject>;
 type FlatEntry = { mode: string; sha: string };
 
+/** Publishable-key client with the server proof (no SUPABASE_SERVICE_ROLE_KEY needed). */
 export async function getDb(): Promise<Db> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+  return serverDb();
 }
 
 const toB64 = (b: Uint8Array) => Buffer.from(b.buffer, b.byteOffset, b.byteLength).toString("base64");

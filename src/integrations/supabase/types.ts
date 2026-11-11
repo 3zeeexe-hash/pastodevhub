@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_claim: {
+        Row: {
+          code_hash: string
+          id: number
+        }
+        Insert: {
+          code_hash: string
+          id?: number
+        }
+        Update: {
+          code_hash?: string
+          id?: number
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           account_name: string | null
@@ -1223,6 +1238,24 @@ export type Database = {
           },
         ]
       }
+      server_proof: {
+        Row: {
+          id: number
+          proof_hash: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          proof_hash: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          proof_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           category: string
@@ -1341,6 +1374,27 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          reason?: string
+          user_id: string
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1364,6 +1418,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_register_server_proof: {
+        Args: { _hash: string }
+        Returns: undefined
+      }
+      admin_set_admin: {
+        Args: { _admin: boolean; _user: string }
+        Returns: undefined
+      }
+      admin_set_ban: {
+        Args: { _banned: boolean; _reason?: string; _user: string }
+        Returns: undefined
+      }
       buy_product: { Args: { _product_id: string }; Returns: string }
       can_access_order: { Args: { _order_id: string }; Returns: boolean }
       can_download_product: { Args: { _product_id: string }; Returns: boolean }
@@ -1371,6 +1437,7 @@ export type Database = {
       can_read_repo: { Args: { rid: string }; Returns: boolean }
       can_write_repo: { Args: { rid: string }; Returns: boolean }
       cancel_order: { Args: { _order_id: string }; Returns: undefined }
+      claim_admin_role: { Args: { _code: string }; Returns: undefined }
       complete_order: { Args: { _order_id: string }; Returns: undefined }
       count_hosted_view: { Args: { _slug: string }; Returns: undefined }
       deliver_order: {
@@ -1402,6 +1469,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: boolean
       }
+      is_banned: { Args: { _user: string }; Returns: boolean }
       is_client: { Args: { _user_id: string }; Returns: boolean }
       is_developer: { Args: { _user_id: string }; Returns: boolean }
       issue_repo: { Args: { _issue_id: string }; Returns: string }
@@ -1444,6 +1512,7 @@ export type Database = {
         Args: { _approve: boolean; _note: string; _order_id: string }
         Returns: undefined
       }
+      server_proof_ok: { Args: never; Returns: boolean }
       submit_payment: {
         Args: { _note: string; _order_id: string; _proof_path: string }
         Returns: undefined

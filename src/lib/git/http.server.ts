@@ -4,6 +4,7 @@
 import { ungzip } from "pako";
 import { concat, FLUSH, hashToken, parsePack, pkt, readPktLines, ZERO, type ParsedObject } from "@/lib/git/core";
 import { applyPush, ensureSynced, getDb, packFor, type RepoInfo } from "@/lib/git/store.server";
+import { SETUP_HINT, serverProofAccepted } from "@/lib/server-db.server";
 
 export const GIT_PATH = /^\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/(info\/refs|git-upload-pack|git-receive-pack)$/;
 type Service = "git-upload-pack" | "git-receive-pack";
@@ -75,12 +76,17 @@ export async function handleGit(request: Request): Promise<Response> {
     const db = await getDb();
     const { data: gitOn } = await (db as any).rpc("feature_enabled", { _key: "git_http" });
     if (gitOn === false) return text(503, "Git lewat terminal sedang dinonaktifkan admin Pastodev.");
+    if (!(await serverProofAccepted(db))) return text(503, SETUP_HINT);
     const repo = await findRepo(db, owner, name);
     const userId = await authUser(request, db);
     if (userId === "bad") return unauthorized();
     const isOwner = !!repo && userId === repo.owner_id;
     if (!repo || (repo.is_private && !isOwner)) return userId ? text(404, "Repositori tidak ditemukan.") : unauthorized();
     if (service === "git-receive-pack" && !isOwner) return userId ? text(403, "Kamu tidak punya izin push ke repositori ini.") : unauthorized();
+    if (service === "git-receive-pack" && userId) {
+      const { data: ban } = await db.from("user_bans").select("user_id").eq("user_id", userId).maybeSingle();
+      if (ban) return text(403, "Akun ini diblokir admin Pastodev, push tidak diizinkan.");
+    }
 
     const { head, store } = await ensureSynced(db, repo);
     if (action === "info/refs") return advertise(service, repo, head);
