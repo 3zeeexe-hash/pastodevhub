@@ -14,6 +14,8 @@ import { Markdown } from "@/components/markdown";
 import { cn } from "@/lib/utils";
 import { ProductCard, ServiceCard, PRODUCT_SELECT, SERVICE_SELECT, type ProductCardData, type ServiceCardData } from "@/components/market-cards";
 import { parseLinks, safeUrl } from "@/lib/market";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 type Tab = "overview" | "repos" | "stars" | "karya" | "jasa" | "portofolio";
 const TABS: Tab[] = ["repos", "stars", "karya", "jasa", "portofolio"];
@@ -23,16 +25,10 @@ export const Route = createFileRoute("/$username")({
     const t = s["tab"];
     return TABS.includes(t as Tab) ? { tab: t as Tab } : {};
   },
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.username} — Pastodev` },
-      { name: "description", content: `Profil developer ${params.username} di Pastodev: repositori, bintang, dan kontribusi.` },
-      { property: "og:title", content: `${params.username} — Pastodev` },
-      { property: "og:description", content: `Repositori dan aktivitas ${params.username} di Pastodev.` },
-      { property: "og:type", content: "profile" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  // Real title, description and structured data come from the database; the text below is the fallback.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "profile", id: params.username } }),
+  staleTime: 300_000,
+  head: ({ loaderData, params }) => seoHead(loaderData, { title: `${params.username} — Pastodev`, description: `Profil developer ${params.username} di Pastodev: repositori, bintang, dan kontribusi.` }),
   component: Profile,
 });
 
