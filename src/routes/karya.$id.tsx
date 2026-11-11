@@ -10,18 +10,14 @@ import { downloadProduct } from "@/lib/downloads";
 import { Button } from "@/components/ui/button";
 import { AvatarMini } from "@/components/avatar-mini";
 import { Markdown } from "@/components/markdown";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/karya/$id")({
-  head: () => ({
-    meta: [
-      { title: "Detail karya — Pastodev" },
-      { name: "description", content: "Lihat detail, demo, dan unduh karya developer di Pastodev." },
-      { property: "og:title", content: "Detail karya — Pastodev" },
-      { property: "og:description", content: "Karya developer Nusantara di Pastodev." },
-      { property: "og:type", content: "product" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  // Real title, description and structured data come from the database; the text below is the fallback.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "product", id: params.id } }),
+  staleTime: 300_000,
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail karya — Pastodev", description: "Lihat detail, demo, dan unduh karya developer di Pastodev." }),
   component: KaryaDetail,
 });
 
@@ -101,4 +97,4 @@ function KaryaDetail() {
       </aside>
     </main>
   );
-}
+              }
