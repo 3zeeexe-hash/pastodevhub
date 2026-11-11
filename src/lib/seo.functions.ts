@@ -115,13 +115,21 @@ export const getSeoInfo = createServerFn({ method: "GET" })
       if (data.kind === "repo" && data.extra) {
         const { data: owner } = await db.from("profiles").select("id,username").eq("username", data.id).maybeSingle();
         if (!owner) return NOT_FOUND;
-        const { data: r } = await db.from("repositories").select("name,description,language,topics,updated_at").eq("owner_id", owner.id).eq("name", data.extra).maybeSingle();
+        const { data: r } = await db.from("repositories").select("id,name,description,language,topics,updated_at").eq("owner_id", owner.id).eq("name", data.extra).maybeSingle();
         if (!r) return NOT_FOUND;
+        // The README says what the project really does ("whatsapp web script"), so it feeds the title and
+        // description when the repo has no description of its own.
+        const { data: readmes } = await db.from("repo_files").select("path,content").eq("repo_id", r.id).ilike("path", "readme%").limit(5);
+        const readme = (readmes ?? []).find((f: { path: string; content: string }) => /^readme(\.md|\.markdown|\.txt)?$/i.test(f.path));
+        const about = r.description?.trim() || summarize(readme?.content, 400);
+        const tags = [r.language, ...((r.topics ?? []) as string[])].filter(Boolean).join(", ");
         return {
-          title: `${owner.username}/${r.name}${r.description ? `: ${summarize(r.description, 60)}` : ""} | ${SITE_NAME}`,
-          description: summarize(r.description) || `Repositori ${r.name} oleh ${owner.username} di ${SITE_NAME}: kode, issue, dan pull request.`,
+          title: `${owner.username}/${r.name}${about ? `: ${summarize(about, 60)}` : ""} | ${SITE_NAME}`,
+          description: about
+            ? summarize(`${about}${tags ? ` — ${tags}` : ""}`, 155)
+            : `Repositori ${r.name} oleh ${owner.username} di ${SITE_NAME}: kode, issue, dan pull request.`,
           type: "website",
-          jsonLd: ld({ "@context": "https://schema.org", "@type": "SoftwareSourceCode", name: r.name, description: r.description ?? undefined, programmingLanguage: r.language ?? undefined, keywords: (r.topics ?? []).join(", ") || undefined, author: { "@type": "Person", name: owner.username }, dateModified: r.updated_at }),
+          jsonLd: ld({ "@context": "https://schema.org", "@type": "SoftwareSourceCode", name: r.name, description: about ? summarize(about, 500) : undefined, programmingLanguage: r.language ?? undefined, keywords: tags || undefined, author: { "@type": "Person", name: owner.username }, dateModified: r.updated_at }),
         };
       }
       return NOT_FOUND; // an id that is not even a valid uuid / missing repo name

@@ -20,15 +20,17 @@ export const Route = createFileRoute("/search")({
   head: () => ({
     meta: [
       { title: "Cari — Pastodev" },
-      { name: "description", content: "Cari developer, proyek, karya, dan lowongan freelance di Pastodev." },
+      { name: "description", content: "Cari repositori, developer, karya, dan lowongan freelance di Pastodev." },
       { property: "og:title", content: "Cari — Pastodev" },
-      { property: "og:description", content: "Cari developer, proyek, karya, dan lowongan di Pastodev." },
+      { property: "og:description", content: "Cari repositori, developer, karya, dan lowongan di Pastodev." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SearchPage,
 });
+
+const REPO_SELECT = "id,name,description,language,is_private,created_at,updated_at,forked_from,topics, owner:profiles!repositories_owner_id_fkey(username,avatar_url), stars(count)";
 
 function SearchPage() {
   const { q, type } = Route.useSearch();
@@ -40,9 +42,20 @@ function SearchPage() {
     queryKey: ["search", "repos", term],
     enabled: type === "repos",
     queryFn: async () => {
-      let qb = supabase.from("repositories").select("id,name,description,language,is_private,created_at,updated_at,forked_from,topics, owner:profiles!repositories_owner_id_fkey(username,avatar_url), stars(count)").order("updated_at", { ascending: false }).limit(50);
-      if (term) qb = qb.or(`name.ilike.%${term}%,description.ilike.%${term}%`);
-      return ((await qb).data ?? []) as unknown as RepoCardData[];
+      // "whatsapp web script" => every word must match somewhere (name, description, language, topics or README).
+      const words = term.toLowerCase().split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}-]/gu, "")).filter(Boolean).slice(0, 5);
+      let qb = supabase.from("repositories").select(REPO_SELECT).order("updated_at", { ascending: false }).limit(50);
+      for (const w of words) qb = qb.or(`name.ilike.%${w}%,description.ilike.%${w}%,language.ilike.%${w}%,topics.cs.{${w}}`);
+      const found = ((await qb).data ?? []) as unknown as RepoCardData[];
+      if (!words.length) return found;
+      // Also look inside README files, where people usually describe what the project does.
+      let rb = supabase.from("repo_files").select("repo_id").ilike("path", "readme%");
+      for (const w of words) rb = rb.ilike("content", `%${w}%`);
+      const hits = ((await rb.limit(100)).data ?? []).map((x) => x.repo_id as string);
+      const ids = [...new Set(hits)].filter((id) => !found.some((r) => r.id === id));
+      if (!ids.length) return found;
+      const more = ((await supabase.from("repositories").select(REPO_SELECT).in("id", ids).order("updated_at", { ascending: false }).limit(50)).data ?? []) as unknown as RepoCardData[];
+      return [...found, ...more];
     },
   });
   const users = useQuery({
@@ -77,7 +90,7 @@ function SearchPage() {
     <main className="mx-auto max-w-6xl px-4 py-8">
       <form onSubmit={(e) => { e.preventDefault(); navigate({ search: { q: text, type } }); }} className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Cari developer, proyek, karya, lowongan…" autoFocus className="h-12 pl-10 text-base" />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Cari repositori, developer, karya, lowongan…" autoFocus className="h-12 pl-10 text-base" />
       </form>
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {SEARCH_TYPES.map(([t, label, Icon]) => (
