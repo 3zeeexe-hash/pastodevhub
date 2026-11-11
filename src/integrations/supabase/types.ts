@@ -1356,6 +1356,27 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          reason?: string
+          user_id: string
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1379,6 +1400,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_admin: {
+        Args: { _admin: boolean; _user: string }
+        Returns: undefined
+      }
+      admin_set_ban: {
+        Args: { _banned: boolean; _reason?: string; _user: string }
+        Returns: undefined
+      }
       buy_product: { Args: { _product_id: string }; Returns: string }
       can_access_order: { Args: { _order_id: string }; Returns: boolean }
       can_download_product: { Args: { _product_id: string }; Returns: boolean }
@@ -1418,6 +1447,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: boolean
       }
+      is_banned: { Args: { _user: string }; Returns: boolean }
       is_client: { Args: { _user_id: string }; Returns: boolean }
       is_developer: { Args: { _user_id: string }; Returns: boolean }
       issue_repo: { Args: { _issue_id: string }; Returns: string }

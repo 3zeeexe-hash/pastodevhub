@@ -15,6 +15,13 @@
       "when": 1794367383760,
       "tag": "0001_fix_hosting_public_read",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794367551041,
+      "tag": "0002_admin_user_controls",
+      "breakpoints": true
     }
   ]
 }
