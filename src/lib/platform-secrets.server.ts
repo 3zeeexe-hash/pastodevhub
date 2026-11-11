@@ -1,7 +1,7 @@
 // Server-only: platform settings the admin sets in the panel (GitHub OAuth app).
 // Stored in a table only the app server can read (server proof); secrets are encrypted.
 import { decryptConnectionKey, encryptConnectionKey } from "@/lib/connectionKeyCrypto.server";
-import type { FirebaseWebConfig } from "@/lib/firebase-config";
+import { firebaseConfigFromEnv, type FirebaseWebConfig } from "@/lib/firebase-config";
 
 // Uses the publishable key plus the server proof — no SUPABASE_SERVICE_ROLE_KEY needed.
 async function admin() {
@@ -81,3 +81,21 @@ export async function writeFirebaseSettings(input: { enabled: boolean; config: F
   const { error } = await db.from("platform_secrets").upsert(row as never);
   if (error) throw new Error(error.message);
 }
+
+export type FirebaseWebState = { enabled: boolean; config: FirebaseWebConfig | null; source: "admin" | "env" | "none" };
+
+/**
+ * The browser config used for Google sign-in. The admin panel wins (including switching it off);
+ * FIREBASE_WEB_CONFIG / FIREBASE_API_KEY + FIREBASE_PROJECT_ID are the fallback so Google login
+ * does not depend on the admin having registered the server proof first.
+ */
+export async function getFirebaseWebConfig(): Promise<FirebaseWebState> {
+  try {
+    const s = await readFirebaseSettings();
+    if (s.config) return { enabled: s.enabled, config: s.enabled ? s.config : null, source: "admin" };
+  } catch (e) {
+    console.error("Reading Firebase settings failed", e);
+  }
+  const fromEnv = firebaseConfigFromEnv(process.env);
+  return fromEnv ? { enabled: true, config: fromEnv, source: "env" } : { enabled: false, config: null, source: "none" };
+    }
