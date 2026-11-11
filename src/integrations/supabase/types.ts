@@ -1238,6 +1238,24 @@ export type Database = {
           },
         ]
       }
+      server_proof: {
+        Row: {
+          id: number
+          proof_hash: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          proof_hash: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          proof_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           category: string
@@ -1400,6 +1418,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_register_server_proof: {
+        Args: { _hash: string }
+        Returns: undefined
+      }
       admin_set_admin: {
         Args: { _admin: boolean; _user: string }
         Returns: undefined
@@ -1490,6 +1512,7 @@ export type Database = {
         Args: { _approve: boolean; _note: string; _order_id: string }
         Returns: undefined
       }
+      server_proof_ok: { Args: never; Returns: boolean }
       submit_payment: {
         Args: { _note: string; _order_id: string; _proof_path: string }
         Returns: undefined
