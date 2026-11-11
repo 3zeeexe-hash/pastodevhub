@@ -19,8 +19,11 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as KatalogRouteImport } from './routes/katalog'
 import { Route as NewRouteImport } from './routes/new'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapChar123nameChar125DotxmlRouteImport } from './routes/sitemap-{$name}[.]xml'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as UsernameRepoRouteImport } from './routes/$username_.$repo'
 import { Route as DiscussIndexRouteImport } from './routes/discuss.index'
@@ -115,6 +118,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -123,6 +131,17 @@ const SearchRoute = SearchRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapChar123nameChar125DotxmlRoute =
+  SitemapChar123nameChar125DotxmlRouteImport.update({
+    id: '/sitemap-{$name}.xml',
+    path: '/sitemap-{$name}.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioRoute = StudioRouteImport.update({
@@ -353,8 +372,11 @@ export interface FileRoutesByFullPath {
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
   '/$username/$repo': typeof UsernameRepoRouteWithChildren
   '/discuss/$id': typeof DiscussIdRoute
@@ -410,8 +432,11 @@ export interface FileRoutesByTo {
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/discuss/$id': typeof DiscussIdRoute
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
@@ -466,8 +491,11 @@ export interface FileRoutesById {
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
   '/$username_/$repo': typeof UsernameRepoRouteWithChildren
   '/discuss/$id': typeof DiscussIdRoute
@@ -525,8 +553,11 @@ export interface FileRouteTypes {
     | '/katalog'
     | '/new'
     | '/reset-password'
+    | '/robots.txt'
     | '/search'
     | '/settings'
+    | '/sitemap-{$name}.xml'
+    | '/sitemap.xml'
     | '/studio'
     | '/$username/$repo'
     | '/discuss/$id'
@@ -582,8 +613,11 @@ export interface FileRouteTypes {
     | '/katalog'
     | '/new'
     | '/reset-password'
+    | '/robots.txt'
     | '/search'
     | '/settings'
+    | '/sitemap-{$name}.xml'
+    | '/sitemap.xml'
     | '/discuss/$id'
     | '/f/$slug'
     | '/jasa/$id'
@@ -637,8 +671,11 @@ export interface FileRouteTypes {
     | '/katalog'
     | '/new'
     | '/reset-password'
+    | '/robots.txt'
     | '/search'
     | '/settings'
+    | '/sitemap-{$name}.xml'
+    | '/sitemap.xml'
     | '/studio'
     | '/$username_/$repo'
     | '/discuss/$id'
@@ -695,8 +732,11 @@ export interface RootRouteChildren {
   KatalogRoute: typeof KatalogRoute
   NewRoute: typeof NewRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapChar123nameChar125DotxmlRoute: typeof SitemapChar123nameChar125DotxmlRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StudioRoute: typeof StudioRouteWithChildren
   UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
   DiscussIdRoute: typeof DiscussIdRoute
@@ -787,6 +827,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -799,6 +846,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-{$name}.xml': {
+      id: '/sitemap-{$name}.xml'
+      path: '/sitemap-{$name}.xml'
+      fullPath: '/sitemap-{$name}.xml'
+      preLoaderRoute: typeof SitemapChar123nameChar125DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio': {
@@ -1189,8 +1250,11 @@ const rootRouteChildren: RootRouteChildren = {
   KatalogRoute: KatalogRoute,
   NewRoute: NewRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  SitemapChar123nameChar125DotxmlRoute: SitemapChar123nameChar125DotxmlRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StudioRoute: StudioRouteWithChildren,
   UsernameRepoRoute: UsernameRepoRouteWithChildren,
   DiscussIdRoute: DiscussIdRoute,
