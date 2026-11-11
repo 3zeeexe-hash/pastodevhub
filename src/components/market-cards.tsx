@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Clock, Download, Package, Wrench } from "lucide-react";
 import { AvatarMini } from "@/components/avatar-mini";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { categoryLabel, formatRupiah } from "@/lib/market";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ function Cover({ url, Icon }: { url: string | null; Icon: typeof Package }) {
 
 function OwnerLine({ owner }: { owner: Owner }) {
   if (!owner) return null;
-  return <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"><AvatarMini name={owner.username} url={owner.avatar_url} size={18} /><span className="truncate">{owner.display_name || owner.username}</span></span>;
+  return <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"><AvatarMini name={owner.username} url={owner.avatar_url} size={18} /><span className="truncate">{owner.display_name || owner.username}</span><VerifiedBadge username={owner.username} size={14} /></span>;
 }
 
 export function ProductCard({ p }: { p: ProductCardData }) {

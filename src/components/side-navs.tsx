@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Bot, Briefcase, Download, FileCode2, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
+import { BadgeCheck, Bot, Briefcase, Download, FileCode2, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
 
@@ -23,6 +23,7 @@ export const DEV_NAV: NavGroup[] = [
     { to: "/studio/ai", label: "AI untuk repo", Icon: Bot, feature: "ai_editor" },
   ] },
   { group: "Akun", items: [
+    { to: "/studio/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck },
     { to: "/settings", label: "Pengaturan", Icon: Settings },
   ] },
 ];
