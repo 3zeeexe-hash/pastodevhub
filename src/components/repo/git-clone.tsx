@@ -32,14 +32,21 @@ function Block({ title, lines }: { title: string; lines: string[] }) {
   );
 }
 
-/** GitHub-style "Quick setup" page for an empty repo. */
-export function EmptyRepoGitHelp({ username, repo, branch }: { username: string; repo: string; branch: string }) {
+/**
+ * GitHub-style "Quick setup" guide. `initialized` = the repo already has files (README etc.),
+ * so the guide shows clone + add-files commands instead of the empty-repo init commands.
+ */
+export function RepoSetupGuide({ username, repo, branch, initialized }: { username: string; repo: string; branch: string; initialized: boolean }) {
   const url = gitUrl(username, repo);
   return (
-    <section className="mx-auto max-w-3xl space-y-6 rounded-lg border border-border p-6">
+    <section className="space-y-6 rounded-lg border border-border p-6 text-left">
       <div>
         <h2 className="flex items-center gap-2 text-lg font-semibold"><Terminal className="size-5 text-primary" /> Quick setup — mulai dari sini</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Repositori ini masih kosong. Hubungkan dari komputermu lewat terminal, sama seperti GitHub.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {initialized
+            ? "Repositori sudah berisi file awal. Ambil ke komputermu lalu tambah file lewat terminal, sama seperti GitHub."
+            : "Repositori ini masih kosong. Hubungkan dari komputermu lewat terminal, sama seperti GitHub."}
+        </p>
         <div className="mt-3"><CopyLine value={url} label="URL git" /></div>
         <p className="mt-3 text-sm text-muted-foreground">
           Atau langsung{" "}
@@ -49,12 +56,21 @@ export function EmptyRepoGitHelp({ username, repo, branch }: { username: string;
           Sebaiknya setiap repositori punya README, LICENSE, dan .gitignore.
         </p>
       </div>
-      <Block title="…atau buat repositori baru lewat terminal" lines={[
-        `echo "# ${repo}" >> README.md`, "git init", "git add README.md", 'git commit -m "first commit"',
-        `git branch -M ${branch}`, `git remote add origin ${url}`, `git push -u origin ${branch}`,
-      ]} />
-      <Block title="…atau push repositori yang sudah ada lewat terminal" lines={[
-        `git remote add origin ${url}`, `git branch -M ${branch}`, `git push -u origin ${branch}`,
+      {initialized ? (
+        <Block title="…ambil repositori ini ke komputermu" lines={[`git clone ${url}`, `cd ${repo}`]} />
+      ) : (
+        <>
+          <Block title="…atau buat repositori baru lewat terminal" lines={[
+            `echo "# ${repo}" >> README.md`, "git init", "git add README.md", 'git commit -m "first commit"',
+            `git branch -M ${branch}`, `git remote add origin ${url}`, `git push -u origin ${branch}`,
+          ]} />
+          <Block title="…atau push repositori yang sudah ada lewat terminal" lines={[
+            `git remote add origin ${url}`, `git branch -M ${branch}`, `git push -u origin ${branch}`,
+          ]} />
+        </>
+      )}
+      <Block title="…tambah atau ubah file (kode, gambar, video, audio) lalu kirim" lines={[
+        "git add .", 'git commit -m "tambah file"', "git push",
       ]} />
       <p className="text-sm text-muted-foreground">
         …atau <Link to="/import" className="text-link hover:underline">impor kode dari repositori lain</Link> (GitHub).
@@ -63,5 +79,14 @@ export function EmptyRepoGitHelp({ username, repo, branch }: { username: string;
         Saat diminta kata sandi, pakai <Link to="/settings" hash="token-git" className="text-link hover:underline">token git</Link> kamu (bukan kata sandi akun).
       </p>
     </section>
+  );
+}
+
+/** Quick setup for an empty repo (shown on the repo page). */
+export function EmptyRepoGitHelp({ username, repo, branch }: { username: string; repo: string; branch: string }) {
+  return (
+    <div className="mx-auto max-w-3xl">
+      <RepoSetupGuide username={username} repo={repo} branch={branch} initialized={false} />
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Globe, Lock, Github, Terminal } from "lucide-react";
+import { Globe, Lock, Github, Terminal, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { commitChanges } from "@/lib/repo-data";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SignInCta } from "@/components/sign-in-cta";
+import { RepoSetupGuide } from "@/components/repo/git-clone";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/new")({
@@ -56,11 +57,12 @@ function NewRepo() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
-  // Like GitHub: everything is off by default, so a new repo is empty and shows the terminal "quick setup".
+  // Like GitHub: everything is off by default, so a new repo is empty.
   const [readme, setReadme] = useState(false);
   const [gitignore, setGitignore] = useState("");
   const [license, setLicense] = useState("");
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<{ repo: string; branch: string; initialized: boolean } | null>(null);
   if (!user || !profile) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk dulu untuk membuat repositori." /></main>;
 
   const problem = nameProblem(name);
@@ -77,12 +79,35 @@ function NewRepo() {
     if (readme) changes.push({ path: "README.md", type: "add", after: `# ${name}\n${desc ? `\n${desc}\n` : ""}` });
     if (gitignore) changes.push({ path: ".gitignore", type: "add", after: GITIGNORES[gitignore] ?? "" });
     if (license === "MIT") changes.push({ path: "LICENSE", type: "add", after: mit(profile!.display_name || profile!.username) });
+    let initialized = false;
     try {
-      if (changes.length) await commitChanges({ repoId: data.id, authorId: user!.id, message: "Initial commit", changes });
+      if (changes.length) { await commitChanges({ repoId: data.id, authorId: user!.id, message: "Initial commit", changes }); initialized = true; }
     } catch (err) { toast.error((err as Error).message); }
-    // An empty repo opens on the quick-setup page with the git commands.
-    navigate({ to: "/$username/$repo", params: { username: profile!.username, repo: name } });
+    setBusy(false);
+    // Stay on /new and show the GitHub-style setup guide (git commands + upload options).
+    setCreated({ repo: name, branch: data.default_branch || "main", initialized });
+    window.scrollTo({ top: 0 });
   }
+
+  if (created) {
+    return (
+      <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
+        <div className="flex flex-wrap items-center gap-3">
+          <CheckCircle2 className="size-8 text-primary" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold">Repositori berhasil dibuat</h1>
+            <p className="truncate font-mono text-sm text-muted-foreground">{profile.username} / {created.repo}</p>
+          </div>
+          <div className="ml-auto flex gap-2">
+            <Button onClick={() => navigate({ to: "/$username/$repo", params: { username: profile.username, repo: created.repo } })}>Buka repositori</Button>
+            <Button variant="outline" onClick={() => { setCreated(null); setName(""); setDescription(""); setReadme(false); setGitignore(""); setLicense(""); }}>Buat lagi</Button>
+          </div>
+        </div>
+        <RepoSetupGuide username={profile.username} repo={created.repo} branch={created.branch} initialized={created.initialized} />
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold">Buat repositori baru</h1>
@@ -130,7 +155,7 @@ function NewRepo() {
             </select>
           </label>
         </div>
-        <p className="flex items-start gap-2 text-xs text-muted-foreground"><Terminal className="mt-0.5 size-4 shrink-0" /> Setelah dibuat kamu akan melihat perintah git (clone, push) untuk dipakai di terminal, persis seperti GitHub.</p>
+        <p className="flex items-start gap-2 text-xs text-muted-foreground"><Terminal className="mt-0.5 size-4 shrink-0" /> Setelah dibuat kamu akan melihat panduan upload (perintah git untuk terminal) persis seperti GitHub.</p>
         <div className="flex flex-wrap gap-2">
           <Button disabled={busy || !name || !!problem}>{busy ? "Membuat…" : "Buat repositori"}</Button>
           <Button asChild variant="outline" type="button"><Link to="/import"><Github /> Impor dari GitHub</Link></Button>
