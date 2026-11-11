@@ -2,11 +2,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Plus, Search, BookMarked, LogOut, Settings, User, Download, MessageSquare, Star, LayoutDashboard, Receipt, ShieldCheck, Store,
-  Menu, Briefcase, LayoutGrid, Users, Package,
+  Menu, Briefcase, LayoutGrid, Users, Package, Bell,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { isFeatureOn } from "@/lib/features";
+import { fetchUnreadCount } from "@/lib/feed";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,12 @@ export function SiteHeader() {
   const { flags } = useSiteConfig();
   const on = (key: Parameters<typeof isFeatureOn>[1]) => isFeatureOn(flags, key);
   const nav = NAV.filter((n) => !n.feature || on(n.feature));
+  const unread = useQuery({
+    queryKey: ["feed-unread", user?.id ?? null],
+    queryFn: () => fetchUnreadCount(user!.id),
+    enabled: !!user && on("discuss"),
+    refetchInterval: 60_000,
+  });
   const dashTo = isDev ? "/studio" : "/dashboard";
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); setOpen(false); navigate({ to: "/search", search: { q, type: "users" } }); };
   return (
@@ -86,6 +94,12 @@ export function SiteHeader() {
           <Link to="/search" search={{ q: "", type: "users" }} aria-label="Cari" className="rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden"><Search className="size-4" /></Link>
           {user && profile ? (
             <>
+              {on("discuss") && (
+                <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
+                  <Bell className="size-4" />
+                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-center font-mono text-[10px] leading-4 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
+                </Link>
+              )}
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {isDev ? "Studio" : "Dashboard"}</Link></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
