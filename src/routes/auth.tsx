@@ -15,6 +15,7 @@ import { AccountTypePicker } from "@/components/account-type-picker";
 import type { AccountType } from "@/lib/market";
 import { PENDING_TYPE_KEY } from "@/components/account-type-prompt";
 import { firebaseSignIn, getFirebasePublicConfig } from "@/lib/firebase-auth.functions";
+import { firebaseGoogleIdToken, preloadFirebase } from "@/lib/firebase-client";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -43,6 +44,8 @@ function AuthPage() {
   const exchange = useServerFn(firebaseSignIn);
   const { data: firebase } = useQuery({ queryKey: ["firebase-public"], queryFn: () => loadFirebase(), staleTime: 60_000 });
   useEffect(() => { if (user) navigate({ to: "/" }); }, [user, navigate]);
+  // Load Firebase before the tap so the Google popup opens right away (browsers block slow popups).
+  useEffect(() => { if (firebase?.enabled && firebase.config) preloadFirebase(firebase.config); }, [firebase]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,11 +67,14 @@ function AuthPage() {
   async function oauth(provider: "google" | "lovable") {
     if (mode === "up" && accountType) window.localStorage.setItem(PENDING_TYPE_KEY, accountType);
     else window.localStorage.removeItem(PENDING_TYPE_KEY);
-    if (provider === "google" && firebase?.enabled && firebase.config) {
+    let fb = firebase;
+    if (provider === "google" && !fb) {
+      try { fb = await loadFirebase(); } catch { fb = undefined; }
+    }
+    if (provider === "google" && fb?.enabled && fb.config) {
       setBusy(true);
       try {
-        const { firebaseGoogleIdToken } = await import("@/lib/firebase-client");
-        const idToken = await firebaseGoogleIdToken(firebase.config);
+        const idToken = await firebaseGoogleIdToken(fb.config);
         const session = await exchange({ data: { idToken, accountType: mode === "up" && accountType ? accountType : undefined } });
         const { error } = await supabase.auth.setSession(session);
         if (error) throw error;
@@ -78,7 +84,12 @@ function AuthPage() {
       return;
     }
     const r = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin });
-    if (r.error) toast.error(provider === "google" ? "Gagal masuk dengan Google." : "Gagal masuk dengan Lovable.");
+    if (r.error) {
+      console.error("Lovable sign-in failed", r.error);
+      toast.error(provider === "google"
+        ? "Gagal masuk dengan Google. Login Google bawaan hanya jalan di domain Lovable; di hosting sendiri admin perlu mengaktifkan Firebase di /admin (atau mengisi FIREBASE_WEB_CONFIG di server)."
+        : "Gagal masuk dengan Lovable.");
+    }
   }
 
   return (
