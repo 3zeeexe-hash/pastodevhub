@@ -8,7 +8,7 @@ import { CopyLine, gitUrl } from "@/components/repo/git-clone";
 
 export function CodeMenu({ data }: { data: RepoData }) {
   const [busy, setBusy] = useState(false);
-  const url = typeof window !== "undefined" ? `${window.location.origin}/${data.owner.username}/${data.repo.name}` : "";
+  const url = typeof window !== "undefined" ? gitUrl(data.owner.username, data.repo.name) : "";
   async function zip() {
     setBusy(true);
     try {
@@ -34,9 +34,9 @@ export function CodeMenu({ data }: { data: RepoData }) {
           <p className="text-[11px] text-muted-foreground">Push/pull pakai token git dari Pengaturan sebagai kata sandi.</p>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Bagikan repositori</DropdownMenuLabel>
+        <DropdownMenuLabel>URL Git repositori</DropdownMenuLabel>
         <div className="flex gap-1 px-2 pb-2">
-          <input readOnly value={url} className="flex-1 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs" aria-label="URL repositori" />
+          <input readOnly value={url} className="flex-1 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs" aria-label="URL Git repositori" />
           <Button size="icon" variant="ghost" aria-label="Salin URL" onClick={() => { navigator.clipboard.writeText(url); toast.success("URL disalin"); }}><Copy /></Button>
         </div>
         {data.repo.github_full_name && (
