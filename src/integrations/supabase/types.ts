@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_claim: {
+        Row: {
+          code_hash: string
+          id: number
+        }
+        Insert: {
+          code_hash: string
+          id?: number
+        }
+        Update: {
+          code_hash?: string
+          id?: number
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           account_name: string | null
@@ -1371,6 +1386,7 @@ export type Database = {
       can_read_repo: { Args: { rid: string }; Returns: boolean }
       can_write_repo: { Args: { rid: string }; Returns: boolean }
       cancel_order: { Args: { _order_id: string }; Returns: undefined }
+      claim_admin_role: { Args: { _code: string }; Returns: undefined }
       complete_order: { Args: { _order_id: string }; Returns: undefined }
       count_hosted_view: { Args: { _slug: string }; Returns: undefined }
       deliver_order: {
