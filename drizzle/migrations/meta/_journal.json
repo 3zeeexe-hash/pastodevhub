@@ -8,6 +8,13 @@
       "when": 1794342570044,
       "tag": "0000_admin_feature_flags_and_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794367383760,
+      "tag": "0001_fix_hosting_public_read",
+      "breakpoints": true
     }
   ]
 }
