@@ -13,18 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarMini } from "@/components/avatar-mini";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/jasa/$id")({
-  head: () => ({
-    meta: [
-      { title: "Detail jasa — Pastodev" },
-      { name: "description", content: "Lihat detail jasa developer dan kirim permintaan pesanan di Pastodev." },
-      { property: "og:title", content: "Detail jasa — Pastodev" },
-      { property: "og:description", content: "Jasa developer freelancer di Pastodev." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  // Real title, description and structured data come from the database; the text below is the fallback.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "service", id: params.id } }),
+  staleTime: 300_000,
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail jasa — Pastodev", description: "Lihat detail jasa developer dan kirim permintaan pesanan di Pastodev." }),
   component: JasaDetail,
 });
 
