@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Star, GitFork, Lock, Code2, CircleDot, GitPullRequest, History, Settings, Github, BookMarked, Bot } from "lucide-react";
+import { Star, GitFork, Lock, Code2, CircleDot, GitPullRequest, History, Settings, Github, BookMarked, Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { commitChanges, useRepo, useRefreshRepo } from "@/lib/repo-data";
@@ -32,7 +32,14 @@ function RepoLayout() {
   const refresh = useRefreshRepo(username, repo);
   const [forking, setForking] = useState(false);
 
-  if (isLoading) return <main className="mx-auto max-w-7xl px-4 py-12 text-muted-foreground">Memuat repositori…</main>;
+  if (isLoading) return (
+    <main className="flex min-h-[60vh] items-center justify-center px-4 py-12" role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+        <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
+        <p className="text-sm">Memuat repositori…</p>
+      </div>
+    </main>
+  );
   if (!data) return (
     <main className="mx-auto max-w-xl px-4 py-20 text-center">
       <BookMarked className="mx-auto size-10 text-muted-foreground" />
