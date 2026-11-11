@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Briefcase, MessageSquare, Package, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { siteJsonLd } from "@/lib/seo";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,10 @@ import { SEARCH_TYPES } from "@/lib/search-types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
+  head: ({ matches }) => {
+    const origin = (matches[0]?.loaderData as { siteUrl?: string | null } | undefined)?.siteUrl;
+    return {
+    scripts: origin ? [{ type: "application/ld+json", children: siteJsonLd(origin) }] : [],
     meta: [
       { title: "Pastodev — Komunitas developer Nusantara" },
       { name: "description", content: "Cari developer, lowongan freelance, karya digital, dan diskusi bersama komunitas developer Indonesia." },
@@ -24,7 +28,8 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-  }),
+    };
+  },
   component: Index,
 });
 
