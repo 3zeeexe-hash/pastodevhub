@@ -20,10 +20,22 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 // Git smart HTTP (clone/pull/push from the terminal) lives at /<user>/<repo>.git/...
 const GIT_PATH = /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?(?:\.git)?\/(info\/refs|git-upload-pack|git-receive-pack)$/;
+// Opening /<user>/<repo>.git in a browser (no git sub-path) should show the repo page.
+const REPO_GIT_WEB = /^\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)\.git\/?$/;
 const gitMiddleware = createMiddleware().server(async ({ next, request }) => {
-  if (GIT_PATH.test(new URL(request.url).pathname)) {
+  const url = new URL(request.url);
+  if (GIT_PATH.test(url.pathname)) {
     const { handleGit } = await import("./lib/git/http.server");
     return handleGit(request);
+  }
+  if (request.method === "GET" || request.method === "HEAD") {
+    const m = REPO_GIT_WEB.exec(url.pathname);
+    if (m) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: `/${m[1]}/${m[2]}${url.search}` },
+      });
+    }
   }
   return next();
 });
