@@ -52,6 +52,30 @@ export function parseFirebaseConfig(input: string): FirebaseWebConfig {
   return cfg;
 }
 
+/**
+ * Web config from server environment variables, as a fallback when the admin panel has none
+ * (e.g. a self-hosted deploy). Either FIREBASE_WEB_CONFIG (the JSON / snippet from the Firebase
+ * console) or FIREBASE_API_KEY + FIREBASE_PROJECT_ID (+ FIREBASE_AUTH_DOMAIN, FIREBASE_APP_ID).
+ * Returns null when nothing usable is set.
+ */
+export function firebaseConfigFromEnv(env: Record<string, string | undefined>): FirebaseWebConfig | null {
+  try {
+    const raw = env["FIREBASE_WEB_CONFIG"]?.trim();
+    if (raw) return parseFirebaseConfig(raw);
+    const apiKey = env["FIREBASE_API_KEY"]?.trim();
+    const projectId = env["FIREBASE_PROJECT_ID"]?.trim();
+    if (!apiKey || !projectId) return null;
+    const cfg: Record<string, string> = { apiKey, projectId };
+    const authDomain = env["FIREBASE_AUTH_DOMAIN"]?.trim();
+    const appId = env["FIREBASE_APP_ID"]?.trim();
+    if (authDomain) cfg["authDomain"] = authDomain;
+    if (appId) cfg["appId"] = appId;
+    return parseFirebaseConfig(JSON.stringify(cfg));
+  } catch {
+    return null;
+  }
+}
+
 export type ServiceAccountInfo = { projectId: string; clientEmail: string };
 
 /** Validates a Firebase/Google service-account key file. */
@@ -66,4 +90,4 @@ export function parseServiceAccount(input: string): ServiceAccountInfo {
   if (!/^[^@\s]+@[^@\s]+\.iam\.gserviceaccount\.com$/.test(clientEmail)) throw new Error("client_email di service account tidak valid.");
   if (!key.includes("PRIVATE KEY")) throw new Error("private_key tidak ada di service account.");
   return { projectId, clientEmail };
-}
+  }
