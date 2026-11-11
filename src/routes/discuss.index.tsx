@@ -1,63 +1,77 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-import { MessageSquare } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth, timeAgo } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { AvatarMini } from "@/components/avatar-mini";
+import { useQuery } from "@tanstack/react-query";
+import { Bell, Bookmark } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { fetchUnreadCount } from "@/lib/feed";
 import { SignInCta } from "@/components/sign-in-cta";
+import { Composer } from "@/components/feed/composer";
+import { Timeline } from "@/components/feed/timeline";
+import { ForumList } from "@/components/feed/forum-list";
+import { cn } from "@/lib/utils";
+
+const TABS = ["linimasa", "mengikuti", "forum"] as const;
+type Tab = (typeof TABS)[number];
+const TAB_LABEL: Record<Tab, string> = { linimasa: "Linimasa", mengikuti: "Mengikuti", forum: "Forum" };
 
 export const Route = createFileRoute("/discuss/")({
-  head: () => ({ meta: [{ title: "Diskusi — Pastodev" }, { name: "description", content: "Forum diskusi komunitas developer Pastodev." }, { property: "og:title", content: "Diskusi — Pastodev" }, { property: "og:description", content: "Tanya, berbagi, dan diskusi bersama developer lain." }] }),
+  validateSearch: (s: Record<string, unknown>): { tab?: Tab } => {
+    const t = s["tab"];
+    return TABS.includes(t as Tab) ? { tab: t as Tab } : {};
+  },
+  head: () => ({ meta: [{ title: "Diskusi — Pastodev" }, { name: "description", content: "Linimasa dan forum komunitas developer Pastodev." }, { property: "og:title", content: "Diskusi — Pastodev" }, { property: "og:description", content: "Posting, balas, repost, dan ikuti developer lain di Pastodev." }] }),
   component: Discuss,
 });
 
 function Discuss() {
+  const { tab = "linimasa" } = Route.useSearch();
   const { user } = useAuth();
-  const qc = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const { data } = useQuery({
-    queryKey: ["posts", "all"],
-    queryFn: async () => (await supabase.from("posts").select("id,title,body,created_at, author:profiles(username,avatar_url), comments(count)").order("created_at", { ascending: false })).data ?? [],
+  const unread = useQuery({
+    queryKey: ["feed-unread", user?.id ?? null],
+    queryFn: () => fetchUnreadCount(user!.id),
+    enabled: !!user,
+    refetchInterval: 60_000,
   });
-  async function post(e: React.FormEvent) {
-    e.preventDefault();
-    const { error } = await supabase.from("posts").insert({ author_id: user!.id, title, body });
-    if (error) { toast.error(error.message); return; }
-    setTitle(""); setBody(""); qc.invalidateQueries({ queryKey: ["posts"] });
-  }
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-bold">Diskusi</h1>
-      <div className="mt-6">
-        {user ? (
-          <form onSubmit={post} className="space-y-3 rounded-lg border border-border bg-card p-4">
-            <Input placeholder="Judul diskusi" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={150} />
-            <Textarea placeholder="Tulis pertanyaan atau ide kamu…" value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} />
-            <Button>Posting</Button>
-          </form>
-        ) : <SignInCta text="Masuk untuk memulai diskusi." />}
-      </div>
-      <ul className="mt-8 divide-y divide-border">
-        {data?.map((p: any) => (
-          <li key={p.id}>
-            <Link to="/discuss/$id" params={{ id: p.id }} className="flex gap-3 py-4 hover:opacity-90">
-              <AvatarMini name={p.author?.username ?? "?"} url={p.author?.avatar_url} size={36} />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{p.title}</p>
-                <p className="line-clamp-2 text-sm text-muted-foreground">{p.body}</p>
-                <p className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">@{p.author?.username} · {timeAgo(p.created_at)} <span className="flex items-center gap-1"><MessageSquare className="size-3" /> {p.comments[0]?.count ?? 0}</span></p>
-              </div>
+    <main className="mx-auto max-w-2xl border-x border-border">
+      <div className="flex items-center gap-2 px-4 pt-6">
+        <h1 className="text-2xl font-bold">Diskusi</h1>
+        {user && (
+          <div className="ml-auto flex items-center gap-1">
+            <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
+              <Bell className="size-5" />
+              {!!unread.data && <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-primary px-1 text-center font-mono text-[10px] leading-4 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
             </Link>
-          </li>
+            <Link to="/discuss/tersimpan" aria-label="Tersimpan" className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"><Bookmark className="size-5" /></Link>
+          </div>
+        )}
+      </div>
+
+      <nav className="mt-4 flex border-b border-border" aria-label="Tab diskusi">
+        {TABS.map((t) => (
+          <Link key={t} to="/discuss" search={t === "linimasa" ? {} : { tab: t }} replace
+            className={cn("flex-1 border-b-2 px-4 py-3 text-center text-sm font-medium transition hover:bg-accent/40", tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground")}>
+            {TAB_LABEL[t]}
+          </Link>
         ))}
-        {data?.length === 0 && <li className="py-8 text-center text-muted-foreground">Belum ada diskusi.</li>}
-      </ul>
+      </nav>
+
+      {tab === "forum" ? (
+        <ForumList />
+      ) : (
+        <>
+          <div className="border-b border-border p-4"><Composer kind="post" /></div>
+          {tab === "mengikuti" && !user ? (
+            <div className="p-6"><SignInCta text="Masuk untuk melihat post dari developer yang kamu ikuti." /></div>
+          ) : (
+            <Timeline
+              query={{ tab: tab === "mengikuti" ? "following" : "all" }}
+              empty={tab === "mengikuti"
+                ? <>Linimasa ini masih kosong. Ikuti developer dari <Link to="/search" search={{ q: "", type: "users" }} className="text-primary hover:underline">halaman Developer</Link>, atau tulis post pertamamu.</>
+                : "Belum ada post. Jadilah yang pertama!"}
+            />
+          )}
+        </>
+      )}
     </main>
   );
 }
