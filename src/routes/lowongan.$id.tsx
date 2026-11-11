@@ -16,18 +16,14 @@ import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/job-card";
 import { ApplicationThread } from "@/components/application-thread";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/lowongan/$id")({
-  head: () => ({
-    meta: [
-      { title: "Detail lowongan — Pastodev" },
-      { name: "description", content: "Detail proyek freelance dari client. Lamar dengan penawaran harga dan waktu kerja." },
-      { property: "og:title", content: "Detail lowongan — Pastodev" },
-      { property: "og:description", content: "Proyek freelance di Pastodev." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  // Real title, description and structured data come from the database; the text below is the fallback.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "job", id: params.id } }),
+  staleTime: 300_000,
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail lowongan — Pastodev", description: "Detail proyek freelance dari client. Lamar dengan penawaran harga dan waktu kerja." }),
   component: JobDetail,
 });
 
