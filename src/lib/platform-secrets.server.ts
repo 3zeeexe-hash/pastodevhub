@@ -1,11 +1,12 @@
 // Server-only: platform settings the admin sets in the panel (GitHub OAuth app).
-// Stored in a table only the server can read; the client secret is encrypted.
+// Stored in a table only the app server can read (server proof); secrets are encrypted.
 import { decryptConnectionKey, encryptConnectionKey } from "@/lib/connectionKeyCrypto.server";
 import type { FirebaseWebConfig } from "@/lib/firebase-config";
 
+// Uses the publishable key plus the server proof — no SUPABASE_SERVICE_ROLE_KEY needed.
 async function admin() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+  const { serverDb } = await import("@/lib/server-db.server");
+  return serverDb();
 }
 
 export type GithubOAuthConfig = { clientId: string; clientSecret: string; source: "admin" | "env" };
