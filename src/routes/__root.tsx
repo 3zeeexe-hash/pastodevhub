@@ -20,6 +20,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { AnnouncementBar, FeatureGate } from "@/components/site-status";
 import { siteConfigQuery } from "@/lib/site-config.functions";
+import { rootSeoHead } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -84,27 +85,33 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Pastodev — Komunitas Developer" },
-      { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
-      { name: "author", content: "Pastodev" },
-      { name: "theme-color", content: "#0d1020" },
-      { property: "og:site_name", content: "Pastodev" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/favicon.png" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
-    ],
-  }),
+  head: ({ loaderData, matches }) => {
+    // Canonical, robots, og:url and Search Console verification for every page live here, so no page can forget them.
+    const seo = rootSeoHead(loaderData, matches[matches.length - 1], matches.length);
+    return {
+      meta: [
+        ...seo.meta,
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: "Pastodev — Komunitas Developer" },
+        { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
+        { name: "author", content: "Pastodev" },
+        { name: "theme-color", content: "#0d1020" },
+        { property: "og:site_name", content: "Pastodev" },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        ...seo.links,
+        { rel: "icon", type: "image/png", href: "/favicon.png" },
+        { rel: "apple-touch-icon", href: "/favicon.png" },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
+      ],
+    };
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(siteConfigQuery),
   shellComponent: RootShell,
   component: RootComponent,
