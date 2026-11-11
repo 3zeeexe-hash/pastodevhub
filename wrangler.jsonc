@@ -1,0 +1,22 @@
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pastodev",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-12",
+
+  // Runtime variables and configuration
+  "vars": {
+    "ADMIN_PASSWORD": "ardigg12",
+    "ADMIN_USERNAME": "ardi",
+    "APP_USER_CONNECTION_KEY_SECRET": "e4c198f2a7b63d91054c2e88a3f124b9c5d71e082f43a69b1c7e52d3a98f41b2",
+
+    "SUPABASE_PROJECT_ID": "wycrbuivymmhmwtdtrtc",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_5v4PRLML4RgckB2_CP4V7w_sDtU3MA3",
+    "SUPABASE_URL": "https://c--122ec740-ba0e-4246-a97f-13647708f367-prod.lovable.cloud",
+
+    "VITE_SUPABASE_PROJECT_ID": "wycrbuivymmhmwtdtrtc",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_5v4PRLML4RgckB2_CP4V7w_sDtU3MA3",
+    "VITE_SUPABASE_URL": "https://c--122ec740-ba0e-4246-a97f-13647708f367-prod.lovable.cloud"
+  }
+}
