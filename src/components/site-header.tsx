@@ -2,12 +2,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Plus, Search, BookMarked, LogOut, Settings, User, Download, MessageSquare, Star, LayoutDashboard, Receipt, ShieldCheck, Store,
-  Menu, Briefcase, LayoutGrid, Users, Package, Bell, Wrench,
+  Menu, Briefcase, LayoutGrid, Users, Package, Bell, Wrench, BadgeCheck,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ROLE_INFO, workspacePath, type Role } from "@/lib/roles";
+import { ROLE_INFO, roleCan, workspacePath, type Role } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
 import { isFeatureOn } from "@/lib/features";
 import { fetchUnreadCount } from "@/lib/feed";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
+import { VerifiedBadge } from "@/components/verified-badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -37,7 +38,6 @@ export function SiteHeader() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const isDev = profile?.account_type === "developer";
   const { role } = useRole();
   const { flags } = useSiteConfig();
   const on = (key: Parameters<typeof isFeatureOn>[1]) => isFeatureOn(flags, key);
@@ -115,10 +115,11 @@ export function SiteHeader() {
                   <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden lg:inline-flex"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {!isDev && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
-                  {isDev && role !== "personal" && on("karya") && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
-                  {on("repos") && <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>}
-                  {on("github") && <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>}
+                  {roleCan(role, "post_job") && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
+                  {roleCan(role, "karya") && on("karya") && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
+                  {roleCan(role, "jasa") && on("jasa") && <DropdownMenuItem asChild><Link to="/studio/jasa"><Wrench /> Kelola jasa</Link></DropdownMenuItem>}
+                  {roleCan(role, "repos") && on("repos") && <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>}
+                  {roleCan(role, "github") && on("github") && <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>}
                   {on("discuss") && <DropdownMenuItem asChild><Link to="/discuss"><MessageSquare /> Diskusi baru</Link></DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -128,21 +129,18 @@ export function SiteHeader() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-normal">
-                    <span className="block font-semibold">{profile.display_name || profile.username}</span>
+                    <span className="flex items-center gap-1 font-semibold"><span className="truncate">{profile.display_name || profile.username}</span><VerifiedBadge username={profile.username} verified={profile.is_verified} size={15} /></span>
                     <span className="block font-mono text-xs text-muted-foreground">@{profile.username} · {profile.account_type ? ROLE_INFO[role].title : "—"}</span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild><Link to={dashTo}><LayoutDashboard /> {workspaceLabel}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }}><User /> Profil kamu</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "repos" }}><BookMarked /> Repositori kamu</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "stars" }}><Star /> Bintang kamu</Link></DropdownMenuItem>
+                  {roleCan(role, "repos") && <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "repos" }}><BookMarked /> Repositori kamu</Link></DropdownMenuItem>}
+                  {roleCan(role, "repos") && <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "stars" }}><Star /> Bintang kamu</Link></DropdownMenuItem>}
                   <DropdownMenuSeparator />
-                  {isDev && (
-                    <>
-                      {on("jobs") && <DropdownMenuItem asChild><Link to="/studio/lamaran"><Briefcase /> Lamaran saya</Link></DropdownMenuItem>}
-                      {on("toko") && <DropdownMenuItem asChild><Link to="/toko/$username" params={{ username: profile.username }}><Store /> Toko kamu</Link></DropdownMenuItem>}
-                    </>
-                  )}
+                  {roleCan(role, "lamaran") && on("jobs") && <DropdownMenuItem asChild><Link to="/studio/lamaran"><Briefcase /> Lamaran saya</Link></DropdownMenuItem>}
+                  {roleCan(role, "toko") && on("toko") && <DropdownMenuItem asChild><Link to="/toko/$username" params={{ username: profile.username }}><Store /> Toko kamu</Link></DropdownMenuItem>}
+                  <DropdownMenuItem asChild><Link to="/verifikasi"><BadgeCheck /> Verifikasi akun</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/pesanan"><Receipt /> Pesanan</Link></DropdownMenuItem>
                   {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><ShieldCheck /> Admin</Link></DropdownMenuItem>}
                   <DropdownMenuItem asChild><Link to="/settings"><Settings /> Pengaturan</Link></DropdownMenuItem>

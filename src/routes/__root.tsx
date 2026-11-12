@@ -20,7 +20,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { MobileBottomNav, useMobileNavVisible } from "@/components/mobile-bottom-nav";
 import { ChatDock } from "@/components/chat-dock";
 import { Toaster } from "@/components/ui/sonner";
-import { AnnouncementBar, FeatureGate } from "@/components/site-status";
+import { AnnouncementBar, FeatureGate, RoleGate } from "@/components/site-status";
 import { siteConfigQuery } from "@/lib/site-config.functions";
 import { rootSeoHead } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -163,7 +163,7 @@ function RootComponent() {
             <AnnouncementBar />
             <div className="flex-1">
               {/* Required: nested routes render here. */}
-              <FeatureGate><Outlet /></FeatureGate>
+              <FeatureGate><RoleGate><Outlet /></RoleGate></FeatureGate>
             </div>
             <SiteFooter />
           </div>

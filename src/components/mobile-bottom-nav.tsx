@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { BookMarked, Briefcase, Compass, Download, Home, LogIn, MessageSquare, Package, Pencil, Plus, Receipt, Search, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
+import { roleCan } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { AvatarMini } from "@/components/avatar-mini";
@@ -33,7 +34,6 @@ export function MobileBottomNav() {
   if (!visible) return null;
 
   const signedIn = !!user && !!profile;
-  const isDev = profile?.account_type === "developer";
   const close = () => setCreateOpen(false);
 
   return (
@@ -90,11 +90,11 @@ export function MobileBottomNav() {
             <SheetHeader><SheetTitle>Buat baru</SheetTitle></SheetHeader>
             <div className="mt-3 flex flex-col">
               {on("discuss") && <Link to="/" search={{}} hash="tulis" onClick={close} className={sheetItem}><MessageSquare className="size-5 text-primary" /> Tulis post</Link>}
-              {!isDev && on("jobs") && <Link to="/lowongan/baru" onClick={close} className={sheetItem}><Briefcase className="size-5 text-primary" /> Pasang lowongan</Link>}
-              {isDev && on("jasa") && <Link to="/studio/jasa" onClick={close} className={sheetItem}><Pencil className="size-5 text-primary" /> Kelola jasa</Link>}
-              {isDev && role !== "personal" && on("karya") && <Link to="/studio/karya/$id" params={{ id: "baru" }} onClick={close} className={sheetItem}><Package className="size-5 text-primary" /> Unggah karya</Link>}
-              {on("repos") && <Link to="/new" onClick={close} className={sheetItem}><BookMarked className="size-5 text-primary" /> Repositori baru</Link>}
-              {on("github") && <Link to="/import" onClick={close} className={sheetItem}><Download className="size-5 text-primary" /> Impor dari GitHub</Link>}
+              {roleCan(role, "post_job") && on("jobs") && <Link to="/lowongan/baru" onClick={close} className={sheetItem}><Briefcase className="size-5 text-primary" /> Pasang lowongan</Link>}
+              {roleCan(role, "jasa") && on("jasa") && <Link to="/studio/jasa" onClick={close} className={sheetItem}><Pencil className="size-5 text-primary" /> Kelola jasa</Link>}
+              {roleCan(role, "karya") && on("karya") && <Link to="/studio/karya/$id" params={{ id: "baru" }} onClick={close} className={sheetItem}><Package className="size-5 text-primary" /> Unggah karya</Link>}
+              {roleCan(role, "repos") && on("repos") && <Link to="/new" onClick={close} className={sheetItem}><BookMarked className="size-5 text-primary" /> Repositori baru</Link>}
+              {roleCan(role, "github") && on("github") && <Link to="/import" onClick={close} className={sheetItem}><Download className="size-5 text-primary" /> Impor dari GitHub</Link>}
             </div>
           </SheetContent>
         </Sheet>
