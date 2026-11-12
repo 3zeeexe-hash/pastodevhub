@@ -32,3 +32,8 @@
 - [ ] Home sections + Daftar button follow feature switches; sign-up closed handled cleanly
 - [ ] GitHub settings, Firebase Google sign-in and admin login work without SUPABASE_SERVICE_ROLE_KEY (self-hosted deploy)
 - [ ] Verify Firebase Google sign-in live — waiting on the owner's Firebase setup
+- [x] Chat Pesanan: tombol Bayar + pop-up Midtrans Core API (VA / QRIS), kotak escrow di halaman pesanan
+- [x] Saldo developer di Studio memakai escrow (ditahan / menunggu admin / tersedia); admin meneruskan saldo jasa secara manual
+- [x] Admin: menu Escrow, Midtrans, Pantau aktivitas + ringkasan dana siap diteruskan dan perlu refund
+- [x] Lowongan: lamaran diterima menjadi pesanan berbayar dengan escrow yang sama (SQL `002_lowongan_pesanan.sql`)
+- [ ] Verify Midtrans sandbox live — waiting on the owner running `docs/sql/midtrans-escrow` 001 + 002 and entering sandbox keys in /admin/midtrans

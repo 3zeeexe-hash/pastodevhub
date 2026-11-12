@@ -4,7 +4,7 @@ SQL di folder ini dijalankan **manual oleh owner** (bukan lewat Lovable). Sengaj
 
 ## Cara pasang
 
-1. Buka SQL editor database proyek, tempel seluruh isi `001_midtrans_escrow.sql`, lalu jalankan sekali. Aman diulang.
+1. Buka SQL editor database proyek, tempel seluruh isi `001_midtrans_escrow.sql`, lalu jalankan sekali. Aman diulang. Untuk alur lowongan berbayar, jalankan juga `002_lowongan_pesanan.sql` sesudahnya (juga aman diulang).
 2. Cek hasilnya:
    ```sql
    select count(*) from public.payments;        -- harus 0, tanpa error
@@ -28,6 +28,14 @@ Admin dapat membekukan, menandai refund, dan semua tindakannya tercatat di `admi
 
 `POST /api/midtrans/notification` → verifikasi `signature_key` (SHA-512) → cek ulang ke API status Midtrans → cocokkan nominal → `midtrans_apply_notification` (idempoten). Notifikasi ganda tidak memproses dua kali. Pembayaran ganda atau refund dari Midtrans otomatis ditandai **perlu refund** / dana dibekukan.
 
+## Alur lowongan (`002_lowongan_pesanan.sql`)
+
+Client menerima lamaran di halaman lowongan, lalu klik **Buat pesanan & bayar**. Itu membuat pesanan jasa yang terhubung ke lamaran (`orders.job_application_id`, satu lamaran satu pesanan) dan membuka halaman pesanan, tempat tombol **Bayar** memunculkan pop-up Midtrans. Setelah itu alurnya sama dengan jasa biasa: dana ditahan, developer mengirim hasil, client menerima atau minta revisi, admin meneruskan saldo secara manual.
+
+- Penawaran developer minimal Rp1.000: pesanan langsung berstatus **Menunggu pembayaran** dengan harga penawaran.
+- Penawaran "Nego" (Rp0): pesanan berstatus **Menunggu jawaban developer**. Developer menetapkan harga final lewat tombol **Terima** yang sudah ada, baru client membayar.
+- Sebelum SQL ini dijalankan, tombol **Buat pesanan & bayar** akan menampilkan error dari database dan halaman lowongan lain tetap normal.
+
 ## Yang perlu dicek setelah dijalankan
 
 - Fungsi `midtrans_apply_notification` mengubah status pesanan langsung (`awaiting_payment` → `in_progress` untuk jasa, `completed` untuk karya). Kalau database menolak (trigger/aturan lama di tabel `orders`), salin pesan errornya dari `payment_events` / log server dan kirim ke saya.
@@ -38,4 +46,5 @@ Admin dapat membekukan, menandai refund, dan semua tindakannya tercatat di `admi
 
 - Pelepasan dana jasa tidak punya batas waktu otomatis jika client tidak pernah menerima. Admin bisa memantau dan menindaklanjuti di `/admin/pantau`.
 - Refund ke pembeli dilakukan manual di dashboard Midtrans; aplikasi hanya menandai status.
-- Pembayaran untuk lamaran lowongan (`jobs`) belum memakai alur ini; lowongan dan chat-nya sudah bisa dipantau admin.
+- Halaman pesanan tidak lagi menampilkan transfer manual + unggah bukti untuk pesanan baru; semua pembayaran lewat Midtrans supaya selalu masuk escrow. Pesanan lama yang sudah berstatus "Pembayaran diverifikasi admin" tetap bisa disetujui admin seperti sebelumnya.
+- `002_lowongan_pesanan.sql` memasukkan baris baru ke `orders` lewat fungsi. Jika database menolak (trigger atau aturan lama yang tidak terlihat dari kode, mis. mewajibkan `service_id` untuk pesanan jasa), salin pesan errornya dan kirim ke saya. Alur ini belum diuji pada database asli.
