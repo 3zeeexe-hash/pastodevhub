@@ -43,6 +43,13 @@
       "when": 1794467794749,
       "tag": "0005_diskusi_fase4_moderasi_dm",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794467866000,
+      "tag": "0006_midtrans_escrow",
+      "breakpoints": true
     }
   ]
 }

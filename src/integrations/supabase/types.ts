@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          admin_label: string | null
+          created_at: string
+          id: number
+          note: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          admin_label?: string | null
+          created_at?: string
+          id?: never
+          note?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          admin_label?: string | null
+          created_at?: string
+          id?: never
+          note?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       admin_claim: {
         Row: {
           code_hash: string
@@ -271,6 +304,69 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escrow_ledger: {
+        Row: {
+          created_at: string
+          developer_id: string
+          fee: number
+          gross: number
+          held_until: string
+          kind: string
+          net: number
+          note: string | null
+          order_id: string
+          released_at: string | null
+          released_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          developer_id: string
+          fee?: number
+          gross: number
+          held_until: string
+          kind: string
+          net: number
+          note?: string | null
+          order_id: string
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          developer_id?: string
+          fee?: number
+          gross?: number
+          held_until?: string
+          kind?: string
+          net?: number
+          note?: string | null
+          order_id?: string
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escrow_ledger_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1344,6 +1440,101 @@ export type Database = {
           },
         ]
       }
+      payment_events: {
+        Row: {
+          created_at: string
+          id: number
+          midtrans_order_id: string | null
+          raw: Json | null
+          result: string | null
+          transaction_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          midtrans_order_id?: string | null
+          raw?: Json | null
+          result?: string | null
+          transaction_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          midtrans_order_id?: string | null
+          raw?: Json | null
+          result?: string | null
+          transaction_status?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          bank: string | null
+          created_at: string
+          expires_at: string | null
+          gross_amount: number
+          id: string
+          method: string
+          midtrans_order_id: string
+          mode: string
+          needs_refund: boolean
+          order_id: string
+          paid_at: string | null
+          payment_type: string | null
+          qr_url: string | null
+          raw: Json | null
+          status: string
+          updated_at: string
+          va_number: string | null
+        }
+        Insert: {
+          bank?: string | null
+          created_at?: string
+          expires_at?: string | null
+          gross_amount: number
+          id?: string
+          method: string
+          midtrans_order_id: string
+          mode?: string
+          needs_refund?: boolean
+          order_id: string
+          paid_at?: string | null
+          payment_type?: string | null
+          qr_url?: string | null
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          va_number?: string | null
+        }
+        Update: {
+          bank?: string | null
+          created_at?: string
+          expires_at?: string | null
+          gross_amount?: number
+          id?: string
+          method?: string
+          midtrans_order_id?: string
+          mode?: string
+          needs_refund?: boolean
+          order_id?: string
+          paid_at?: string | null
+          payment_type?: string | null
+          qr_url?: string | null
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          va_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payouts: {
         Row: {
           account_name: string
@@ -1401,6 +1592,13 @@ export type Database = {
           github_client_id: string | null
           github_client_secret_ciphertext: string | null
           id: number
+          midtrans_enabled: boolean
+          midtrans_methods: string[]
+          midtrans_mode: string
+          midtrans_production_client_key: string | null
+          midtrans_production_server_key_ciphertext: string | null
+          midtrans_sandbox_client_key: string | null
+          midtrans_sandbox_server_key_ciphertext: string | null
           updated_at: string
         }
         Insert: {
@@ -1412,6 +1610,13 @@ export type Database = {
           github_client_id?: string | null
           github_client_secret_ciphertext?: string | null
           id?: number
+          midtrans_enabled?: boolean
+          midtrans_methods?: string[]
+          midtrans_mode?: string
+          midtrans_production_client_key?: string | null
+          midtrans_production_server_key_ciphertext?: string | null
+          midtrans_sandbox_client_key?: string | null
+          midtrans_sandbox_server_key_ciphertext?: string | null
           updated_at?: string
         }
         Update: {
@@ -1423,6 +1628,13 @@ export type Database = {
           github_client_id?: string | null
           github_client_secret_ciphertext?: string | null
           id?: number
+          midtrans_enabled?: boolean
+          midtrans_methods?: string[]
+          midtrans_mode?: string
+          midtrans_production_client_key?: string | null
+          midtrans_production_server_key_ciphertext?: string | null
+          midtrans_sandbox_client_key?: string | null
+          midtrans_sandbox_server_key_ciphertext?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2050,8 +2262,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _audit: {
+        Args: {
+          _action: string
+          _note: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: undefined
+      }
+      _is_admin: { Args: never; Returns: boolean }
+      _require_server_proof: { Args: never; Returns: undefined }
+      admin_clear_refund_flag: {
+        Args: { _note?: string; _payment_id: string }
+        Returns: undefined
+      }
+      admin_log_event: {
+        Args: {
+          _action: string
+          _note: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: undefined
+      }
       admin_register_server_proof: {
         Args: { _hash: string }
+        Returns: undefined
+      }
+      admin_release_escrow: {
+        Args: { _note?: string; _order_id: string }
         Returns: undefined
       }
       admin_review_verification: {
@@ -2064,6 +2304,10 @@ export type Database = {
       }
       admin_set_ban: {
         Args: { _banned: boolean; _reason?: string; _user: string }
+        Returns: undefined
+      }
+      admin_set_escrow: {
+        Args: { _action: string; _note?: string; _order_id: string }
         Returns: undefined
       }
       admin_set_verified: {
@@ -2096,6 +2340,17 @@ export type Database = {
           on_hold: number
           paid_out: number
           pending: number
+        }[]
+      }
+      developer_wallet: {
+        Args: { _user_id: string }
+        Returns: {
+          available: number
+          awaiting_admin: number
+          frozen: number
+          on_hold: number
+          paid_out: number
+          requested: number
         }[]
       }
       dm_get_or_create: { Args: { _other: string }; Returns: string }
@@ -2176,6 +2431,33 @@ export type Database = {
       issue_repo: { Args: { _issue_id: string }; Returns: string }
       job_is_open: { Args: { _job_id: string }; Returns: boolean }
       job_owner: { Args: { _job_id: string }; Returns: string }
+      midtrans_apply_notification: {
+        Args: {
+          _fraud_status: string
+          _gross_amount: number
+          _midtrans_order_id: string
+          _payment_type: string
+          _raw: Json
+          _transaction_status: string
+        }
+        Returns: string
+      }
+      midtrans_record_charge: {
+        Args: {
+          _amount: number
+          _bank: string
+          _buyer_id: string
+          _expires: string
+          _method: string
+          _midtrans_order_id: string
+          _mode: string
+          _order_id: string
+          _qr: string
+          _raw: Json
+          _va: string
+        }
+        Returns: Json
+      }
       order_log: {
         Args: { _body: string; _order_id: string }
         Returns: undefined
@@ -2203,6 +2485,15 @@ export type Database = {
       }
       request_verification: {
         Args: { _message: string; _proof_url?: string }
+        Returns: string
+      }
+      request_wallet_payout: {
+        Args: {
+          _account_name: string
+          _account_number: string
+          _amount: number
+          _bank_name: string
+        }
         Returns: string
       }
       respond_job_application: {
