@@ -18,6 +18,9 @@ import { useSiteConfig } from "@/lib/use-site-config";
 import { useHomeData } from "@/components/home/use-home-data";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
+import banner1 from "@/assets/gobi-banner-1.png";
+import banner2 from "@/assets/gobi-banner-2.png";
+import banner3 from "@/assets/gobi-banner-3.png";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -216,7 +219,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
         <div className="flex items-center gap-3">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <button type="button" aria-label="Buka menu" className="rounded-md p-1.5 hover:bg-white/10 lg:hidden"><Menu className="size-8" /></button>
+              <button type="button" aria-label="Buka menu" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10 lg:hidden"><Menu className="size-7" /></button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 bg-header">
               <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> GOBI</SheetTitle></SheetHeader>
@@ -233,8 +236,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
           </Sheet>
 
           <Link to="/" className="flex min-w-0 flex-1 items-center justify-center gap-2 lg:flex-none lg:justify-start" aria-label="GOBI">
-            <BrandMark size={44} />
-            <span className="text-4xl font-black italic leading-none tracking-tight">GOBI</span>
+            <img src="/gobi-logo.png" alt="GOBI" width={120} height={48} draggable={false} className="h-12 w-auto select-none object-contain" />
           </Link>
 
           {/* Menu di header untuk layar lebar (di mobile lewat tombol menu di kiri). */}
@@ -245,15 +247,15 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
 
           <div className="flex items-center gap-3">
             {signedIn && on("discuss") && (
-              <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-1">
-                <Bell className="size-8" />
+              <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative flex size-11 items-center justify-center rounded-full hover:bg-white/10">
+                <Bell className="size-7" />
                 {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold leading-5">{unread.data > 99 ? "99+" : unread.data}</span>}
               </Link>
             )}
             {signedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger aria-label="Menu akun" className="flex items-center gap-1 rounded-full">
-                  <span className="rounded-full ring-2 ring-white/70"><AvatarMini name={profile.username} url={profile.avatar_url} size={40} /></span>
+                  <span className="rounded-full ring-2 ring-white/70"><AvatarMini name={profile.username} url={profile.avatar_url} size={44} /></span>
                   <ChevronDown className="size-5 text-white/80" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -272,7 +274,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/auth" className={cn(ORANGE, "rounded-full px-4 py-2 text-sm font-bold text-white")}>Masuk</Link>
+              <Link to="/auth" className={cn(ORANGE, "inline-flex h-11 items-center rounded-full px-5 text-sm font-bold text-white")}>Masuk</Link>
             )}
           </div>
         </div>
@@ -294,11 +296,11 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
 
 // ---------- Banner (slider gambar) ----------
 
-// Gambar ada di public/banners/ (rasio 16:9). Seluruh slide bisa diklik karena tombol ajakan sudah ada di dalam gambar.
+// Gambar ada di src/assets/ (rasio 16:9). Seluruh slide bisa diklik karena tombol ajakan sudah ada di dalam gambar.
 const BANNERS = [
-  { src: "/banners/gobi-banner-1.png", alt: "GOBI: Bergabung dengan Komunitas Developer Indonesia", feature: null, to: "/auth", toSignedIn: "/gobifeed" },
-  { src: "/banners/gobi-banner-2.png", alt: "GOBI: Cari Lowongan Developer dan Freelancer", feature: "jobs", to: "/lowongan", toSignedIn: "/lowongan" },
-  { src: "/banners/gobi-banner-3.png", alt: "GOBI: Tampilkan Portofoliomu", feature: null, to: "/auth", toSignedIn: "/studio/portofolio" },
+  { src: banner1, alt: "GOBI: Bergabung dengan Komunitas Developer Indonesia", feature: null, to: "/auth", toSignedIn: "/gobifeed" },
+  { src: banner2, alt: "GOBI: Cari Lowongan Developer dan Freelancer", feature: "jobs", to: "/lowongan", toSignedIn: "/lowongan" },
+  { src: banner3, alt: "GOBI: Tampilkan Portofoliomu", feature: null, to: "/auth", toSignedIn: "/studio/portofolio" },
 ] as const;
 
 function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) => boolean }) {
