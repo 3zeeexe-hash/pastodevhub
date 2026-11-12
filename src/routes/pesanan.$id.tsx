@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, Download, Eye, Send, Upload, X } from "lucide-react";
+import { Check, CreditCard, Download, Eye, Send, ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
-import { errMsg, formatRupiah, orderActions, safeFileName, STATUS_LABEL, type OrderStatus } from "@/lib/market";
+import { errMsg, formatRupiah, orderActions, type OrderStatus } from "@/lib/market";
 import { downloadProduct } from "@/lib/downloads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarMini } from "@/components/avatar-mini";
 import { SignInCta } from "@/components/sign-in-cta";
 import { OrderStatusBadge } from "@/components/order-status";
+import { EscrowBox } from "@/components/escrow-box";
+import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pesanan/$id")({
@@ -37,25 +39,31 @@ function OrderPage() {
   const { id } = Route.useParams();
   const { user, isAdmin, loading } = useAuth();
   const qc = useQueryClient();
+  const [payOpen, setPayOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["order", id, user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const [o, settings] = await Promise.all([
-        supabase.from("orders").select("*, buyer:profiles!orders_buyer_id_fkey(username,display_name,avatar_url), seller:profiles!orders_seller_id_fkey(username,display_name,avatar_url), product:products(id,file_path,file_name)").eq("id", id).maybeSingle(),
-        supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
-      ]);
-      return { o: o.data as (NonNullable<typeof o.data> & { buyer: Party | null; seller: Party | null; product: { id: string; file_path: string | null; file_name: string | null } | null }) | null, settings: settings.data };
+      const o = await supabase.from("orders").select("*, buyer:profiles!orders_buyer_id_fkey(username,display_name,avatar_url), seller:profiles!orders_seller_id_fkey(username,display_name,avatar_url), product:products(id,file_path,file_name)").eq("id", id).maybeSingle();
+      return { o: o.data as (NonNullable<typeof o.data> & { buyer: Party | null; seller: Party | null; product: { id: string; file_path: string | null; file_name: string | null } | null }) | null };
     },
   });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["order", id] }); qc.invalidateQueries({ queryKey: ["order-messages", id] }); qc.invalidateQueries({ queryKey: ["orders"] }); };
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["order", id] });
+    qc.invalidateQueries({ queryKey: ["order-messages", id] });
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    qc.invalidateQueries({ queryKey: ["escrow", id] });
+    qc.invalidateQueries({ queryKey: ["pay-active", id] });
+  };
 
   if (loading) return null;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk melihat pesanan." /></main>;
   if (isLoading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
   if (!data?.o) return <main className="mx-auto max-w-5xl px-4 py-12">Pesanan tidak ditemukan.</main>;
-  const { o, settings } = data;
+  const { o } = data;
   const actions = orderActions({ kind: o.kind as "product" | "service", status: o.status as OrderStatus, buyer_id: o.buyer_id, seller_id: o.seller_id }, { id: user.id, isAdmin });
+  const isBuyer = user.id === o.buyer_id;
+  const canPay = actions.includes("pay");
 
   async function run(fn: string, args: Record<string, unknown>, ok: string) {
     const { error } = await supabase.rpc(fn as "cancel_order", args as { _order_id: string });
@@ -83,10 +91,16 @@ function OrderPage() {
         {o.admin_note && <p className="rounded-md bg-muted p-3 text-sm"><b>Catatan admin:</b> {o.admin_note}</p>}
 
         {actions.includes("accept") && <AcceptBox defaultAmount={o.amount} onAccept={(a) => run("respond_service_order", { _order_id: o.id, _accept: true, _amount: a }, "Pesanan diterima")} onDecline={() => run("respond_service_order", { _order_id: o.id, _accept: false, _amount: 0 }, "Pesanan ditolak")} />}
-        {actions.includes("pay") && <PayBox orderId={o.id} userId={user.id} amount={o.amount} settings={settings} onDone={refresh} />}
+        {canPay && <PayNowBox amount={o.amount} onPay={() => setPayOpen(true)} />}
         {actions.includes("verify") && <VerifyBox proof={o.payment_proof_path} note={o.payment_note} onReview={(ok, note) => run("review_payment", { _order_id: o.id, _approve: ok, _note: note }, ok ? "Pembayaran disetujui" : "Bukti ditolak")} />}
         {o.status === "payment_review" && !isAdmin && <p className="rounded-md bg-muted p-3 text-sm">Bukti pembayaran sedang dicek admin.</p>}
+        <EscrowBox order={{ id: o.id, kind: o.kind, status: o.status }} isAdmin={isAdmin} isSeller={user.id === o.seller_id} onChanged={refresh} />
         {actions.includes("deliver") && <DeliverBox onDeliver={(n) => run("deliver_order", { _order_id: o.id, _note: n }, "Hasil dikirim ke client")} />}
+        {actions.includes("complete") && (
+          <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+            Periksa hasilnya dulu. Kalau masih ada yang kurang, tekan <b>Minta revisi</b>. <b>Tandai selesai</b> berarti kamu menerima hasil; dana tetap ditahan admin minimal 1 hari, lalu admin meneruskannya ke developer secara manual.
+          </p>
+        )}
         {(actions.includes("complete") || actions.includes("cancel")) && (
           <div className="flex flex-wrap gap-2">
             {actions.includes("complete") && <Button onClick={() => run("complete_order", { _order_id: o.id }, "Pesanan selesai")}><Check /> Tandai selesai</Button>}
@@ -98,7 +112,13 @@ function OrderPage() {
           <Button onClick={() => downloadProduct(o.product!).catch((e) => toast.error(errMsg(e)))}><Download /> Unduh file karya</Button>
         )}
       </div>
-      <Chat orderId={o.id} userId={user.id} closed={o.status === "cancelled" || o.status === "declined"} />
+      <Chat
+        orderId={o.id}
+        userId={user.id}
+        closed={o.status === "cancelled" || o.status === "declined"}
+        pay={canPay ? { label: formatRupiah(o.amount), onPay: () => setPayOpen(true) } : null}
+      />
+      {isBuyer && <MidtransPayDialog orderId={o.id} amount={o.amount} open={payOpen} onOpenChange={setPayOpen} onPaid={refresh} />}
     </main>
   );
 }
@@ -126,47 +146,15 @@ function AcceptBox({ defaultAmount, onAccept, onDecline }: { defaultAmount: numb
   );
 }
 
-type Settings = { bank_name: string | null; account_number: string | null; account_name: string | null; qris_url: string | null; payment_instructions: string } | null;
-
-function PayBox({ orderId, userId, amount, settings, onDone }: { orderId: string; userId: string; amount: number; settings: Settings; onDone: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const ready = !!(settings?.account_number || settings?.qris_url);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!file) { toast.error("Pilih foto bukti transfer."); return; }
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") { toast.error("Bukti harus gambar atau PDF."); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Maksimal 5 MB."); return; }
-    setBusy(true);
-    try {
-      const path = `${userId}/${orderId}-${Date.now()}-${safeFileName(file.name)}`;
-      const up = await supabase.storage.from("payment-proofs").upload(path, file, { contentType: file.type });
-      if (up.error) throw up.error;
-      const { error } = await supabase.rpc("submit_payment", { _order_id: orderId, _proof_path: path, _note: note });
-      if (error) throw error;
-      toast.success("Bukti terkirim, menunggu verifikasi admin");
-      onDone();
-    } catch (err) { toast.error(errMsg(err)); } finally { setBusy(false); }
-  }
+/** Pembayaran lewat Midtrans (Virtual Account / QRIS) di pop-up; dana masuk escrow admin. */
+function PayNowBox({ amount, onPay }: { amount: number; onPay: () => void }) {
   return (
     <section className="rounded-lg border border-primary/50 bg-card p-4">
-      <h2 className="font-semibold">Bayar {formatRupiah(amount)}</h2>
-      {ready ? (
-        <div className="mt-2 grid gap-4 sm:grid-cols-[1fr_auto]">
-          <div className="space-y-1 text-sm">
-            {settings?.account_number && <><p>Transfer ke <b>{settings.bank_name}</b></p><p className="font-mono text-lg font-bold">{settings.account_number}</p><p>a.n. {settings.account_name}</p></>}
-            {settings?.payment_instructions && <p className="whitespace-pre-wrap pt-2 text-muted-foreground">{settings.payment_instructions}</p>}
-          </div>
-          {settings?.qris_url && <img src={settings.qris_url} alt="QRIS Pastodev" className="w-40 rounded-md border border-border bg-background" />}
-        </div>
-      ) : <p className="mt-2 rounded-md bg-muted p-3 text-sm">Admin belum mengisi rekening pembayaran. Coba lagi nanti atau tanyakan lewat chat.</p>}
-      <form onSubmit={submit} className="mt-4 space-y-2">
-        <Label htmlFor="proof">Bukti transfer</Label>
-        <Input id="proof" type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        <Input aria-label="Catatan" placeholder="Catatan (opsional), mis. nama pengirim" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
-        <Button disabled={busy || !ready}><Upload /> Kirim bukti pembayaran</Button>
-      </form>
+      <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-primary" /> Bayar {formatRupiah(amount)}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pilih Virtual Account atau QRIS di pop-up pembayaran. Setelah lunas, pesanan otomatis berjalan dan dana ditahan admin (escrow) sampai pekerjaan selesai.
+      </p>
+      <Button className="mt-3" onClick={onPay}><CreditCard /> Bayar sekarang</Button>
     </section>
   );
 }
@@ -181,7 +169,8 @@ function VerifyBox({ proof, note, onReview }: { proof: string | null; note: stri
   }
   return (
     <section className="rounded-lg border border-primary/50 bg-card p-4">
-      <h2 className="font-semibold">Verifikasi pembayaran (admin)</h2>
+      <h2 className="font-semibold">Verifikasi pembayaran manual (admin)</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Pesanan lama yang dibayar dengan bukti transfer. Pesanan baru dibayar lewat Midtrans.</p>
       {note && <p className="mt-1 text-sm text-muted-foreground">Catatan pembeli: {note}</p>}
       <Button variant="outline" size="sm" className="mt-2" onClick={view} disabled={!proof}><Eye /> Lihat bukti</Button>
       <Input className="mt-3" placeholder="Catatan untuk pembeli (opsional)" value={msg} maxLength={500} onChange={(e) => setMsg(e.target.value)} />
@@ -201,7 +190,12 @@ function DeliverBox({ onDeliver }: { onDeliver: (note: string) => void }) {
   );
 }
 
-function Chat({ orderId, userId, closed }: { orderId: string; userId: string; closed: boolean }) {
+type ChatMessage = {
+  id: string; body: string; is_system: boolean; created_at: string; sender_id: string;
+  sender: { username: string; avatar_url: string | null } | null;
+};
+
+function Chat({ orderId, userId, closed, pay }: { orderId: string; userId: string; closed: boolean; pay: { label: string; onPay: () => void } | null }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const end = useRef<HTMLDivElement>(null);
@@ -230,9 +224,12 @@ function Chat({ orderId, userId, closed }: { orderId: string; userId: string; cl
   }
   return (
     <aside className="flex h-[70vh] flex-col rounded-xl border border-border bg-card lg:sticky lg:top-20">
-      <h2 className="border-b border-border px-4 py-3 font-semibold">Chat pesanan</h2>
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <h2 className="font-semibold">Chat pesanan</h2>
+        {pay && <Button size="sm" onClick={pay.onPay}><CreditCard /> Bayar {pay.label}</Button>}
+      </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {msgs.map((m: any) => m.is_system ? (
+        {(msgs as unknown as ChatMessage[]).map((m) => m.is_system ? (
           <p key={m.id} className="text-center text-xs text-muted-foreground">{m.body} · {timeAgo(m.created_at)}</p>
         ) : (
           <div key={m.id} className={cn("flex gap-2", m.sender_id === userId && "flex-row-reverse")}>

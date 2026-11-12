@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, Ban, BookMarked, Briefcase, Package, Receipt, Users, Wallet, Wrench, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Ban, BookMarked, Briefcase, Landmark, Package, Receipt, RotateCcw, Users, Wallet, Wrench, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { featureLabel, type FeatureKey } from "@/lib/features";
+import { escrowStage } from "@/lib/midtrans-shared";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/")({
@@ -38,7 +39,7 @@ function OverviewPage() {
   const { data } = useQuery({
     queryKey: ["admin-overview"],
     queryFn: async () => {
-      const [users, devs, repos, products, services, jobs, bans, verif, pay, payouts, off] = await Promise.all([
+      const [users, devs, repos, products, services, jobs, bans, verif, pay, payouts, off, held, refunds] = await Promise.all([
         count("profiles"),
         count("profiles", (q) => q.eq("account_type", "developer")),
         count("repositories"),
@@ -50,14 +51,21 @@ function OverviewPage() {
         count("orders", (q) => q.eq("status", "payment_review")),
         count("payouts", (q) => q.eq("status", "requested")),
         sb.from("feature_flags").select("key").eq("enabled", false),
+        // Tabel escrow baru ada setelah SQL docs/sql/midtrans-escrow dijalankan; sebelum itu hasilnya kosong.
+        sb.from("escrow_ledger").select("kind,status,held_until,order:orders(status)").eq("status", "held").limit(1000),
+        count("payments", (q) => q.eq("needs_refund", true)),
       ]);
-      return { users, devs, repos, products, services, jobs, bans, verif, pay, payouts, off: ((off.data ?? []) as { key: string }[]).map((r) => r.key) };
+      const heldRows = ((held.data ?? []) as { kind: string; status: string; held_until: string; order: { status: string } | null }[]);
+      const ready = heldRows.filter((r) => escrowStage(r, r.kind, r.order?.status ?? "") === "ready_for_admin").length;
+      return { users, devs, repos, products, services, jobs, bans, verif, pay, payouts, ready, refunds, off: ((off.data ?? []) as { key: string }[]).map((r) => r.key) };
     },
   });
 
   const todo: Stat[] = [
     { label: "Pengajuan verifikasi", to: "/admin/verifikasi", Icon: BadgeCheck, n: data?.verif },
     { label: "Pembayaran perlu dicek", to: "/admin/pembayaran", Icon: Receipt, n: data?.pay },
+    { label: "Dana jasa siap diteruskan", to: "/admin/escrow", Icon: Landmark, n: data?.ready },
+    { label: "Pembayaran perlu refund", to: "/admin/escrow", Icon: RotateCcw, n: data?.refunds },
     { label: "Pencairan menunggu", to: "/admin/pembayaran", Icon: Wallet, n: data?.payouts },
   ];
   const stats: Stat[] = [
@@ -74,7 +82,7 @@ function OverviewPage() {
     <div className="space-y-8">
       <section>
         <h2 className="mb-3 font-semibold">Perlu tindakan</h2>
-        <div className="grid gap-3 sm:grid-cols-3">{todo.map((s) => <StatCard key={s.label} s={s} urgent />)}</div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{todo.map((s) => <StatCard key={s.label} s={s} urgent />)}</div>
       </section>
       <section>
         <h2 className="mb-3 font-semibold">Platform</h2>

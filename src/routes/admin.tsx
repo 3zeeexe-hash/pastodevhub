@@ -2,7 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { BadgeCheck, Flag, KeyRound, LayoutDashboard, Loader2, LogOut, MessageSquareWarning, Plug, ShieldCheck, ToggleRight, Users, Wallet } from "lucide-react";
+import { Activity, BadgeCheck, CreditCard, Flag, KeyRound, Landmark, LayoutDashboard, Loader2, LogOut, MessageSquareWarning, Plug, ShieldCheck, ToggleRight, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
@@ -32,6 +32,7 @@ const ADMIN_NAV: NavGroup[] = [
     { to: "/admin", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
     { to: "/admin/pengguna", label: "Pengguna", Icon: Users },
     { to: "/admin/verifikasi", label: "Verifikasi developer", Icon: BadgeCheck },
+    { to: "/admin/pantau", label: "Pantau aktivitas", Icon: Activity },
   ] },
   { group: "Situs", items: [
     { to: "/admin/fitur", label: "Fitur & pengumuman", Icon: ToggleRight },
@@ -39,7 +40,9 @@ const ADMIN_NAV: NavGroup[] = [
     { to: "/admin/laporan", label: "Laporan Diskusi", Icon: MessageSquareWarning },
   ] },
   { group: "Keuangan", items: [
+    { to: "/admin/escrow", label: "Escrow & saldo", Icon: Landmark },
     { to: "/admin/pembayaran", label: "Pembayaran & pencairan", Icon: Wallet },
+    { to: "/admin/midtrans", label: "Midtrans", Icon: CreditCard },
   ] },
   { group: "Sistem", items: [
     { to: "/admin/integrasi", label: "Integrasi", Icon: Plug },

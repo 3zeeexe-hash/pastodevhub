@@ -33,6 +33,33 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   superseded: "Diganti percobaan baru",
 };
 
+export type EscrowStage =
+  | "holding" // masa tahan 1 hari belum selesai
+  | "waiting_delivery" // masa tahan selesai, jasa belum diterima client
+  | "ready_for_admin" // jasa sudah diterima + lewat 1 hari: tinggal konfirmasi manual admin
+  | "auto_available" // karya: otomatis tersedia untuk developer setelah masa tahan
+  | "frozen"
+  | "released"
+  | "refunded";
+
+/**
+ * Tahap dana escrow. Sama dengan aturan di SQL (developer_wallet / admin_release_escrow):
+ * jasa TIDAK pernah otomatis masuk saldo; hanya admin yang meneruskannya setelah client menerima dan lewat 1 hari.
+ */
+export function escrowStage(
+  ledger: { status: string; held_until: string },
+  kind: string,
+  orderStatus: string,
+  now: number = Date.now(),
+): EscrowStage {
+  if (ledger.status === "frozen") return "frozen";
+  if (ledger.status === "released") return "released";
+  if (ledger.status === "refunded") return "refunded";
+  if (new Date(ledger.held_until).getTime() > now) return "holding";
+  if (kind === "service") return orderStatus === "completed" ? "ready_for_admin" : "waiting_delivery";
+  return "auto_available";
+}
+
 export const ESCROW_STATUS_LABEL: Record<string, string> = {
   held: "Ditahan admin",
   released: "Sudah diteruskan ke developer",

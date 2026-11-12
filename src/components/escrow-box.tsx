@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { looseDb } from "@/lib/escrow-db";
 import { timeAgo } from "@/lib/auth";
 import { errMsg, formatRupiah } from "@/lib/market";
-import { ESCROW_STATUS_LABEL, PAYMENT_STATUS_LABEL, methodLabel } from "@/lib/midtrans-shared";
+import { ESCROW_STATUS_LABEL, PAYMENT_STATUS_LABEL, escrowStage, methodLabel } from "@/lib/midtrans-shared";
 import { Button } from "@/components/ui/button";
 
 type Ledger = { status: string; net: number; fee: number; gross: number; held_until: string; released_at: string | null; note: string | null };
@@ -32,15 +32,13 @@ export function EscrowBox({ order, isAdmin, isSeller, onChanged }: {
     if (error) toast.error(errMsg(error)); else { toast.success(ok); onChanged(); }
   }
 
-  const matured = ledger ? new Date(ledger.held_until).getTime() <= Date.now() : false;
-  const serviceDone = order.kind !== "service" || order.status === "completed";
+  const stage = ledger ? escrowStage(ledger, order.kind, order.status) : null;
+  const canRelease = stage === "ready_for_admin" || stage === "auto_available";
   let hint = "";
-  if (ledger?.status === "held") {
-    if (!matured) hint = `Ditahan sampai ${new Date(ledger.held_until).toLocaleString("id-ID")}.`;
-    else if (!serviceDone) hint = "Menunggu hasil dikirim dan diterima client.";
-    else if (order.kind === "service") hint = "Siap diteruskan: menunggu konfirmasi manual admin.";
-    else hint = "Masa tahan selesai; saldo karya otomatis tersedia untuk developer.";
-  }
+  if (ledger && stage === "holding") hint = `Ditahan sampai ${new Date(ledger.held_until).toLocaleString("id-ID")}.`;
+  else if (stage === "waiting_delivery") hint = "Menunggu hasil dikirim dan diterima client.";
+  else if (stage === "ready_for_admin") hint = "Siap diteruskan: menunggu konfirmasi manual admin.";
+  else if (stage === "auto_available") hint = "Masa tahan selesai; saldo karya otomatis tersedia untuk developer.";
 
   return (
     <section className="rounded-lg border border-border bg-card p-4">
@@ -56,7 +54,7 @@ export function EscrowBox({ order, isAdmin, isSeller, onChanged }: {
       {isAdmin && ledger && (
         <div className="mt-3 flex flex-wrap gap-2">
           {ledger.status === "held" && (
-            <Button size="sm" disabled={!matured || !serviceDone} onClick={() => {
+            <Button size="sm" disabled={!canRelease} onClick={() => {
               if (confirm("Teruskan saldo pesanan ini ke developer? Tindakan ini manual dan tercatat.")) act("admin_release_escrow", { _order_id: order.id, _note: "" }, "Saldo diteruskan ke developer");
             }}>Teruskan saldo ke developer</Button>
           )}

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg, formatRupiah } from "@/lib/market";
-import { ESCROW_STATUS_LABEL, methodLabel } from "@/lib/midtrans-shared";
+import { ESCROW_STATUS_LABEL, escrowStage, methodLabel } from "@/lib/midtrans-shared";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -33,7 +33,7 @@ function EscrowPage() {
         looseDb.from("payments").select("id,midtrans_order_id,gross_amount,method,paid_at,order:orders(id,number,title)").eq("needs_refund", true).order("created_at", { ascending: false }).limit(100),
       ]);
       if (l.error) throw l.error;
-      return { rows: (l.data ?? []) as Row[], refunds: (p.data ?? []) as RefundRow[] };
+      return { rows: (l.data ?? []) as Row[], refunds: (p.data ?? []) as unknown as RefundRow[] };
     },
   });
 
@@ -46,7 +46,7 @@ function EscrowPage() {
   const now = Date.now();
   const rows = data?.rows ?? [];
   const matured = (r: Row) => new Date(r.held_until).getTime() <= now;
-  const ready = rows.filter((r) => r.status === "held" && r.kind === "service" && r.order?.status === "completed" && matured(r));
+  const ready = rows.filter((r) => escrowStage(r, r.kind, r.order?.status ?? "", now) === "ready_for_admin");
   const holding = rows.filter((r) => r.status === "held" && !ready.includes(r));
   const frozen = rows.filter((r) => r.status === "frozen");
   const history = rows.filter((r) => r.status === "released" || r.status === "refunded");

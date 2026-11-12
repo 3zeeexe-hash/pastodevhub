@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Check, Loader2, MessageSquare, Send, Users, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CreditCard, Loader2, MessageSquare, Send, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { categoryLabel, errMsg, formatRupiah } from "@/lib/market";
 import { JOB_SELECT, budgetLabel, canApply, canRespond, type ApplicationStatus, type JobCardData } from "@/lib/jobs";
@@ -103,6 +104,7 @@ function JobDetail() {
                   if (error) toast.error(errMsg(error)); else { toast.success("Lamaran ditarik"); refresh(); }
                 }}>Tarik lamaran</Button>
               )}
+              {mine.status === "accepted" && <MyAcceptedOrder applicationId={mine.id} />}
               {mine.status !== "withdrawn" && (<><h3 className="flex items-center gap-2 pt-2 text-sm font-semibold"><MessageSquare className="size-4" /> Obrolan dengan client</h3><ApplicationThread applicationId={mine.id} /></>)}
             </section>
           )}
@@ -169,15 +171,48 @@ function ApplyForm({ jobId, userId, onDone }: { jobId: string; userId: string; o
   );
 }
 
+/** Pesanan berbayar yang dibuat dari lamaran (butuh docs/sql/midtrans-escrow/002); kosong jika SQL belum dijalankan. */
+function useApplicationOrder(applicationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["application-order", applicationId],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await looseDb.from("orders").select("id,status").eq("job_application_id", applicationId).maybeSingle();
+      if (error) return null;
+      return (data as { id: string; status: string } | null) ?? null;
+    },
+  });
+}
+
+function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
+  const order = useApplicationOrder(applicationId, true);
+  if (order.data) {
+    return <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan</Link></Button>;
+  }
+  return <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
+}
+
 function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; onDone: () => void }) {
   const [chat, setChat] = useState(false);
   const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const order = useApplicationOrder(a.id, a.status === "accepted");
   async function respond(accept: boolean) {
     if (accept && !confirm(`Terima @${a.developer?.username}? Pelamar lain otomatis tidak dipilih.`)) return;
     setBusy(true);
     const { error } = await supabase.rpc("respond_job_application", { _application_id: a.id, _accept: accept });
     setBusy(false);
-    if (error) toast.error(errMsg(error)); else { toast.success(accept ? "Developer diterima! Lanjutkan diskusi lewat obrolan." : "Lamaran ditolak"); onDone(); if (accept) setChat(true); }
+    if (error) toast.error(errMsg(error)); else { toast.success(accept ? "Developer diterima! Buat pesanan untuk membayar lewat escrow." : "Lamaran ditolak"); onDone(); if (accept) setChat(true); }
+  }
+  async function createOrder() {
+    setBusy(true);
+    const { data, error } = await looseDb.rpc("create_order_from_application", { _application_id: a.id });
+    setBusy(false);
+    if (error) { toast.error(errMsg(error)); return; }
+    toast.success("Pesanan dibuat. Lanjutkan ke pembayaran.");
+    qc.invalidateQueries({ queryKey: ["application-order", a.id] });
+    navigate({ to: "/pesanan/$id", params: { id: String(data) } });
   }
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -195,8 +230,14 @@ function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; o
       {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px]">{s}</span>)}</div> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {canAnswer && <><Button size="sm" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
+        {a.status === "accepted" && (order.data
+          ? <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan &amp; bayar</Link></Button>
+          : <Button size="sm" disabled={busy} onClick={createOrder}><CreditCard /> Buat pesanan &amp; bayar</Button>)}
         {a.status !== "withdrawn" && <Button size="sm" variant="ghost" onClick={() => setChat(!chat)}><MessageSquare /> {chat ? "Tutup obrolan" : "Obrolan"}</Button>}
       </div>
+      {a.status === "accepted" && !order.data && (
+        <p className="mt-2 text-xs text-muted-foreground">Pembayaran lewat Midtrans. Dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
+      )}
       {chat && <div className="mt-3"><ApplicationThread applicationId={a.id} /></div>}
     </div>
   );
