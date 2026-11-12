@@ -17,10 +17,13 @@ import { AuthProvider } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
 import { AccountTypePrompt } from "@/components/account-type-prompt";
 import { SiteFooter } from "@/components/site-footer";
+import { MobileBottomNav, useMobileNavVisible } from "@/components/mobile-bottom-nav";
+import { ChatDock } from "@/components/chat-dock";
 import { Toaster } from "@/components/ui/sonner";
 import { AnnouncementBar, FeatureGate } from "@/components/site-status";
 import { siteConfigQuery } from "@/lib/site-config.functions";
 import { rootSeoHead } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 function NotFoundComponent() {
   return (
@@ -92,7 +95,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       meta: [
         ...seo.meta,
         { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        // viewport-fit=cover supaya menu bawah dan tombol chat bisa memakai env(safe-area-inset-bottom) di iPhone.
+        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { title: "Pastodev — Komunitas Developer" },
         { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
         { name: "author", content: "Pastodev" },
@@ -137,6 +141,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { pathname } = useLocation();
   const adminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const navVisible = useMobileNavVisible();
   useEffect(() => {
     const onPreloadError = (e: Event) => {
       if (reloadOnceForStaleChunk()) e.preventDefault();
@@ -152,7 +157,8 @@ function RootComponent() {
           // The admin dashboard has its own full-screen shell with a sidebar.
           <div className="min-h-screen bg-background font-sans"><Outlet /></div>
         ) : (
-          <div className="flex min-h-screen flex-col bg-background font-sans">
+          // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile (lg ke atas tidak punya menu bawah).
+          <div className={cn("flex min-h-screen flex-col bg-background font-sans", navVisible && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
             <SiteHeader />
             <AnnouncementBar />
             <div className="flex-1">
@@ -163,6 +169,8 @@ function RootComponent() {
           </div>
         )}
         <AccountTypePrompt />
+        <MobileBottomNav />
+        <ChatDock />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
