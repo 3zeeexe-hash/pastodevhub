@@ -203,6 +203,241 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_bookmarks: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_hashtags: {
+        Row: {
+          created_at: string
+          post_id: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_hashtags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_mentions: {
+        Row: {
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_mentions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_notifications: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          post_id: string | null
+          read_at: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          read_at?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          read_at?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          like_count: number
+          parent_id: string | null
+          ref_id: string | null
+          reply_count: number
+          repost_count: number
+        }
+        Insert: {
+          author_id: string
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          like_count?: number
+          parent_id?: string | null
+          ref_id?: string | null
+          reply_count?: number
+          repost_count?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          like_count?: number
+          parent_id?: string | null
+          ref_id?: string | null
+          reply_count?: number
+          repost_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_ref_id_fkey"
+            columns: ["ref_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string
@@ -1036,10 +1271,12 @@ export type Database = {
           display_name: string | null
           headline: string | null
           id: string
+          is_verified: boolean
           links: Json
           location: string | null
           skills: string[]
           username: string
+          verified_at: string | null
           website: string | null
         }
         Insert: {
@@ -1052,10 +1289,12 @@ export type Database = {
           display_name?: string | null
           headline?: string | null
           id: string
+          is_verified?: boolean
           links?: Json
           location?: string | null
           skills?: string[]
           username: string
+          verified_at?: string | null
           website?: string | null
         }
         Update: {
@@ -1068,10 +1307,12 @@ export type Database = {
           display_name?: string | null
           headline?: string | null
           id?: string
+          is_verified?: boolean
           links?: Json
           location?: string | null
           skills?: string[]
           username?: string
+          verified_at?: string | null
           website?: string | null
         }
         Relationships: []
@@ -1413,6 +1654,50 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          message: string
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1420,6 +1705,10 @@ export type Database = {
     Functions: {
       admin_register_server_proof: {
         Args: { _hash: string }
+        Returns: undefined
+      }
+      admin_review_verification: {
+        Args: { _approve: boolean; _note?: string; _request: string }
         Returns: undefined
       }
       admin_set_admin: {
@@ -1430,6 +1719,10 @@ export type Database = {
         Args: { _banned: boolean; _reason?: string; _user: string }
         Returns: undefined
       }
+      admin_set_verified: {
+        Args: { _user: string; _verified: boolean }
+        Returns: undefined
+      }
       buy_product: { Args: { _product_id: string }; Returns: string }
       can_access_order: { Args: { _order_id: string }; Returns: boolean }
       can_download_product: { Args: { _product_id: string }; Returns: boolean }
@@ -1437,6 +1730,10 @@ export type Database = {
       can_read_repo: { Args: { rid: string }; Returns: boolean }
       can_write_repo: { Args: { rid: string }; Returns: boolean }
       cancel_order: { Args: { _order_id: string }; Returns: undefined }
+      cancel_verification_request: {
+        Args: { _request: string }
+        Returns: undefined
+      }
       claim_admin_role: { Args: { _code: string }; Returns: undefined }
       complete_order: { Args: { _order_id: string }; Returns: undefined }
       count_hosted_view: { Args: { _slug: string }; Returns: undefined }
@@ -1498,6 +1795,10 @@ export type Database = {
       request_revision: { Args: { _order_id: string }; Returns: undefined }
       request_service: {
         Args: { _brief: string; _budget: number; _service_id: string }
+        Returns: string
+      }
+      request_verification: {
+        Args: { _message: string; _proof_url?: string }
         Returns: string
       }
       respond_job_application: {
