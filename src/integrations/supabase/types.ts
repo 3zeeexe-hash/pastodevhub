@@ -377,6 +377,71 @@ export type Database = {
           },
         ]
       }
+      feed_poll_votes: {
+        Row: {
+          created_at: string
+          option_idx: number
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          option_idx: number
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          option_idx?: number
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_polls"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "feed_poll_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_polls: {
+        Row: {
+          created_at: string
+          ends_at: string
+          options: string[]
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          options: string[]
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          options?: string[]
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_polls_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_posts: {
         Row: {
           author_id: string
@@ -1754,6 +1819,46 @@ export type Database = {
       ensure_my_profile: { Args: never; Returns: undefined }
       feature_allowed: { Args: { _key: string }; Returns: boolean }
       feature_enabled: { Args: { _key: string }; Returns: boolean }
+      feed_create_poll: {
+        Args: { _body: string; _hours: number; _options: string[] }
+        Returns: string
+      }
+      feed_poll_options_ok: { Args: { o: string[] }; Returns: boolean }
+      feed_poll_results: {
+        Args: { _post_ids: string[] }
+        Returns: {
+          option_idx: number
+          post_id: string
+          votes: number
+        }[]
+      }
+      feed_ranked: {
+        Args: {
+          _hours?: number
+          _limit?: number
+          _offset?: number
+          _personal?: boolean
+        }
+        Returns: {
+          post_id: string
+          score: number
+        }[]
+      }
+      feed_search_tags: {
+        Args: { _limit?: number; _q: string }
+        Returns: {
+          posts: number
+          tag: string
+        }[]
+      }
+      feed_trending_tags: {
+        Args: { _hours?: number; _limit?: number }
+        Returns: {
+          authors: number
+          posts: number
+          tag: string
+        }[]
+      }
       handle_new_user_row: { Args: { u: unknown }; Returns: undefined }
       has_role: {
         Args: {
@@ -1814,6 +1919,8 @@ export type Database = {
         Returns: undefined
       }
       server_proof_ok: { Args: never; Returns: boolean }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_payment: {
         Args: { _note: string; _order_id: string; _proof_path: string }
         Returns: undefined
