@@ -117,23 +117,66 @@ export const getAdminMidtransSettings = createServerFn({ method: "GET" })
     return { ...(await m.readMidtransSettingsForAdmin()), notificationUrl: m.notificationUrl() };
   });
 
-const keyField = (re: RegExp, msg: string) => z.string().trim().max(200).regex(re, msg);
+/**
+ * Rapikan hasil tempel sebelum divalidasi: karakter tak terlihat (spasi lebar nol, NBSP), tanda hubung "pintar"
+ * (– — ‑ yang sering muncul saat menyalin dari chat atau dokumen), tanda kutip pembungkus, dan ":" penutup
+ * (format Basic auth). Key Midtrans tidak pernah berisi spasi, jadi semua spasi dibuang.
+ */
+function cleanKey(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  return v
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, "")
+    .replace(/^["'`\u2018\u2019\u201C\u201D]+/, "")
+    .replace(/["'`\u2018\u2019\u201C\u201D:]+$/, "");
+}
+
+/** Kosong = tidak diganti. Pesan galat menyebut apa yang terbaca (awalan atau karakter bermasalah), tidak pernah seluruh key. */
+const keyField = (prefix: string, label: string) =>
+  z.preprocess(
+    cleanKey,
+    z.string().max(200).superRefine((v, ctx) => {
+      if (v === "") return;
+      const fail = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+      if (!v.startsWith(prefix)) {
+        fail(`${label} harus diawali ${prefix} (yang terbaca diawali "${v.slice(0, prefix.length)}", panjang ${v.length} karakter)`);
+        return;
+      }
+      const rest = v.slice(prefix.length);
+      if (!rest) {
+        fail(`${label} kosong setelah awalan ${prefix}`);
+        return;
+      }
+      const bad = /[^\x21-\x7E]/u.exec(rest);
+      if (bad) {
+        const code = (bad[0].codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0");
+        fail(`${label} mengandung karakter yang tidak valid (U+${code}) di posisi ${bad.index + 1} setelah awalan. Ketik ulang atau tempel dari dashboard Midtrans.`);
+      }
+    }),
+  );
+
+const midtransSettingsSchema = z.object({
+  enabled: z.boolean(),
+  mode: z.enum(["sandbox", "production"]),
+  methods: z.array(METHOD_ENUM).max(10),
+  sandboxServerKey: keyField("SB-Mid-server-", "Server key sandbox"),
+  sandboxClientKey: keyField("SB-Mid-client-", "Client key sandbox"),
+  productionServerKey: keyField("Mid-server-", "Server key produksi"),
+  productionClientKey: keyField("Mid-client-", "Client key produksi"),
+});
 
 export const saveAdminMidtransSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
     enabled: boolean; mode: string; methods: string[];
     sandboxServerKey: string; sandboxClientKey: string; productionServerKey: string; productionClientKey: string;
-  }) =>
-    z.object({
-      enabled: z.boolean(),
-      mode: z.enum(["sandbox", "production"]),
-      methods: z.array(METHOD_ENUM).max(10),
-      sandboxServerKey: keyField(/^(SB-Mid-server-[A-Za-z0-9_-]+)?$/, "Server key sandbox harus diawali SB-Mid-server-"),
-      sandboxClientKey: keyField(/^(SB-Mid-client-[A-Za-z0-9_-]+)?$/, "Client key sandbox harus diawali SB-Mid-client-"),
-      productionServerKey: keyField(/^(Mid-server-[A-Za-z0-9_-]+)?$/, "Server key produksi harus diawali Mid-server-"),
-      productionClientKey: keyField(/^(Mid-client-[A-Za-z0-9_-]+)?$/, "Client key produksi harus diawali Mid-client-"),
-    }).parse(input))
+  }) => {
+    const r = midtransSettingsSchema.safeParse(input);
+    // Tampilkan pesan pertama saja, bukan daftar galat zod mentah.
+    if (!r.success) throw new Error(r.error.issues[0]?.message ?? "Pengaturan Midtrans tidak valid.");
+    return r.data;
+  })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const m = await import("@/lib/midtrans.server");
