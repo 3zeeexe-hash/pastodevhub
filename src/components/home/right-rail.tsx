@@ -2,11 +2,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Briefcase, Package, Receipt, Search, Sparkles, UserPlus } from "lucide-react";
+import { Briefcase, Receipt, Search, Sparkles, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { FeatureKey } from "@/lib/features";
 import { budgetLabel } from "@/lib/jobs";
-import { formatRupiah } from "@/lib/market";
 import { SEARCH_TYPES } from "@/lib/search-types";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
@@ -150,31 +149,8 @@ function JobsCard({ data }: { data: HomeData }) {
   );
 }
 
-function KaryaCard({ data }: { data: HomeData }) {
-  const karya = data.karya.data ?? [];
-  return (
-    <Card title="Karya terbaru" icon={Package} more={<Link to="/katalog">Katalog</Link>}>
-      {data.karya.isLoading ? <p className={muted}>Memuat…</p> : karya.length === 0 ? <p className={muted}>Belum ada karya.</p> : (
-        <ul className="mt-1 pb-1">
-          {karya.slice(0, 3).map((p) => (
-            <li key={p.id}>
-              <Link to="/karya/$id" params={{ id: p.id }} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
-                <span className="min-w-0 flex-1">
-                  <span className="block line-clamp-1 text-sm font-semibold">{p.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{p.owner?.display_name || p.owner?.username}</span>
-                </span>
-                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold", p.price ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground")}>{formatRupiah(p.price)}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
 /**
- * Kolom kanan beranda (layar sangat lebar): pencarian, aktivitas, tren, lowongan, dan karya.
+ * Kolom kanan beranda (layar sangat lebar): pencarian, aktivitas, tren, dan lowongan.
  * Talenta tidak diulang di sini karena sudah tampil sebagai baris avatar di atas linimasa.
  */
 export function RightRail({ data, on, userId }: { data: HomeData; on: On; userId: string | null }) {
@@ -188,7 +164,6 @@ export function RightRail({ data, on, userId }: { data: HomeData; on: On; userId
         </div>
       )}
       {on("jobs") && <JobsCard data={data} />}
-      {on("karya") && <KaryaCard data={data} />}
     </aside>
   );
 }
@@ -215,15 +190,14 @@ export function TalentStories({ data }: { data: HomeData }) {
   );
 }
 
-/** Lowongan dan karya terbaru sebagai kartu geser, untuk layar yang belum punya kolom kanan. */
+/** Lowongan terbaru sebagai kartu geser, untuk layar yang belum punya kolom kanan. */
 export function DiscoverStrip({ data, on }: { data: HomeData; on: On }) {
   const jobs = on("jobs") ? (data.jobs.data ?? []) : [];
-  const karya = on("karya") ? (data.karya.data ?? []) : [];
-  if (!jobs.length && !karya.length) return null;
+  if (!jobs.length) return null;
   const label = "flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary";
   const card = "flex h-full flex-col gap-1 rounded-xl border border-border bg-card p-3 hover:border-primary/50";
   return (
-    <section aria-label="Lowongan dan karya terbaru" className="border-b border-border xl:hidden">
+    <section aria-label="Lowongan terbaru" className="border-b border-border xl:hidden">
       <ul className="flex gap-3 overflow-x-auto px-4 py-3 [scrollbar-width:none]">
         {jobs.map((j) => (
           <li key={`j-${j.id}`} className="w-60 shrink-0">
@@ -231,15 +205,6 @@ export function DiscoverStrip({ data, on }: { data: HomeData; on: On }) {
               <span className={label}><Briefcase className="size-3" />Lowongan</span>
               <span className="line-clamp-2 text-sm font-semibold">{j.title}</span>
               <span className="mt-auto text-xs text-muted-foreground">{budgetLabel(j.budget_min, j.budget_max)}</span>
-            </Link>
-          </li>
-        ))}
-        {karya.map((p) => (
-          <li key={`k-${p.id}`} className="w-60 shrink-0">
-            <Link to="/karya/$id" params={{ id: p.id }} className={card}>
-              <span className={label}><Package className="size-3" />Karya</span>
-              <span className="line-clamp-2 text-sm font-semibold">{p.title}</span>
-              <span className="mt-auto text-xs text-muted-foreground">{formatRupiah(p.price)}</span>
             </Link>
           </li>
         ))}

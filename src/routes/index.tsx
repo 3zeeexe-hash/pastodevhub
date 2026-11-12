@@ -9,7 +9,6 @@ import { ForumList } from "@/components/feed/forum-list";
 import { Timeline } from "@/components/feed/timeline";
 import { TrendingTags } from "@/components/feed/trending";
 import { JobCard } from "@/components/job-card";
-import { ProductCard } from "@/components/market-cards";
 import { LeftRail } from "@/components/home/left-rail";
 import { DiscoverStrip, RightRail, TalentStories } from "@/components/home/right-rail";
 import { useHomeData, type HomeData } from "@/components/home/use-home-data";
@@ -118,27 +117,18 @@ function Index() {
   );
 }
 
-/** Cadangan kalau fitur Diskusi dimatikan admin: linimasa kosong diganti lowongan dan karya terbaru. */
+/** Cadangan kalau fitur Diskusi dimatikan admin: linimasa kosong diganti lowongan terbaru. */
 function FeedOffHome({ data, on }: { data: HomeData; on: (k: FeatureKey) => boolean }) {
   const jobs = on("jobs") ? (data.jobs.data ?? []) : [];
-  const karya = on("karya") ? (data.karya.data ?? []) : [];
-  if (!jobs.length && !karya.length) {
+  if (!jobs.length) {
     return <p className="px-4 py-12 text-center text-sm text-muted-foreground">Belum ada yang bisa ditampilkan. Jelajahi proyek atau cari talenta lewat menu.</p>;
   }
   return (
     <div className="space-y-6 p-4">
-      {jobs.length > 0 && (
-        <section>
-          <h2 className="text-lg font-bold">Proyek dan lowongan terbaru</h2>
-          <div className="mt-3 grid gap-3">{jobs.map((j) => <JobCard key={j.id} j={j} />)}</div>
-        </section>
-      )}
-      {karya.length > 0 && (
-        <section>
-          <h2 className="text-lg font-bold">Karya terbaru</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">{karya.map((p) => <ProductCard key={p.id} p={p} />)}</div>
-        </section>
-      )}
+      <section>
+        <h2 className="text-lg font-bold">Proyek dan lowongan terbaru</h2>
+        <div className="mt-3 grid gap-3">{jobs.map((j) => <JobCard key={j.id} j={j} />)}</div>
+      </section>
     </div>
   );
 }

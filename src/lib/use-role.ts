@@ -11,6 +11,11 @@ import { ROLE_EVENT, ROLE_INFO, accountTypeFor, isRole, pickStoredRole, readStor
 const sb = supabase as any;
 
 type RolePref = { missing: boolean; active: string | null };
+/**
+ * Peran yang ditolak database tetap dipakai di perangkat ini. Dibagi antar semua pemakai useRole,
+ * supaya muat ulang data dari database tidak mengembalikannya ke peran lama. Hilang saat halaman dimuat ulang.
+ */
+let deviceOnlyRole: Role | null = null;
 const prefKey = (uid: string | undefined) => ["role-pref", uid];
 
 /** Simpan peran aktif ke database. Mengembalikan false kalau tabel belum aktif atau gagal. */
@@ -51,11 +56,13 @@ export function useRole() {
     },
   });
   const dbRole = pref.data?.active ?? null;
-  const role = resolveRole(pickStoredRole(dbRole, stored, accountType), accountType);
+  const deviceOnly = deviceOnlyRole !== null && stored === deviceOnlyRole && roleFitsAccount(deviceOnlyRole, accountType);
+  const role = resolveRole(deviceOnly ? stored : pickStoredRole(dbRole, stored, accountType), accountType);
 
   // Samakan cache perangkat dengan database; kalau database masih kosong, pindahkan peran perangkat ini ke sana.
   useEffect(() => {
     if (!user || !pref.data || pref.data.missing) return;
+    if (deviceOnly) return;
     if (isRole(dbRole) && roleFitsAccount(dbRole, accountType)) {
       if (stored !== dbRole) writeStoredRole(dbRole);
       return;
@@ -65,7 +72,30 @@ export function useRole() {
         if (ok) qc.setQueryData(prefKey(user.id), { missing: false, active: stored } satisfies RolePref);
       });
     }
-  }, [user, pref.data, dbRole, stored, accountType, qc]);
+  }, [user, pref.data, dbRole, stored, accountType, deviceOnly, qc]);
+
+  /**
+   * Simpan peran pilihan ke database dan ke cache perangkat. Tidak mengubah jenis akun dan tidak menampilkan toast sukses.
+   * Semua jalur yang memilih peran (header, Pengaturan, prompt pertama kali) lewat sini supaya database dan perangkat
+   * selalu searah: kalau hanya perangkat yang ditulis, sinkronisasi di atas mengembalikannya ke peran lama dari database.
+   * Mengembalikan false hanya kalau database menolak; tabel yang belum aktif memang memakai cadangan perangkat.
+   */
+  const saveRole = useCallback(async (next: Role): Promise<boolean> => {
+    if (!user) { writeStoredRole(next); return true; }
+    if (pref.data?.missing === true) { writeStoredRole(next); return true; }
+    const saved = await savePref(user.id, next);
+    if (saved) {
+      deviceOnlyRole = null;
+      qc.setQueryData(prefKey(user.id), { missing: false, active: next } satisfies RolePref);
+    } else {
+      // Database menolak (mis. aturan tabel belum memuat peran ini): pilihan perangkat dipertahankan, bukan dikembalikan ke peran lama.
+      deviceOnlyRole = next;
+      qc.setQueryData(prefKey(user.id), { missing: true, active: null } satisfies RolePref);
+      toast.warning(`Mode ${ROLE_INFO[next].title} aktif di perangkat ini, tapi belum tersimpan di server.`);
+    }
+    writeStoredRole(next);
+    return saved;
+  }, [user, qc, pref.data?.missing]);
 
   /** Berganti peran. Kalau jenis akun database ikut berubah, disimpan dulu; mengembalikan true kalau berhasil. */
   const setRole = useCallback(async (next: Role) => {
@@ -78,15 +108,10 @@ export function useRole() {
       if (error) { toast.error(errMsg(error)); return false; }
       qc.setQueryData(["me", user.id], (old: Profile | null | undefined) => (old ? { ...old, account_type: type } : old));
     }
-    // Peran disimpan ke database; kalau tabel belum aktif, cadangan perangkat tetap dipakai.
-    if (pref.data?.missing !== true && (await savePref(user.id, next))) {
-      qc.setQueryData(prefKey(user.id), { missing: false, active: next } satisfies RolePref);
-    }
-    writeStoredRole(next);
-    toast.success(`Mode ${ROLE_INFO[next].title} aktif`);
+    if (await saveRole(next)) toast.success(`Mode ${ROLE_INFO[next].title} aktif`);
     void qc.invalidateQueries({ queryKey: ["me"] });
     return true;
-  }, [user, profile, qc, pref.data?.missing]);
+  }, [user, profile, qc, saveRole]);
 
-  return { role, setRole, switching };
+  return { role, setRole, saveRole, switching };
 }

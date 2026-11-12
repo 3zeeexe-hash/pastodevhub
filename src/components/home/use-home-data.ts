@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FeatureKey } from "@/lib/features";
 import { JOB_SELECT, type JobCardData } from "@/lib/jobs";
-import { PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 
 export type DevRow = {
   username: string;
@@ -14,7 +13,7 @@ export type DevRow = {
   active_role?: string | null;
 };
 
-/** Data pendamping beranda (lowongan, karya, talenta). Dipakai bersama oleh kolom tengah dan kolom kanan. */
+/** Data pendamping beranda (lowongan dan talenta). Karya sengaja tidak ditampilkan di beranda. */
 export function useHomeData(on: (key: FeatureKey) => boolean) {
   const jobs = useQuery({
     queryKey: ["home", "jobs"],
@@ -37,13 +36,7 @@ export function useHomeData(on: (key: FeatureKey) => boolean) {
         .order("available_for_hire", { ascending: false }).order("created_at", { ascending: false }).limit(12)).data ?? []) as DevRow[];
     },
   });
-  const karya = useQuery({
-    queryKey: ["home", "karya"],
-    enabled: on("karya"),
-    staleTime: 60_000,
-    queryFn: async () => ((await supabase.from("products").select(PRODUCT_SELECT).eq("is_published", true).order("created_at", { ascending: false }).limit(4)).data ?? []) as unknown as ProductCardData[],
-  });
-  return { jobs, devs, karya };
+  return { jobs, devs };
 }
 
 export type HomeData = ReturnType<typeof useHomeData>;

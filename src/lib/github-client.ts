@@ -1,6 +1,7 @@
 // Browser-side helpers for the GitHub connection. Contains no secrets: every
 // GitHub call happens in the server functions it invokes.
 import { completeGithubConnect, fetchGithubBlobs, getGithubTree, startGithubConnect } from "@/lib/github.functions";
+import { startGithubLogin } from "@/lib/github-auth.functions";
 
 function waitForOAuthCompletion(popup: Window, expectedState: () => string | null) {
   return new Promise<string | null>((resolve, reject) => {
@@ -35,24 +36,37 @@ function waitForOAuthCompletion(popup: Window, expectedState: () => string | nul
   });
 }
 
-/** Opens the GitHub consent popup (must run inside a click) and stores the connection. */
-export async function connectGithub() {
+/**
+ * Opens the GitHub consent popup and returns the OAuth code. Must run inside a click: the popup is
+ * opened before anything is awaited so browsers do not block it.
+ */
+async function authorizeInPopup(start: () => Promise<{ authorizationUrl: string; state: string }>): Promise<string | null> {
   const popup = window.open("", "pastodev-github", "width=640,height=760");
   if (!popup) throw new Error("Popup diblokir browser. Izinkan popup lalu coba lagi.");
-  let code: string | null;
   let state: string | null = null;
   try {
     const completion = waitForOAuthCompletion(popup, () => state);
-    const started = await startGithubConnect();
+    completion.catch(() => {}); // if starting fails the popup is closed below; this stops that from also surfacing as an unhandled rejection
+    const started = await start();
     state = started.state;
     popup.location.href = started.authorizationUrl;
-    code = await completion;
+    return await completion;
   } catch (error) {
     popup.close();
     throw error;
   }
+}
+
+/** Opens the GitHub consent popup (must run inside a click) and stores the connection. */
+export async function connectGithub() {
+  const code = await authorizeInPopup(() => startGithubConnect());
   if (code) return completeGithubConnect({ data: { code } });
   return { ok: true, login: null };
+}
+
+/** Opens the GitHub popup for signing in (must run inside a click) and returns the OAuth code to exchange on the server. */
+export function githubLoginCode(): Promise<string | null> {
+  return authorizeInPopup(() => startGithubLogin());
 }
 
 /** Turns any thrown value (Error, database error object, string) into readable text. */
