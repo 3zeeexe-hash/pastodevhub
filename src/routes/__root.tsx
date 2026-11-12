@@ -141,6 +141,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { pathname } = useLocation();
   const adminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  // Beranda ("/") punya header sendiri (GobiHeader di routes/index.tsx), jadi header global disembunyikan di sana agar tidak dobel.
+  const homePage = pathname === "/";
   const navVisible = useMobileNavVisible();
   useEffect(() => {
     const onPreloadError = (e: Event) => {
@@ -159,7 +161,7 @@ function RootComponent() {
         ) : (
           // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile (lg ke atas tidak punya menu bawah).
           <div className={cn("flex min-h-screen flex-col bg-background font-sans", navVisible && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
-            <SiteHeader />
+            {!homePage && <SiteHeader />}
             <AnnouncementBar />
             <div className="flex-1">
               {/* Required: nested routes render here. */}
