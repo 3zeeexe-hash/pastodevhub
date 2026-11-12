@@ -117,9 +117,24 @@ export function tokenizeBody(body: string): Token[] {
 
 const AUTHOR = "author:profiles!feed_posts_author_id_fkey(username,display_name,avatar_url)";
 const BASE = "id,author_id,kind,body,parent_id,ref_id,like_count,reply_count,repost_count,created_at";
-const POST_SELECT = `${BASE},${AUTHOR},ref:feed_posts!feed_posts_ref_id_fkey(${BASE},${AUTHOR})`;
+// Post yang dikutip/di-repost TIDAK di-embed (self-join feed_posts -> feed_posts). Embed itu bergantung pada relasi
+// di schema cache PostgREST dan gagal dengan "Could not find a relationship between 'feed_posts' and 'feed_posts'"
+// kalau cache basi. Sebagai gantinya, `attachRefs` mengambilnya lewat satu query terpisah.
+const POST_SELECT = `${BASE},${AUTHOR}`;
 
 type RawPost = FeedPostBase & { ref: FeedPostBase | null };
+
+/** Menempelkan post yang dikutip/di-repost (kolom ref_id) ke tiap baris, dengan satu query tambahan bila perlu. */
+async function attachRefs(rows: FeedPostBase[]): Promise<RawPost[]> {
+  const refIds = [...new Set(rows.map((r) => r.ref_id).filter((x): x is string => !!x))];
+  const refs = new Map<string, FeedPostBase>();
+  if (refIds.length) {
+    const res = await db.from("feed_posts").select(POST_SELECT).in("id", refIds);
+    fail(res.error);
+    for (const p of (res.data ?? []) as FeedPostBase[]) refs.set(p.id, p);
+  }
+  return rows.map((r) => ({ ...r, ref: r.ref_id ? (refs.get(r.ref_id) ?? null) : null }));
+}
 
 const NO_VIEWER: ViewerState = { liked: false, bookmarked: false, reposted: false };
 
@@ -175,7 +190,7 @@ async function fetchRankedPage(q: { tab: "forYou" | "trending" }, userId: string
   if (!ids.length) return offset === 0 ? null : { items: [], next: null };
   const [res, hidden] = await Promise.all([db.from("feed_posts").select(POST_SELECT).in("id", ids), fetchHiddenAuthorIds(userId)]);
   fail(res.error);
-  const byId = new Map<string, RawPost>((res.data as RawPost[]).map((p) => [p.id, p]));
+  const byId = new Map<string, RawPost>((await attachRefs((res.data ?? []) as FeedPostBase[])).map((p) => [p.id, p]));
   const rows = ids.map((id) => byId.get(id)).filter((p): p is RawPost => !!p && !hidden.includes(p.author_id));
   return { items: await withViewer(rows, userId), next: ids.length === limit ? String(offset + limit) : null };
 }
@@ -194,7 +209,7 @@ export async function fetchFeed(q: FeedQuery, userId: string | undefined, before
     if (list.length) {
       const posts = await db.from("feed_posts").select(POST_SELECT).in("id", list.map((x) => x.post_id));
       fail(posts.error);
-      const byId = new Map<string, RawPost>((posts.data as RawPost[]).map((p) => [p.id, p]));
+      const byId = new Map<string, RawPost>((await attachRefs((posts.data ?? []) as FeedPostBase[])).map((p) => [p.id, p]));
       rows = list.map((x) => byId.get(x.post_id)).filter((p): p is RawPost => !!p);
       next = list.length === limit ? (list[list.length - 1] as { created_at: string }).created_at : null;
     }
@@ -242,7 +257,7 @@ export async function fetchFeed(q: FeedQuery, userId: string | undefined, before
 
   const res = await pq;
   fail(res.error);
-  rows = (res.data ?? []) as RawPost[];
+  rows = await attachRefs((res.data ?? []) as FeedPostBase[]);
   next = rows.length === limit ? (rows[rows.length - 1] as RawPost).created_at : null;
   return { items: await withViewer(rows, userId), next };
 }
@@ -251,14 +266,14 @@ export async function fetchPost(id: string, userId: string | undefined): Promise
   const res = await db.from("feed_posts").select(POST_SELECT).eq("id", id).maybeSingle();
   fail(res.error);
   if (!res.data) return null;
-  return (await withViewer([res.data as RawPost], userId))[0] ?? null;
+  return (await withViewer(await attachRefs([res.data as FeedPostBase]), userId))[0] ?? null;
 }
 
 export async function fetchReplies(id: string, userId: string | undefined): Promise<FeedPost[]> {
   const hidden = await fetchHiddenAuthorIds(userId);
   const res = await withoutHidden(db.from("feed_posts").select(POST_SELECT).eq("parent_id", id), hidden).order("created_at", { ascending: true }).limit(200);
   fail(res.error);
-  return withViewer((res.data ?? []) as RawPost[], userId);
+  return withViewer(await attachRefs((res.data ?? []) as FeedPostBase[]), userId);
 }
 
 // ---------- Aksi ----------
