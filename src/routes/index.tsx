@@ -11,7 +11,7 @@ import { siteJsonLd } from "@/lib/seo";
 import { timeAgo, useAuth } from "@/lib/auth";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { fetchFeed, fetchUnreadCount } from "@/lib/feed";
-import { budgetLabel } from "@/lib/jobs";
+import { budgetLabel, type JobCardData } from "@/lib/jobs";
 import { categoryLabel } from "@/lib/market";
 import { workspacePath } from "@/lib/roles";
 import { useSiteConfig } from "@/lib/use-site-config";
@@ -21,6 +21,7 @@ import { BrandMark } from "@/components/brand";
 import banner1 from "@/assets/gobi-banner-1.png";
 import banner2 from "@/assets/gobi-banner-2.png";
 import banner3 from "@/assets/gobi-banner-3.png";
+import jobImage from "@/assets/lowongan-job.jpg";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -133,19 +134,7 @@ function GobiHome() {
                 <Section icon={<Briefcase className="size-6 text-[#ff8a00]" />} title="Lowongan Freelance" to="/lowongan">
                   {data.jobs.isLoading ? <Hint>Memuat…</Hint> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
                     <div className="space-y-3">
-                      {jobs.map((j) => (
-                        <div key={j.id} className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
-                          <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ffc13b] to-[#ff7a00] sm:h-28 sm:w-40 lg:w-28">
-                            <Code className="size-10 text-[#0a1a45]/80 sm:size-12" strokeWidth={2.4} />
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <h3 className="line-clamp-2 text-base font-extrabold leading-tight sm:text-lg">{j.title}</h3>
-                            <p className="mt-1.5 flex items-center gap-1.5 truncate text-sm text-slate-600"><Building2 className="size-4 shrink-0" />{j.client?.display_name || j.client?.username || "Client"}</p>
-                            <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-500"><Wallet className="size-4 shrink-0" />{budgetLabel(j.budget_min, j.budget_max)} · {categoryLabel(j.category)}</p>
-                            <Link to="/lowongan/$id" params={{ id: j.id }} className="mt-2 inline-flex items-center gap-1 self-end rounded-full bg-[#fff1dc] px-4 py-1.5 text-sm font-bold text-[#e67700] transition hover:bg-[#ffe3bd]">Lihat Detail <ArrowRight className="size-4" /></Link>
-                          </div>
-                        </div>
-                      ))}
+                      {jobs.map((j) => <JobItem key={j.id} j={j} />)}
                     </div>
                   )}
                 </Section>
@@ -422,6 +411,35 @@ function Section({ icon, title, to, children }: { icon: ReactNode; title: string
 
 function Hint({ children }: { children: ReactNode }) {
   return <p className="rounded-2xl bg-white p-5 text-center text-sm text-slate-500 shadow-sm ring-1 ring-black/5">{children}</p>;
+}
+
+/**
+ * Kartu lowongan di beranda. Seluruh kartu bisa diketuk. Gambar ilustrasi lowongan dipakai di semua kartu.
+ * Mobile: gambar 96px + teks yang boleh turun baris (judul maks. 2 baris, anggaran tidak dipotong), tombol di kiri.
+ * sm ke atas: gambar 112px dan tombol rata kanan.
+ */
+function JobItem({ j }: { j: JobCardData }) {
+  const client = j.client?.display_name || j.client?.username || "Client";
+  return (
+    <Link to="/lowongan/$id" params={{ id: j.id }} className="group flex items-start gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md">
+      <img
+        src={jobImage}
+        alt=""
+        width={112}
+        height={112}
+        loading="lazy"
+        draggable={false}
+        className="size-24 shrink-0 select-none rounded-xl bg-[#0a1a45] object-cover sm:size-28"
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[11px] font-bold uppercase tracking-wide text-[#e67700]">{categoryLabel(j.category)}</span>
+        <h3 className="mt-0.5 line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg">{j.title}</h3>
+        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-slate-600"><Building2 className="size-4 shrink-0" /><span className="truncate">{client}</span></p>
+        <p className="mt-0.5 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-slate-700"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p>
+        <span className="mt-2 inline-flex items-center gap-1 self-start rounded-full bg-[#fff1dc] px-4 py-1.5 text-sm font-bold text-[#e67700] transition group-hover:bg-[#ffe3bd] sm:self-end">Lihat Detail <ArrowRight className="size-4" /></span>
+      </div>
+    </Link>
+  );
 }
 
 function RepoItem({ r }: { r: HomeRepo }) {
