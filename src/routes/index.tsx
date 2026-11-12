@@ -1,20 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowRight, Briefcase, Building2, ChevronLeft, ChevronRight, Code, Flame, FolderOpen, LayoutGrid, MessageCircle,
-  MessageSquare, Star, Wallet, Wrench,
+  ArrowRight, Bell, Briefcase, Building2, ChevronDown, ChevronLeft, ChevronRight, Code, Flame, FolderOpen, LayoutDashboard,
+  LayoutGrid, LogOut, Menu, MessageCircle, MessageSquare, Newspaper, Receipt, Search, Settings, ShieldCheck, Star, User, Users,
+  Wallet, Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { siteJsonLd } from "@/lib/seo";
 import { timeAgo, useAuth } from "@/lib/auth";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
-import { fetchFeed } from "@/lib/feed";
+import { fetchFeed, fetchUnreadCount } from "@/lib/feed";
 import { budgetLabel } from "@/lib/jobs";
 import { categoryLabel } from "@/lib/market";
+import { workspacePath } from "@/lib/roles";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { useHomeData } from "@/components/home/use-home-data";
 import { AvatarMini } from "@/components/avatar-mini";
+import { BrandMark } from "@/components/brand";
+import { VerifiedBadge } from "@/components/verified-badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -36,6 +44,7 @@ export const Route = createFileRoute("/")({
 });
 
 const NAVY = "bg-[#0a1a45]";
+const ORANGE = "bg-[#ff8a00]";
 
 type HomeRepo = {
   id: string;
@@ -47,10 +56,20 @@ type HomeRepo = {
   stars: { count: number }[] | null;
 };
 
+const MENU = [
+  { to: "/gobifeed", label: "Linimasa", Icon: Newspaper, feature: "discuss" },
+  { to: "/explore", label: "Proyek", Icon: FolderOpen, feature: null },
+  { to: "/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
+  { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
+  { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
+  { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+] as const;
+
 /**
- * Beranda GOBI. Tanpa header sendiri (navigasi, pencarian, notifikasi, dan akun sudah ada di SiteHeader global).
- * Mobile: satu kolom. Desktop (lg ke atas): banner di tengah, menu cepat 6 kolom, lalu dua kolom
- * (Proyek Terbaru di kiri, Lowongan + Diskusi di kanan).
+ * Beranda GOBI (desain mockup): header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
+ * 4 menu cepat, lalu Proyek Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
+ * Beranda memakai header-nya sendiri, jadi SiteHeader global disembunyikan di "/" (lihat __root.tsx) agar tidak dobel.
+ * Mobile: satu kolom. Desktop (lg ke atas): menu tampil di header, Proyek Terbaru di kiri, Lowongan + Diskusi di kanan.
  * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
  */
 function GobiHome() {
@@ -90,7 +109,8 @@ function GobiHome() {
 
   return (
     <main className="min-h-screen bg-[#f4f7fc] pb-10 text-[#0b1a3f]">
-      <div className="mx-auto max-w-6xl px-4 pt-4 lg:pt-6">
+      <GobiHeader on={on} />
+      <div className="mx-auto max-w-6xl px-4">
         <h1 className="sr-only">GOBI — Komunitas Developer Indonesia</h1>
         <HeroBanner signedIn={signedIn} on={on} />
         <QuickMenu on={on} />
@@ -169,6 +189,109 @@ function GobiHome() {
   );
 }
 
+// ---------- Header ----------
+
+function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
+  const { user, profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const signedIn = !!user && !!profile;
+  const menu = MENU.filter((m) => !m.feature || on(m.feature));
+  const unread = useQuery({
+    queryKey: ["feed-unread", user?.id ?? null],
+    queryFn: () => fetchUnreadCount(user!.id),
+    enabled: !!user && on("discuss"),
+    refetchInterval: 60_000,
+  });
+  const dashTo = workspacePath(profile?.account_type);
+  const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q: q.trim(), type: "users" } }); };
+  const item = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent";
+  const navLink = "rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white";
+
+  return (
+    <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] pb-16 pt-4 text-white">
+      <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-[#ff8a00]/30 blur-2xl" />
+      <div className="relative mx-auto max-w-6xl px-4">
+        <div className="flex items-center gap-3">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <button type="button" aria-label="Buka menu" className="rounded-md p-1.5 hover:bg-white/10 lg:hidden"><Menu className="size-8" /></button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 bg-header">
+              <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> GOBI</SheetTitle></SheetHeader>
+              <nav className="mt-4 flex flex-col gap-1">
+                <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className={item}><Users className="size-4 text-primary" />Talenta</Link>
+                {menu.map((m) => (
+                  <Link key={m.to} to={m.to} onClick={() => setOpen(false)} className={item}><m.Icon className="size-4 text-primary" />{m.label}</Link>
+                ))}
+                {signedIn
+                  ? <Link to={dashTo} onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-accent"><LayoutDashboard className="size-4 text-primary" />Ruang kerja</Link>
+                  : <Link to="/auth" onClick={() => setOpen(false)} className="mt-3 rounded-md bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground">Masuk / Daftar</Link>}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          <Link to="/" className="flex min-w-0 flex-1 items-center justify-center gap-2 lg:flex-none lg:justify-start" aria-label="GOBI">
+            <BrandMark size={44} />
+            <span className="text-4xl font-black italic leading-none tracking-tight">GOBI</span>
+          </Link>
+
+          {/* Menu di header untuk layar lebar (di mobile lewat tombol menu di kiri). */}
+          <nav aria-label="Menu utama" className="ml-4 hidden flex-1 items-center gap-1 lg:flex">
+            <Link to="/search" search={{ q: "", type: "users" }} className={navLink}>Talenta</Link>
+            {menu.map((m) => <Link key={m.to} to={m.to} className={navLink}>{m.label}</Link>)}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {signedIn && on("discuss") && (
+              <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-1">
+                <Bell className="size-8" />
+                {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold leading-5">{unread.data > 99 ? "99+" : unread.data}</span>}
+              </Link>
+            )}
+            {signedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger aria-label="Menu akun" className="flex items-center gap-1 rounded-full">
+                  <span className="rounded-full ring-2 ring-white/70"><AvatarMini name={profile.username} url={profile.avatar_url} size={40} /></span>
+                  <ChevronDown className="size-5 text-white/80" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <span className="flex items-center gap-1 font-semibold"><span className="truncate">{profile.display_name || profile.username}</span><VerifiedBadge username={profile.username} verified={profile.is_verified} size={15} /></span>
+                    <span className="block font-mono text-xs text-muted-foreground">@{profile.username}</span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild><Link to={dashTo}><LayoutDashboard /> Ruang kerja</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }}><User /> Profil kamu</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/pesanan"><Receipt /> Pesanan</Link></DropdownMenuItem>
+                  {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><ShieldCheck /> Admin</Link></DropdownMenuItem>}
+                  <DropdownMenuItem asChild><Link to="/settings"><Settings /> Pengaturan</Link></DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/" }); }}><LogOut /> Keluar</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth" className={cn(ORANGE, "rounded-full px-4 py-2 text-sm font-bold text-white")}>Masuk</Link>
+            )}
+          </div>
+        </div>
+
+        <form role="search" onSubmit={doSearch} className="relative mx-auto mt-4 flex max-w-5xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30">
+          <Search className="size-6 shrink-0" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari developer, proyek, karya, lowongan…"
+            aria-label="Kata kunci pencarian"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
+          />
+        </form>
+      </div>
+    </header>
+  );
+}
+
 // ---------- Banner (slider gambar) ----------
 
 // Gambar ada di public/banners/ (rasio 16:9). Seluruh slide bisa diklik karena tombol ajakan sudah ada di dalam gambar.
@@ -201,7 +324,7 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
     <section
       aria-label="Banner"
       aria-roledescription="carousel"
-      className="group relative mx-auto max-w-5xl"
+      className="group relative z-10 mx-auto -mt-12 max-w-5xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={(e) => { setPaused(true); touchX.current = e.touches[0]?.clientX ?? null; }}
@@ -215,7 +338,7 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
         if (Math.abs(dx) > 40) go(idx + (dx < 0 ? 1 : -1));
       }}
     >
-      <div className="relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1a45] to-[#112b6e] shadow-xl ring-1 ring-black/10 sm:rounded-3xl">
+      <div className="relative aspect-video overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1a45] to-[#112b6e] shadow-xl ring-1 ring-white/10">
         {slides.map((s, n) => (
           <Link
             key={s.src}
@@ -260,23 +383,13 @@ function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
   const tile = "flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:py-4";
   const dot = "flex size-14 items-center justify-center rounded-full";
   return (
-    <nav aria-label="Menu cepat" className="grid grid-cols-3 gap-2.5 pt-5 sm:grid-cols-6 lg:gap-4">
+    <nav aria-label="Menu cepat" className="mx-auto grid max-w-5xl grid-cols-4 gap-2.5 pt-5 lg:gap-4">
       <Link to="/search" search={{ q: "", type: "users" }} className={tile}>
         <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className="size-8" strokeWidth={2.6} /></span>Developer
       </Link>
       <Link to="/explore" className={tile}>
         <span className={cn(dot, "bg-[#e2f6ea] text-[#12924a]")}><FolderOpen className="size-8" fill="currentColor" /></span>Proyek
       </Link>
-      {on("jasa") && (
-        <Link to="/jasa" className={tile}>
-          <span className={cn(dot, "bg-[#f1e8ff] text-[#7c3aed]")}><Wrench className="size-8" /></span>Jasa
-        </Link>
-      )}
-      {on("karya") && (
-        <Link to="/katalog" className={tile}>
-          <span className={cn(dot, "bg-[#e0f7fa] text-[#0891b2]")}><LayoutGrid className="size-8" fill="currentColor" /></span>Katalog
-        </Link>
-      )}
       {on("jobs") && (
         <Link to="/lowongan" className={tile}>
           <span className={cn(dot, "bg-[#ffeedd] text-[#ff7a00]")}><Briefcase className="size-8" fill="currentColor" /></span>Lowongan
