@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { siteJsonLd } from "@/lib/seo";
 import { useAuth, timeAgo } from "@/lib/auth";
+import { fetchDmUnread } from "@/lib/dm";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { ROLE_INFO, ROLE_ORDER, workspacePath, writeStoredRole, type Role } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
@@ -46,6 +47,15 @@ type DevRow = { username: string; display_name: string | null; avatar_url: strin
 type PostRow = { id: string; title: string; created_at: string; author: { username: string; avatar_url: string | null } | null; comments: { count: number }[] };
 type SectionKey = "jobs" | "devs" | "karya" | "posts";
 type QuickAction = { to: string; label: string; hint: string; Icon: LucideIcon; feature?: FeatureKey; search?: Record<string, string> };
+type TodayTile = { key: string; to: string; label: string; Icon: LucideIcon; count: number | null | undefined; loading: boolean };
+
+// Ringkasan "Hari ini" memakai penghitungan langsung ke tabel; dibuat tanpa tipe supaya
+// filter ke tabel terkait (job_applications → jobs) tidak tertahan oleh tipe hasil generate.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
+/** Status pesanan yang masih berjalan (belum selesai, ditolak, atau dibatalkan). */
+const ACTIVE_ORDER_STATUSES = ["requested", "awaiting_payment", "payment_review", "in_progress", "delivered"];
 
 /** Pintasan di beranda untuk tiap peran. */
 const QUICK_ACTIONS: Record<Role, QuickAction[]> = {
@@ -141,20 +151,20 @@ function Index() {
       </HomeSection>
     ),
     devs: (
-      <HomeSection icon={<Users className="size-5 text-primary" />} title="Talenta developer" more={<Link to="/search" search={{ q: "", type: "users" }}>Semua developer</Link>}>
-        <Grid loading={devs.isLoading} empty={devs.data?.length === 0} emptyText="Belum ada developer terdaftar." className="sm:grid-cols-2 lg:grid-cols-4">
+      <HomeSection icon={<Users className="size-5 text-primary" />} title="Talenta pilihan" more={<Link to="/search" search={{ q: "", type: "users" }}>Semua talenta</Link>}>
+        <Grid loading={devs.isLoading} empty={devs.data?.length === 0} emptyText="Belum ada talenta terdaftar." className="sm:grid-cols-2 lg:grid-cols-4">
           {devs.data?.map((d) => (
             <Link key={d.username} to="/$username" params={{ username: d.username }} className="flex flex-col rounded-xl border border-border bg-card p-4 transition hover:border-primary/60">
               <div className="flex items-center gap-3">
                 <AvatarMini name={d.username} url={d.avatar_url} size={44} />
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{d.display_name || d.username}</p>
-                  <p className="truncate font-mono text-xs text-muted-foreground">@{d.username}</p>
+                  <p className="truncate text-xs text-muted-foreground">@{d.username}</p>
                 </div>
               </div>
               {d.headline && <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{d.headline}</p>}
-              {d.skills?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{d.skills.slice(0, 4).map((s) => <span key={s} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px]">{s}</span>)}</div>}
-              {d.available_for_hire && <span className="mt-3 w-fit rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">Siap di-hire</span>}
+              {d.skills?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{d.skills.slice(0, 4).map((s) => <span key={s} className="rounded-full bg-secondary px-2 py-0.5 text-[11px]">{s}</span>)}</div>}
+              {d.available_for_hire && <span className="mt-3 w-fit rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">Siap menerima proyek</span>}
             </Link>
           ))}
         </Grid>
@@ -189,52 +199,34 @@ function Index() {
     <main>
       <section className="bg-hero relative overflow-hidden border-b border-border">
         <div className="batik-line pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-60" />
-        <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-12 text-center md:py-18">
-          <img src={brandMarkUrl} alt="Maskot Pastodev berblangkon" className="size-20 rounded-full ring-2 ring-primary/50 md:size-24" />
-          <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight md:text-5xl">
-            Satu tempat untuk <span className="text-primary">kerja, proyek, dan karya</span>
-          </h1>
-          <p className="mt-3 max-w-xl text-muted-foreground md:text-lg">Developer, freelancer, client, atau pemakai pribadi: semua punya ruang sendiri di satu akun.</p>
+        {signedIn ? (
+          // Pengguna yang sudah masuk tidak perlu iklan: cukup kotak pencarian, ruang kerjanya ada tepat di bawah.
+          <div className="mx-auto max-w-4xl px-4 py-6 md:py-8">
+            <SearchBox q={q} setQ={setQ} type={type} setType={setType} onSubmit={search} compact />
+          </div>
+        ) : (
+          <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-12 text-center md:py-18">
+            <img src={brandMarkUrl} alt="Maskot Pastodev berblangkon" className="size-20 rounded-full ring-2 ring-primary/50 md:size-24" />
+            <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight md:text-5xl">
+              Satu tempat untuk <span className="text-primary">kerja, proyek, dan karya</span>
+            </h1>
+            <p className="mt-3 max-w-xl text-muted-foreground md:text-lg">Cari talenta, ambil proyek, jual karya, atau simpan kode pribadi. Semua ada di satu akun, siapa pun kamu.</p>
 
-          <form onSubmit={search} role="search" className="mt-8 w-full max-w-2xl">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari developer, proyek, karya, lowongan…"
-                aria-label="Kata kunci pencarian"
-                className="h-14 rounded-xl border-primary/40 bg-card pl-12 pr-28 text-base shadow-glow md:h-16 md:text-lg"
-              />
-              <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 md:h-11">Cari</Button>
-            </div>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {SEARCH_TYPES.map(([t, label, Icon]) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
-                  aria-pressed={type === t}
-                  className={cn("flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm transition", type === t ? "border-primary bg-primary text-primary-foreground" : "bg-card/60 hover:bg-accent")}
-                >
-                  <Icon className="size-4" />{label}
-                </button>
-              ))}
-            </div>
-          </form>
+            <SearchBox q={q} setQ={setQ} type={type} setType={setType} onSubmit={search} />
 
-          {!user && (
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              {on("signup") && <Button asChild size="lg"><Link to="/auth">Buat akun gratis</Link></Button>}
-              <Button asChild size="lg" variant="outline"><Link to="/explore">Jelajahi proyek</Link></Button>
-            </div>
-          )}
-        </div>
+            {!user && (
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                {on("signup") && <Button asChild size="lg"><Link to="/auth">Buat akun gratis</Link></Button>}
+                <Button asChild size="lg" variant="outline"><Link to="/explore">Jelajahi proyek</Link></Button>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 py-12">
         {signedIn ? (
-          <WorkspacePanel name={profile.display_name || profile.username} role={role} accountType={profile.account_type} on={on} />
+          <WorkspacePanel userId={user.id} name={profile.display_name || profile.username} role={role} accountType={profile.account_type} on={on} />
         ) : (
           on("signup") && <RoleIntro />
         )}
@@ -245,8 +237,42 @@ function Index() {
   );
 }
 
-/** Sapaan dan pintasan sesuai peran aktif. */
-function WorkspacePanel({ name, role, accountType, on }: { name: string; role: Role; accountType: "client" | "developer" | null; on: (k: FeatureKey) => boolean }) {
+/** Kotak pencarian beranda: besar untuk tamu, ringkas untuk pengguna yang sudah masuk. */
+function SearchBox({ q, setQ, type, setType, onSubmit, compact }: {
+  q: string; setQ: (v: string) => void; type: SearchType; setType: (t: SearchType) => void; onSubmit: (e: React.FormEvent) => void; compact?: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} role="search" className={cn("w-full max-w-2xl", compact ? "mx-auto" : "mt-8")}>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Cari developer, proyek, karya, lowongan…"
+          aria-label="Kata kunci pencarian"
+          className={cn("rounded-xl border-primary/40 bg-card pl-12 pr-28 text-base shadow-glow", compact ? "h-12" : "h-14 md:h-16 md:text-lg")}
+        />
+        <Button type="submit" className={cn("absolute right-2 top-1/2 -translate-y-1/2", !compact && "md:h-11")}>Cari</Button>
+      </div>
+      <div className={cn("mt-3 flex flex-wrap gap-2", compact ? "justify-start" : "justify-center")}>
+        {SEARCH_TYPES.map(([t, label, Icon]) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setType(t)}
+            aria-pressed={type === t}
+            className={cn("flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm transition", type === t ? "border-primary bg-primary text-primary-foreground" : "bg-card/60 hover:bg-accent")}
+          >
+            <Icon className="size-4" />{label}
+          </button>
+        ))}
+      </div>
+    </form>
+  );
+}
+
+/** Sapaan, pintasan, dan ringkasan "Hari ini" sesuai peran aktif. */
+function WorkspacePanel({ userId, name, role, accountType, on }: { userId: string; name: string; role: Role; accountType: "client" | "developer" | null; on: (k: FeatureKey) => boolean }) {
   const info = ROLE_INFO[role];
   const Icon = ROLE_ICON[role];
   const actions = QUICK_ACTIONS[role].filter((a) => !a.feature || on(a.feature));
@@ -260,7 +286,11 @@ function WorkspacePanel({ name, role, accountType, on }: { name: string; role: R
         </div>
         <Button asChild variant="outline" size="sm"><Link to={workspacePath(accountType)}>{info.workspaceLabel}<ArrowRight /></Link></Button>
       </div>
-      <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+
+      <TodayStrip userId={userId} role={role} on={on} />
+
+      <h3 className="mt-6 text-sm font-semibold text-muted-foreground">Mulai dari sini</h3>
+      <ul className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {actions.map(({ to, label, hint, Icon: AIcon, search }) => (
           <li key={to + label}>
             <Link to={to} search={search as never} className="flex h-full items-start gap-3 rounded-xl border border-border bg-background/40 p-3 transition hover:border-primary/60 hover:bg-accent/40">
@@ -274,6 +304,83 @@ function WorkspacePanel({ name, role, accountType, on }: { name: string; role: R
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Ringkasan lintas peran: pesanan berjalan, lamaran, dan pesan belum dibaca.
+ * Pesanan dihitung dari sisi penjual untuk developer/freelancer, dari sisi pembeli untuk client dan pemakai pribadi.
+ * Kalau sebuah hitungan gagal (misalnya fitur belum aktif di database), tampil "—" dan tidak mengganggu beranda.
+ */
+function TodayStrip({ userId, role, on }: { userId: string; role: Role; on: (k: FeatureKey) => boolean }) {
+  const sellerSide = role === "developer" || role === "freelancer";
+  const showApps = on("jobs") && (role === "freelancer" || role === "client");
+
+  const orders = useQuery({
+    queryKey: ["home", "today-orders", userId, sellerSide],
+    staleTime: 30_000,
+    queryFn: async (): Promise<number | null> => {
+      const { count, error } = await sb.from("orders").select("id", { count: "exact", head: true })
+        .eq(sellerSide ? "seller_id" : "buyer_id", userId).in("status", ACTIVE_ORDER_STATUSES);
+      return error ? null : (count ?? 0);
+    },
+  });
+  const apps = useQuery({
+    queryKey: ["home", "today-apps", userId, role],
+    enabled: showApps,
+    staleTime: 30_000,
+    queryFn: async (): Promise<number | null> => {
+      const base = sb.from("job_applications");
+      const { count, error } = role === "client"
+        ? await base.select("id, job:jobs!job_applications_job_id_fkey!inner(client_id)", { count: "exact", head: true }).eq("job.client_id", userId).eq("status", "pending")
+        : await base.select("id", { count: "exact", head: true }).eq("developer_id", userId).eq("status", "pending");
+      return error ? null : (count ?? 0);
+    },
+  });
+  const dm = useQuery({
+    queryKey: ["home", "today-dm", userId],
+    enabled: on("discuss"),
+    staleTime: 30_000,
+    queryFn: () => fetchDmUnread(userId),
+  });
+
+  const tiles: TodayTile[] = [
+    { key: "orders", to: "/pesanan", label: sellerSide ? "Pesanan masuk yang berjalan" : "Pesanan yang berjalan", Icon: Receipt, count: orders.data, loading: orders.isLoading },
+  ];
+  if (showApps) {
+    tiles.push({
+      key: "apps",
+      to: role === "client" ? "/dashboard" : "/studio/lamaran",
+      label: role === "client" ? "Pelamar menunggu jawabanmu" : "Lamaran menunggu jawaban",
+      Icon: Briefcase,
+      count: apps.data,
+      loading: apps.isLoading,
+    });
+  }
+  if (on("discuss")) {
+    tiles.push({ key: "dm", to: "/discuss/pesan", label: "Percakapan belum dibaca", Icon: MessageSquare, count: dm.data, loading: dm.isLoading });
+  }
+
+  return (
+    <>
+      <h3 className="mt-6 text-sm font-semibold text-muted-foreground">Hari ini</h3>
+      <ul className="mt-2 grid gap-3 sm:grid-cols-3">
+        {tiles.map(({ key, to, label, Icon: TIcon, count, loading }) => {
+          const hasWork = typeof count === "number" && count > 0;
+          return (
+            <li key={key}>
+              <Link to={to} className={cn("flex h-full items-center gap-3 rounded-xl border p-3 transition hover:bg-accent/40", hasWork ? "border-primary/60 bg-primary/5" : "border-border bg-background/40")}>
+                <TIcon className="size-5 shrink-0 text-primary" />
+                <span className="min-w-0">
+                  <span className="block text-xl font-bold leading-none">{loading ? "…" : (count ?? "—")}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{label}</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 
