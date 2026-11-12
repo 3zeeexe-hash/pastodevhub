@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Plus, Search, BookMarked, LogOut, Settings, User, Download, MessageSquare, Star, LayoutDashboard, Receipt, ShieldCheck, Store,
-  Menu, Briefcase, LayoutGrid, Users, Package, Bell,
+  Menu, Briefcase, LayoutGrid, Users, Package, Bell, Wrench,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
+// Jasa sebelumnya tidak ada di menu header sama sekali (hanya di menu kiri beranda layar lebar), jadi di mobile tidak terjangkau.
 const NAV = [
   { to: "/explore", label: "Proyek", Icon: BookMarked, feature: null },
+  { to: "/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
   { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
   { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
   { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
@@ -107,9 +109,10 @@ export function SiteHeader() {
                 </Link>
               )}
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
+              {/* Tombol Buat baru di header hanya untuk layar lebar; di mobile ada tombol + di menu bawah. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" aria-label="Buat baru"><Plus /></Button>
+                  <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden lg:inline-flex"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {!isDev && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
