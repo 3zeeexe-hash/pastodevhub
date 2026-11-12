@@ -30,6 +30,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEscrowRouteImport } from './routes/admin.escrow'
 import { Route as AdminFiturRouteImport } from './routes/admin.fitur'
 import { Route as AdminIntegrasiRouteImport } from './routes/admin.integrasi'
+import { Route as AdminLaporanRouteImport } from './routes/admin.laporan'
 import { Route as AdminMidtransRouteImport } from './routes/admin.midtrans'
 import { Route as AdminModerasiRouteImport } from './routes/admin.moderasi'
 import { Route as AdminPantauRouteImport } from './routes/admin.pantau'
@@ -39,6 +40,7 @@ import { Route as AdminVerifikasiRouteImport } from './routes/admin.verifikasi'
 import { Route as DiscussIndexRouteImport } from './routes/discuss.index'
 import { Route as DiscussIdRouteImport } from './routes/discuss.$id'
 import { Route as DiscussNotifikasiRouteImport } from './routes/discuss.notifikasi'
+import { Route as DiscussPesanRouteImport } from './routes/discuss.pesan'
 import { Route as DiscussTersimpanRouteImport } from './routes/discuss.tersimpan'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as JasaIndexRouteImport } from './routes/jasa.index'
@@ -66,6 +68,7 @@ import { Route as UsernameRepoCommitsRouteImport } from './routes/$username_.$re
 import { Route as UsernameRepoNewRouteImport } from './routes/$username_.$repo.new'
 import { Route as UsernameRepoSettingsRouteImport } from './routes/$username_.$repo.settings'
 import { Route as ApiMidtransNotificationRouteImport } from './routes/api/midtrans/notification'
+import { Route as DiscussPesanIdRouteImport } from './routes/discuss.pesan.$id'
 import { Route as DiscussStatusIdRouteImport } from './routes/discuss.status.$id'
 import { Route as DiscussTagTagRouteImport } from './routes/discuss.tag.$tag'
 import { Route as StudioJasaIndexRouteImport } from './routes/studio.jasa.index'
@@ -190,6 +193,11 @@ const AdminIntegrasiRoute = AdminIntegrasiRouteImport.update({
   path: '/integrasi',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLaporanRoute = AdminLaporanRouteImport.update({
+  id: '/laporan',
+  path: '/laporan',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMidtransRoute = AdminMidtransRouteImport.update({
   id: '/midtrans',
   path: '/midtrans',
@@ -233,6 +241,11 @@ const DiscussIdRoute = DiscussIdRouteImport.update({
 const DiscussNotifikasiRoute = DiscussNotifikasiRouteImport.update({
   id: '/discuss/notifikasi',
   path: '/discuss/notifikasi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscussPesanRoute = DiscussPesanRouteImport.update({
+  id: '/discuss/pesan',
+  path: '/discuss/pesan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscussTersimpanRoute = DiscussTersimpanRouteImport.update({
@@ -370,6 +383,11 @@ const ApiMidtransNotificationRoute = ApiMidtransNotificationRouteImport.update({
   path: '/api/midtrans/notification',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscussPesanIdRoute = DiscussPesanIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DiscussPesanRoute,
+} as any)
 const DiscussStatusIdRoute = DiscussStatusIdRouteImport.update({
   id: '/discuss/status/$id',
   path: '/discuss/status/$id',
@@ -478,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
@@ -486,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$id': typeof DiscussIdRoute
   '/discuss/notifikasi': typeof DiscussNotifikasiRoute
+  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
   '/discuss/tersimpan': typeof DiscussTersimpanRoute
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
@@ -514,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/$username/$repo/new': typeof UsernameRepoNewRoute
   '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
+  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -551,6 +572,7 @@ export interface FileRoutesByTo {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
@@ -559,6 +581,7 @@ export interface FileRoutesByTo {
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$id': typeof DiscussIdRoute
   '/discuss/notifikasi': typeof DiscussNotifikasiRoute
+  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
   '/discuss/tersimpan': typeof DiscussTersimpanRoute
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
@@ -587,6 +610,7 @@ export interface FileRoutesByTo {
   '/$username/$repo/new': typeof UsernameRepoNewRoute
   '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
+  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -628,6 +652,7 @@ export interface FileRoutesById {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
@@ -636,6 +661,7 @@ export interface FileRoutesById {
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$id': typeof DiscussIdRoute
   '/discuss/notifikasi': typeof DiscussNotifikasiRoute
+  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
   '/discuss/tersimpan': typeof DiscussTersimpanRoute
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
@@ -664,6 +690,7 @@ export interface FileRoutesById {
   '/$username_/$repo/new': typeof UsernameRepoNewRoute
   '/$username_/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
+  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -706,6 +733,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
     | '/admin/pantau'
@@ -714,6 +742,7 @@ export interface FileRouteTypes {
     | '/admin/verifikasi'
     | '/discuss/$id'
     | '/discuss/notifikasi'
+    | '/discuss/pesan'
     | '/discuss/tersimpan'
     | '/f/$slug'
     | '/jasa/$id'
@@ -742,6 +771,7 @@ export interface FileRouteTypes {
     | '/$username/$repo/new'
     | '/$username/$repo/settings'
     | '/api/midtrans/notification'
+    | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
     | '/studio/jasa/$id'
@@ -779,6 +809,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
     | '/admin/pantau'
@@ -787,6 +818,7 @@ export interface FileRouteTypes {
     | '/admin/verifikasi'
     | '/discuss/$id'
     | '/discuss/notifikasi'
+    | '/discuss/pesan'
     | '/discuss/tersimpan'
     | '/f/$slug'
     | '/jasa/$id'
@@ -815,6 +847,7 @@ export interface FileRouteTypes {
     | '/$username/$repo/new'
     | '/$username/$repo/settings'
     | '/api/midtrans/notification'
+    | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
     | '/studio/jasa/$id'
@@ -855,6 +888,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
     | '/admin/pantau'
@@ -863,6 +897,7 @@ export interface FileRouteTypes {
     | '/admin/verifikasi'
     | '/discuss/$id'
     | '/discuss/notifikasi'
+    | '/discuss/pesan'
     | '/discuss/tersimpan'
     | '/f/$slug'
     | '/jasa/$id'
@@ -891,6 +926,7 @@ export interface FileRouteTypes {
     | '/$username_/$repo/new'
     | '/$username_/$repo/settings'
     | '/api/midtrans/notification'
+    | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
     | '/studio/jasa/$id'
@@ -931,6 +967,7 @@ export interface RootRouteChildren {
   UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
   DiscussIdRoute: typeof DiscussIdRoute
   DiscussNotifikasiRoute: typeof DiscussNotifikasiRoute
+  DiscussPesanRoute: typeof DiscussPesanRouteWithChildren
   DiscussTersimpanRoute: typeof DiscussTersimpanRoute
   FSlugRoute: typeof FSlugRoute
   JasaIdRoute: typeof JasaIdRoute
@@ -1099,6 +1136,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegrasiRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/laporan': {
+      id: '/admin/laporan'
+      path: '/laporan'
+      fullPath: '/admin/laporan'
+      preLoaderRoute: typeof AdminLaporanRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/midtrans': {
       id: '/admin/midtrans'
       path: '/midtrans'
@@ -1160,6 +1204,13 @@ declare module '@tanstack/react-router' {
       path: '/discuss/notifikasi'
       fullPath: '/discuss/notifikasi'
       preLoaderRoute: typeof DiscussNotifikasiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discuss/pesan': {
+      id: '/discuss/pesan'
+      path: '/discuss/pesan'
+      fullPath: '/discuss/pesan'
+      preLoaderRoute: typeof DiscussPesanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discuss/tersimpan': {
@@ -1351,6 +1402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMidtransNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discuss/pesan/$id': {
+      id: '/discuss/pesan/$id'
+      path: '/$id'
+      fullPath: '/discuss/pesan/$id'
+      preLoaderRoute: typeof DiscussPesanIdRouteImport
+      parentRoute: typeof DiscussPesanRoute
+    }
     '/discuss/status/$id': {
       id: '/discuss/status/$id'
       path: '/discuss/status/$id'
@@ -1477,6 +1535,7 @@ interface AdminRouteChildren {
   AdminEscrowRoute: typeof AdminEscrowRoute
   AdminFiturRoute: typeof AdminFiturRoute
   AdminIntegrasiRoute: typeof AdminIntegrasiRoute
+  AdminLaporanRoute: typeof AdminLaporanRoute
   AdminMidtransRoute: typeof AdminMidtransRoute
   AdminModerasiRoute: typeof AdminModerasiRoute
   AdminPantauRoute: typeof AdminPantauRoute
@@ -1490,6 +1549,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEscrowRoute: AdminEscrowRoute,
   AdminFiturRoute: AdminFiturRoute,
   AdminIntegrasiRoute: AdminIntegrasiRoute,
+  AdminLaporanRoute: AdminLaporanRoute,
   AdminMidtransRoute: AdminMidtransRoute,
   AdminModerasiRoute: AdminModerasiRoute,
   AdminPantauRoute: AdminPantauRoute,
@@ -1576,6 +1636,18 @@ const UsernameRepoRouteWithChildren = UsernameRepoRoute._addFileChildren(
   UsernameRepoRouteChildren,
 )
 
+interface DiscussPesanRouteChildren {
+  DiscussPesanIdRoute: typeof DiscussPesanIdRoute
+}
+
+const DiscussPesanRouteChildren: DiscussPesanRouteChildren = {
+  DiscussPesanIdRoute: DiscussPesanIdRoute,
+}
+
+const DiscussPesanRouteWithChildren = DiscussPesanRoute._addFileChildren(
+  DiscussPesanRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRoute,
@@ -1596,6 +1668,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsernameRepoRoute: UsernameRepoRouteWithChildren,
   DiscussIdRoute: DiscussIdRoute,
   DiscussNotifikasiRoute: DiscussNotifikasiRoute,
+  DiscussPesanRoute: DiscussPesanRouteWithChildren,
   DiscussTersimpanRoute: DiscussTersimpanRoute,
   FSlugRoute: FSlugRoute,
   JasaIdRoute: JasaIdRoute,

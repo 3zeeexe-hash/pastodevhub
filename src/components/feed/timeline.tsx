@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { fetchFeed, type FeedQuery } from "@/lib/feed";
+import { dedupeById } from "@/lib/feed-rules";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/post-card";
 
@@ -24,7 +25,8 @@ export function Timeline({ query, empty }: { query: FeedQuery; empty: ReactNode 
       </div>
     );
   }
-  const items = q.data?.pages.flatMap((p) => p.items) ?? [];
+  // Halaman berperingkat ("Untuk Kamu", "Tren") bisa bergeser di antara dua muatan, jadi buang post kembar.
+  const items = dedupeById(q.data?.pages.flatMap((p) => p.items) ?? []);
   if (!items.length) return <div className="px-4 py-12 text-center text-sm text-muted-foreground">{empty}</div>;
   return (
     <div>

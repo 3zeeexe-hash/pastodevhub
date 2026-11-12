@@ -13,15 +13,18 @@ import { JOB_SELECT, type JobCardData } from "@/lib/jobs";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { SEARCH_TYPES } from "@/lib/search-types";
+import { searchTags } from "@/lib/feed-discover";
+import { Timeline } from "@/components/feed/timeline";
+import { TrendingTags } from "@/components/feed/trending";
 
-const searchSchema = z.object({ q: z.string().catch(""), type: z.enum(["repos", "users", "karya", "jobs"]).catch("repos") });
+const searchSchema = z.object({ q: z.string().catch(""), type: z.enum(["repos", "users", "karya", "jobs", "posts"]).catch("repos") });
 
 export const Route = createFileRoute("/search")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Cari — Pastodev" },
-      { name: "description", content: "Cari repositori, developer, karya, dan lowongan freelance di Pastodev." },
+      { name: "description", content: "Cari repositori, developer, karya, lowongan freelance, dan diskusi di Pastodev." },
       { property: "og:title", content: "Cari — Pastodev" },
       { property: "og:description", content: "Cari repositori, developer, karya, dan lowongan di Pastodev." },
       { property: "og:type", content: "website" },
@@ -86,7 +89,13 @@ function SearchPage() {
       return ((await qb).data ?? []) as unknown as JobCardData[];
     },
   });
-  const current = { repos, users, karya, jobs }[type];
+  const tags = useQuery({
+    queryKey: ["search", "tags", term],
+    enabled: type === "posts" && term.length > 0,
+    queryFn: () => searchTags(term.split(/\s+/)[0] ?? ""),
+  });
+  // Diskusi memakai daftar post sendiri (Timeline), jadi tidak ikut pola `current`.
+  const current = type === "posts" ? null : { repos, users, karya, jobs }[type];
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <form onSubmit={(e) => { e.preventDefault(); navigate({ search: { q: text, type } }); }} className="relative">
@@ -122,8 +131,31 @@ function SearchPage() {
         )}
         {type === "karya" && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{karya.data?.map((p) => <ProductCard key={p.id} p={p} />)}</div>}
         {type === "jobs" && <div className="grid gap-4 md:grid-cols-2">{jobs.data?.map((j) => <JobCard key={j.id} j={j} />)}</div>}
-        {current.isLoading && <p className="text-center text-muted-foreground">Mencari…</p>}
-        {!current.isLoading && (current.data?.length ?? 0) === 0 && <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">Tidak ada hasil{q ? ` untuk “${q}”` : ""}.</p>}
+        {type === "posts" && (
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-border">
+            {term ? (
+              <>
+                {!!tags.data?.length && (
+                  <div className="flex flex-wrap gap-2 border-b border-border p-3" aria-label="Tagar yang cocok">
+                    {tags.data.map((t) => (
+                      <Link key={t.tag} to="/discuss/tag/$tag" params={{ tag: t.tag }} className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent">
+                        #{t.tag} <span className="text-xs text-muted-foreground">{t.posts}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                <Timeline query={{ tab: "search", q: term }} empty={`Tidak ada post untuk “${q}”.`} />
+              </>
+            ) : (
+              <>
+                <TrendingTags />
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Ketik kata kunci untuk mencari post di Diskusi.</p>
+              </>
+            )}
+          </div>
+        )}
+        {current?.isLoading && <p className="text-center text-muted-foreground">Mencari…</p>}
+        {current && !current.isLoading && (current.data?.length ?? 0) === 0 && <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">Tidak ada hasil{q ? ` untuk “${q}”` : ""}.</p>}
       </div>
     </main>
   );

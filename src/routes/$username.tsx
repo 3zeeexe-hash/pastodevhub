@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookMarked, Star, MapPin, Link2, Building2, Users, CalendarDays, Package, Wrench, FolderKanban, Store, ExternalLink, BadgeCheck } from "lucide-react";
+import { BookMarked, Star, MapPin, Link2, Building2, Users, CalendarDays, Package, Wrench, FolderKanban, Store, ExternalLink, BadgeCheck, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,10 @@ function Profile() {
         {isMe ? (
           <Button asChild variant="secondary" className="mt-4 w-full"><Link to="/settings">Edit profil</Link></Button>
         ) : (
-          <Button className="mt-4 w-full" variant={data.isFollowing ? "secondary" : "default"} onClick={toggleFollow}>{data.isFollowing ? "Berhenti follow" : "Follow"}</Button>
+          <>
+            <Button className="mt-4 w-full" variant={data.isFollowing ? "secondary" : "default"} onClick={toggleFollow}>{data.isFollowing ? "Berhenti follow" : "Follow"}</Button>
+            {user && <Button asChild variant="outline" className="mt-2 w-full"><Link to="/discuss/pesan" search={{ u: p.username }}><Mail /> Kirim pesan</Link></Button>}
+          </>
         )}
         <p className="mt-4 flex items-center gap-1 text-sm text-muted-foreground"><Users className="size-4" /><b className="text-foreground">{data.followers}</b> followers · <b className="text-foreground">{data.following}</b> following</p>
         <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">

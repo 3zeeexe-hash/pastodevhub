@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Github, Upload, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,8 @@ import { useAuth } from "@/lib/auth";
 import { commitChanges, useRepo, useRefreshRepo } from "@/lib/repo-data";
 import { REPO_NAME_RE, computeChanges } from "@/lib/repo";
 import { exportToGithub } from "@/lib/github.functions";
+import { fetchAutopostEnabled, setAutopost } from "@/lib/feed-extras";
+import { Switch } from "@/components/ui/switch";
 import { downloadGithubRepo, githubErrorMessage } from "@/lib/github-client";
 import { GithubConnectCard, useGithubStatus } from "@/components/github-connect";
 import { Button } from "@/components/ui/button";
@@ -35,6 +38,36 @@ function Section({ title, children, danger }: { title: string; children: React.R
       <h2 className={danger ? "mb-4 text-lg font-semibold text-destructive" : "mb-4 text-lg font-semibold"}>{title}</h2>
       {children}
     </section>
+  );
+}
+
+/** Saklar "posting otomatis ke Diskusi" untuk repo publik. Disembunyikan kalau SQL Fase 4 belum diterapkan. */
+function AutopostSection({ repoId, userId, isPrivate }: { repoId: string; userId: string; isPrivate: boolean }) {
+  const qc = useQueryClient();
+  const state = useQuery({ queryKey: ["autopost", repoId], queryFn: () => fetchAutopostEnabled(repoId) });
+  if (state.data === null || state.data === undefined) return null;
+  const on = state.data;
+  async function toggle(next: boolean) {
+    try {
+      await setAutopost(userId, repoId, next);
+      toast.success(next ? "Commit baru akan diposting otomatis." : "Posting otomatis dimatikan.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Gagal menyimpan.");
+    }
+    await qc.invalidateQueries({ queryKey: ["autopost", repoId] });
+  }
+  return (
+    <Section title="Posting otomatis ke Diskusi">
+      <div className="flex items-start gap-4">
+        <div className="flex-1 text-sm">
+          <p>Setiap commit baru dibagikan ke Linimasa Diskusi atas namamu, paling sering sekali per 10 menit.</p>
+          <p className="mt-1 text-muted-foreground">
+            {isPrivate ? "Hanya untuk repositori publik. Jadikan repo ini publik dulu untuk mengaktifkannya." : "Commit awal, fork, dan impor/tarik dari GitHub tidak diposting. Jika repo dijadikan privat, post otomatisnya ikut dihapus."}
+          </p>
+        </div>
+        <Switch checked={on} disabled={isPrivate && !on} onCheckedChange={toggle} aria-label="Posting otomatis ke Diskusi" />
+      </div>
+    </Section>
   );
 }
 
@@ -152,6 +185,8 @@ function RepoSettings() {
           )}
         </div>
       </Section>
+
+      {user && <AutopostSection repoId={r.id} userId={user.id} isPrivate={r.is_private} />}
 
       <Section title="Zona berbahaya" danger>
         <div className="space-y-5">

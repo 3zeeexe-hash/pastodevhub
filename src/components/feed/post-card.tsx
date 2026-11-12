@@ -2,16 +2,20 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bookmark, Heart, MessageCircle, MoreHorizontal, Quote, Repeat2, Share, Trash2 } from "lucide-react";
+import { Ban, Bookmark, Flag, Heart, MessageCircle, MoreHorizontal, Quote, Repeat2, Share, Trash2, VolumeX } from "lucide-react";
 import { timeAgo, useAuth } from "@/lib/auth";
-import { deletePost, setBookmark, setLike, setRepost, type FeedPost, type FeedPostBase, type ViewerState } from "@/lib/feed";
+import { deletePost, setBookmark, setLike, setRepost, type FeedPost, type FeedPostBase, type PostMeta, type ViewerState } from "@/lib/feed";
+import { setUserFilter, type UserFilterKind } from "@/lib/feed-moderation";
 import { AvatarMini } from "@/components/avatar-mini";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { RichText } from "@/components/feed/rich-text";
 import { QuotedPost } from "@/components/feed/quoted-post";
 import { Composer } from "@/components/feed/composer";
+import { PollView } from "@/components/feed/poll-view";
+import { AutopostCard } from "@/components/feed/autopost-card";
+import { ReportDialog } from "@/components/feed/report-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const INVALIDATE = ["feed", "feed-post", "feed-replies"];
@@ -41,10 +45,11 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [quoting, setQuoting] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [ov, setOv] = useState<Override>({});
 
   const isRepost = post.kind === "repost" && !!post.ref;
-  const shown: FeedPostBase & { viewer: ViewerState } = isRepost ? (post.ref as FeedPostBase & { viewer: ViewerState }) : post;
+  const shown: FeedPostBase & PostMeta = isRepost ? (post.ref as FeedPostBase & PostMeta) : post;
   const quoted = post.kind === "quote" ? post.ref : null;
 
   const liked = ov.liked ?? shown.viewer.liked;
@@ -68,8 +73,19 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
     onError,
   });
 
+  const hide = useMutation({
+    mutationFn: (kind: UserFilterKind) => setUserFilter(user!.id, shown.author_id, kind),
+    onSuccess: async (_d, kind) => {
+      toast.success(kind === "mute" ? `@${shown.author.username} disenyapkan` : `@${shown.author.username} diblokir`);
+      await refresh();
+    },
+    onError,
+  });
+
   const needLogin = () => { toast("Masuk dulu untuk berinteraksi."); };
   const canDelete = !!user && (user.id === post.author_id || isAdmin);
+  // Laporkan / senyapkan / blokir menyasar penulis post asli (untuk repost: penulis yang di-repost), bukan diri sendiri.
+  const canModerate = !!user && user.id !== shown.author_id;
 
   async function share() {
     const url = `${window.location.origin}/discuss/status/${shown.id}`;
@@ -104,18 +120,33 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
             <VerifiedBadge username={shown.author.username} size={15} />
             <span className="truncate text-muted-foreground">@{shown.author.username}</span>
             <span className="shrink-0 text-muted-foreground">· {timeAgo(shown.created_at)}</span>
-            {canDelete && (
+            {(canDelete || canModerate) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button type="button" aria-label="Menu post" className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-accent"><MoreHorizontal className="size-4" /></button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => { if (confirm(isRepost ? "Batalkan repost ini?" : "Hapus post ini?")) del.mutate(); }}
-                  >
-                    <Trash2 /> {isRepost ? "Batalkan repost" : "Hapus post"}
-                  </DropdownMenuItem>
+                  {canDelete && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => { if (confirm(isRepost ? "Batalkan repost ini?" : "Hapus post ini?")) del.mutate(); }}
+                    >
+                      <Trash2 /> {isRepost ? "Batalkan repost" : "Hapus post"}
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && canModerate && <DropdownMenuSeparator />}
+                  {canModerate && (
+                    <>
+                      <DropdownMenuItem onClick={() => setReporting(true)}><Flag /> Laporkan post</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => hide.mutate("mute")}><VolumeX /> Senyapkan @{shown.author.username}</DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => { if (confirm(`Blokir @${shown.author.username}? Postingannya disembunyikan dan dia tidak bisa mengirim pesan padamu.`)) hide.mutate("block"); }}
+                      >
+                        <Ban /> Blokir @{shown.author.username}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -125,6 +156,8 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
             <Link to="/discuss/status/$id" params={{ id: shown.parent_id }} className="text-xs text-muted-foreground hover:text-primary">Membalas sebuah post</Link>
           )}
           <RichText body={shown.body} className={cn("mt-0.5", detail ? "text-lg leading-relaxed" : "text-[15px] leading-relaxed")} />
+          {shown.autopost && <AutopostCard info={shown.autopost} />}
+          {shown.poll && <PollView postId={shown.id} poll={shown.poll} />}
           {quoted && <div className="mt-2"><QuotedPost post={quoted} /></div>}
           {detail && <p className="mt-3 text-xs text-muted-foreground">{new Date(shown.created_at).toLocaleString("id-ID", { dateStyle: "long", timeStyle: "short" })}</p>}
 
@@ -171,6 +204,7 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
           <Composer kind="quote" refPost={shown} autoFocus placeholder="Tambahkan komentarmu…" onPosted={() => setQuoting(false)} />
         </DialogContent>
       </Dialog>
+      {canModerate && <ReportDialog postId={shown.id} open={reporting} onOpenChange={setReporting} />}
     </article>
   );
 }

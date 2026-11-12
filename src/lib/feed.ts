@@ -1,10 +1,13 @@
 // Linimasa Diskusi ala X: tipe, pembantu teks, dan fungsi data (Supabase).
-// Tabel feed_* dibuat lewat docs/sql/0005_diskusi_linimasa.sql dan belum ada di types.ts (file otomatis),
-// jadi klien di-cast ke any di satu tempat ini.
-import { supabase } from "@/integrations/supabase/client";
+// Tabel feed_* dibuat lewat docs/sql/0005-0007 dan belum ada di types.ts (file otomatis),
+// jadi klien di-cast ke any di satu tempat (feed-db.ts).
+import { db, fail } from "@/lib/feed-db";
+import { fetchRankedIds } from "@/lib/feed-discover";
+import { fetchPostExtras, type AutopostInfo, type PollData } from "@/lib/feed-extras";
+import { fetchHiddenAuthorIds } from "@/lib/feed-moderation";
+import { searchWords } from "@/lib/feed-rules";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+export type { AutopostInfo, PollData } from "@/lib/feed-extras";
 
 export const MAX_POST_LENGTH = 500;
 export const PAGE_SIZE = 20;
@@ -26,15 +29,20 @@ export type FeedPostBase = {
   created_at: string;
   author: FeedAuthor;
 };
-export type FeedPost = FeedPostBase & {
-  ref: (FeedPostBase & { viewer: ViewerState }) | null;
-  viewer: ViewerState;
-};
+/** Yang melekat pada post untuk pembaca ini: status suka/simpan, polling, dan asal otomatis dari repo. */
+export type PostMeta = { viewer: ViewerState; poll: PollData | null; autopost: AutopostInfo | null };
+export type FeedPost = FeedPostBase &
+  PostMeta & {
+    ref: (FeedPostBase & PostMeta) | null;
+  };
 
 export type FeedQuery =
   | { tab: "all" }
+  | { tab: "forYou" }
+  | { tab: "trending" }
   | { tab: "following" }
   | { tab: "tag"; tag: string }
+  | { tab: "search"; q: string }
   | { tab: "bookmarks" }
   | { tab: "user"; authorId: string };
 
@@ -117,6 +125,8 @@ const NO_VIEWER: ViewerState = { liked: false, bookmarked: false, reposted: fals
 
 async function withViewer(rows: RawPost[], userId: string | undefined): Promise<FeedPost[]> {
   const ids = [...new Set(rows.flatMap((r) => (r.ref ? [r.id, r.ref.id] : [r.id])))];
+  // Polling dan penanda auto-post dimuat bersamaan; fetchPostExtras tidak pernah melempar galat.
+  const extrasPromise = fetchPostExtras(ids, userId);
   let liked = new Set<string>();
   let marked = new Set<string>();
   let reposted = new Set<string>();
@@ -130,17 +140,44 @@ async function withViewer(rows: RawPost[], userId: string | undefined): Promise<
     marked = new Set((b.data ?? []).map((x: { post_id: string }) => x.post_id));
     reposted = new Set((r.data ?? []).map((x: { ref_id: string }) => x.ref_id));
   }
-  const stateOf = (id: string): ViewerState =>
-    userId ? { liked: liked.has(id), bookmarked: marked.has(id), reposted: reposted.has(id) } : NO_VIEWER;
+  const extras = await extrasPromise;
+  const metaOf = (id: string): PostMeta => ({
+    viewer: userId ? { liked: liked.has(id), bookmarked: marked.has(id), reposted: reposted.has(id) } : NO_VIEWER,
+    poll: extras.polls.get(id) ?? null,
+    autopost: extras.autoposts.get(id) ?? null,
+  });
   return rows.map((r) => ({
     ...r,
-    viewer: stateOf(r.id),
-    ref: r.ref ? { ...r.ref, viewer: stateOf(r.ref.id) } : null,
+    ...metaOf(r.id),
+    ref: r.ref ? { ...r.ref, ...metaOf(r.ref.id) } : null,
   }));
 }
 
-function fail(error: { message: string } | null): asserts error is null {
-  if (error) throw new Error(error.message);
+/** Syarat "bukan dari akun yang disenyapkan/diblokir" untuk query post. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function withoutHidden(query: any, hidden: string[]) {
+  return hidden.length ? query.not("author_id", "in", `(${hidden.join(",")})`) : query;
+}
+
+const FOR_YOU_HOURS = 336;
+const TRENDING_HOURS = 72;
+
+/**
+ * Halaman berperingkat ("Untuk Kamu" dan "Tren"). Kursornya adalah offset (angka dalam bentuk teks).
+ * null = belum bisa diperingkat (fungsi database belum ada, kursor bukan angka, atau belum ada post sama sekali).
+ */
+async function fetchRankedPage(q: { tab: "forYou" | "trending" }, userId: string | undefined, before: string | undefined, limit: number): Promise<FeedPage | null> {
+  const personal = q.tab === "forYou";
+  const offset = before === undefined ? 0 : Number(before);
+  if (!Number.isInteger(offset) || offset < 0) return null;
+  const ids = await fetchRankedIds({ hours: personal ? FOR_YOU_HOURS : TRENDING_HOURS, limit, offset, personal });
+  if (ids === null) return null;
+  if (!ids.length) return offset === 0 ? null : { items: [], next: null };
+  const [res, hidden] = await Promise.all([db.from("feed_posts").select(POST_SELECT).in("id", ids), fetchHiddenAuthorIds(userId)]);
+  fail(res.error);
+  const byId = new Map<string, RawPost>((res.data as RawPost[]).map((p) => [p.id, p]));
+  const rows = ids.map((id) => byId.get(id)).filter((p): p is RawPost => !!p && !hidden.includes(p.author_id));
+  return { items: await withViewer(rows, userId), next: ids.length === limit ? String(offset + limit) : null };
 }
 
 export async function fetchFeed(q: FeedQuery, userId: string | undefined, before?: string, limit = PAGE_SIZE): Promise<FeedPage> {
@@ -164,25 +201,43 @@ export async function fetchFeed(q: FeedQuery, userId: string | undefined, before
     return { items: await withViewer(rows, userId), next };
   }
 
+  if (q.tab === "forYou" || q.tab === "trending") {
+    const ranked = await fetchRankedPage(q, userId, before, limit);
+    if (ranked) return ranked;
+    // Peringkat belum tersedia: Tren kosong, "Untuk Kamu" memakai urutan terbaru (kursor waktu bila sudah berpindah halaman).
+    if (q.tab === "trending") return { items: [], next: null };
+    return fetchFeed({ tab: "all" }, userId, before !== undefined && Number.isNaN(Number(before)) ? before : undefined, limit);
+  }
+
   let pq = db.from("feed_posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(limit);
   if (before) pq = pq.lt("created_at", before);
 
-  if (q.tab === "all") {
-    pq = pq.neq("kind", "reply");
-  } else if (q.tab === "user") {
+  if (q.tab === "user") {
     pq = pq.neq("kind", "reply").eq("author_id", q.authorId);
-  } else if (q.tab === "following") {
-    if (!userId) return { items: [], next: null };
-    const f = await db.from("follows").select("following_id").eq("follower_id", userId).limit(1000);
-    fail(f.error);
-    const ids = [userId, ...(f.data ?? []).map((x: { following_id: string }) => x.following_id)];
-    pq = pq.neq("kind", "reply").in("author_id", ids);
-  } else if (q.tab === "tag") {
-    const tags = await db.from("feed_hashtags").select("post_id").eq("tag", q.tag.toLowerCase()).order("created_at", { ascending: false }).limit(500);
-    fail(tags.error);
-    const ids = (tags.data ?? []).map((x: { post_id: string }) => x.post_id);
-    if (!ids.length) return { items: [], next: null };
-    pq = pq.in("id", ids);
+  } else {
+    // Linimasa, Mengikuti, tagar, dan pencarian tidak menampilkan akun yang disenyapkan atau diblokir.
+    pq = withoutHidden(pq, await fetchHiddenAuthorIds(userId));
+    if (q.tab === "all") {
+      pq = pq.neq("kind", "reply");
+    } else if (q.tab === "following") {
+      if (!userId) return { items: [], next: null };
+      const f = await db.from("follows").select("following_id").eq("follower_id", userId).limit(1000);
+      fail(f.error);
+      const ids = [userId, ...(f.data ?? []).map((x: { following_id: string }) => x.following_id)];
+      pq = pq.neq("kind", "reply").in("author_id", ids);
+    } else if (q.tab === "tag") {
+      const tags = await db.from("feed_hashtags").select("post_id").eq("tag", q.tag.toLowerCase()).order("created_at", { ascending: false }).limit(500);
+      fail(tags.error);
+      const ids = (tags.data ?? []).map((x: { post_id: string }) => x.post_id);
+      if (!ids.length) return { items: [], next: null };
+      pq = pq.in("id", ids);
+    } else if (q.tab === "search") {
+      const words = searchWords(q.q);
+      if (!words.length) return { items: [], next: null };
+      pq = pq.neq("kind", "repost");
+      // `_` adalah wildcard di ILIKE; searchWords sudah membuang % dan karakter lain yang berbahaya.
+      for (const w of words) pq = pq.ilike("body", `%${w.replace(/_/g, "\\_")}%`);
+    }
   }
 
   const res = await pq;
@@ -200,7 +255,8 @@ export async function fetchPost(id: string, userId: string | undefined): Promise
 }
 
 export async function fetchReplies(id: string, userId: string | undefined): Promise<FeedPost[]> {
-  const res = await db.from("feed_posts").select(POST_SELECT).eq("parent_id", id).order("created_at", { ascending: true }).limit(200);
+  const hidden = await fetchHiddenAuthorIds(userId);
+  const res = await withoutHidden(db.from("feed_posts").select(POST_SELECT).eq("parent_id", id), hidden).order("created_at", { ascending: true }).limit(200);
   fail(res.error);
   return withViewer((res.data ?? []) as RawPost[], userId);
 }

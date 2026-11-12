@@ -2,7 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { BadgeCheck, Flag, KeyRound, LayoutDashboard, Loader2, LogOut, Plug, ShieldCheck, ToggleRight, Users, Wallet } from "lucide-react";
+import { BadgeCheck, Flag, KeyRound, LayoutDashboard, Loader2, LogOut, MessageSquareWarning, Plug, ShieldCheck, ToggleRight, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
@@ -36,6 +36,7 @@ const ADMIN_NAV: NavGroup[] = [
   { group: "Situs", items: [
     { to: "/admin/fitur", label: "Fitur & pengumuman", Icon: ToggleRight },
     { to: "/admin/moderasi", label: "Moderasi konten", Icon: Flag },
+    { to: "/admin/laporan", label: "Laporan Diskusi", Icon: MessageSquareWarning },
   ] },
   { group: "Keuangan", items: [
     { to: "/admin/pembayaran", label: "Pembayaran & pencairan", Icon: Wallet },
