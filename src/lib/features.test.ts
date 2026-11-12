@@ -10,6 +10,12 @@ describe("feature switches", () => {
     expect(isFeatureOn({ jobs: false }, "jobs")).toBe(false);
     expect(isFeatureOn({ jobs: false }, "karya")).toBe(true);
   });
+  it("keeps demo profiles off until an admin switches them on", () => {
+    expect(isFeatureOn({}, "demo_profiles")).toBe(false);
+    expect(isFeatureOn(undefined, "demo_profiles")).toBe(false);
+    expect(isFeatureOn({ demo_profiles: true }, "demo_profiles")).toBe(true);
+    expect(isFeatureOn({ demo_profiles: false }, "demo_profiles")).toBe(false);
+  });
   it("maps pages to the feature that owns them", () => {
     expect(featureForPath("/lowongan")).toBe("jobs");
     expect(featureForPath("/lowongan/baru")).toBe("jobs");
