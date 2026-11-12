@@ -4,10 +4,10 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import type { AccountType } from "@/lib/market";
+import { ROLE_INFO, accountTypeFor, defaultRole, isRole, readStoredRole, writeStoredRole, type Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AccountTypePicker } from "@/components/account-type-picker";
+import { RolePicker } from "@/components/role-ui";
 
 /** Set on the sign-up page before Google/Lovable sign-in, so the choice survives the redirect. */
 export const PENDING_TYPE_KEY = "pastodev-pending-account-type";
@@ -16,18 +16,20 @@ export const PENDING_TYPE_KEY = "pastodev-pending-account-type";
 export function AccountTypePrompt() {
   const { profile } = useAuth();
   const qc = useQueryClient();
-  const [v, setV] = useState<AccountType | null>(null);
+  const [v, setV] = useState<Role | null>(null);
   const [busy, setBusy] = useState(false);
   const autoTried = useRef(false);
 
-  async function save(type: AccountType) {
+  async function save(role: Role) {
     if (!profile) return;
+    const type = accountTypeFor(role);
     setBusy(true);
     const { error } = await supabase.from("profiles").update({ account_type: type }).eq("id", profile.id);
     setBusy(false);
     if (error) { toast.error("Gagal menyimpan jenis akun. Coba lagi."); return; }
     window.localStorage.removeItem(PENDING_TYPE_KEY);
-    toast.success(type === "developer" ? "Akun developer aktif" : "Akun client aktif");
+    writeStoredRole(role);
+    toast.success(`Mode ${ROLE_INFO[role].title} aktif`);
     await qc.invalidateQueries({ queryKey: ["me"] });
   }
 
@@ -36,7 +38,12 @@ export function AccountTypePrompt() {
     if (!profile || profile.account_type || autoTried.current) return;
     autoTried.current = true;
     const pending = window.localStorage.getItem(PENDING_TYPE_KEY);
-    if (pending === "developer" || pending === "client") { setV(pending); void save(pending); }
+    if (pending === "developer" || pending === "client") {
+      const stored = readStoredRole();
+      const role = isRole(stored) && accountTypeFor(stored) === pending ? stored : defaultRole(pending);
+      setV(role);
+      void save(role);
+    }
   }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!profile || profile.account_type) return null;
@@ -51,9 +58,9 @@ export function AccountTypePrompt() {
           <DialogTitle>Selamat datang, {profile.display_name || profile.username}!</DialogTitle>
           <DialogDescription>Kamu mau pakai Pastodev sebagai apa? Bisa diganti nanti di Pengaturan.</DialogDescription>
         </DialogHeader>
-        <AccountTypePicker value={v} onChange={setV} />
+        <RolePicker value={v} onChange={setV} />
         <Button onClick={() => v && save(v)} disabled={!v || busy} className="w-full">
-          {busy && <Loader2 className="animate-spin" />} {v ? `Lanjut sebagai ${v === "developer" ? "Developer" : "Client"}` : "Pilih salah satu dulu"}
+          {busy && <Loader2 className="animate-spin" />} {v ? `Lanjut sebagai ${ROLE_INFO[v].title}` : "Pilih salah satu dulu"}
         </Button>
       </DialogContent>
     </Dialog>

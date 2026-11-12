@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { BadgeCheck, Bot, Briefcase, Download, FileCode2, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { BadgeCheck, BookMarked, Bot, Briefcase, Download, FileCode2, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
+import { useRole } from "@/lib/use-role";
+import { ROLE_INFO, type Role } from "@/lib/roles";
 import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
 
 export const DEV_NAV: NavGroup[] = [
@@ -49,9 +50,36 @@ export const CLIENT_NAV: NavGroup[] = [
   ] },
 ];
 
-/** Side menu matching the signed-in account type (developer studio or client dashboard). */
+const devGroup = (name: string) => DEV_NAV.find((g) => g.group === name)!;
+
+/** Ruang pribadi: alat sendiri tanpa menu jualan, supaya menu tetap ringkas. */
+const PERSONAL_NAV: NavGroup[] = [
+  { group: "Ruang pribadi", items: [
+    { to: "/studio", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
+    { to: "/new", label: "Repositori baru", Icon: BookMarked, feature: "repos" },
+    { to: "/import", label: "Impor dari GitHub", Icon: Download, feature: "github" },
+  ] },
+  devGroup("Tools"),
+  { group: "Jelajah", items: [
+    { to: "/katalog", label: "Katalog karya", Icon: LibraryBig, feature: "karya" },
+    { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+    { to: "/pesanan", label: "Pesanan", Icon: Receipt },
+  ] },
+  devGroup("Akun"),
+];
+
+/** Menu samping sesuai peran: urutan dan isi grup mengikuti kebutuhan tiap peran. */
+export function navForRole(role: Role): NavGroup[] {
+  switch (role) {
+    case "client": return CLIENT_NAV;
+    case "freelancer": return [devGroup("Freelance"), devGroup("Jualan"), devGroup("Tools"), devGroup("Akun")];
+    case "personal": return PERSONAL_NAV;
+    default: return DEV_NAV;
+  }
+}
+
+/** Side menu matching the active role (client dashboard, or the developer/freelancer/personal studio). */
 export function AccountSideNav({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
-  const dev = profile?.account_type === "developer";
-  return <SideNavLayout title={dev ? "Studio developer" : "Dashboard client"} nav={dev ? DEV_NAV : CLIENT_NAV}>{children}</SideNavLayout>;
+  const { role } = useRole();
+  return <SideNavLayout title={ROLE_INFO[role].workspaceLabel} nav={navForRole(role)}>{children}</SideNavLayout>;
 }
