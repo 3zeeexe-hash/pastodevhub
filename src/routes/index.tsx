@@ -49,6 +49,8 @@ export const Route = createFileRoute("/")({
 
 const NAVY = "bg-[#0a1a45]";
 const ORANGE = "bg-[#ff8a00]";
+// Lebar konten yang sama untuk header dan isi beranda, supaya tepi kiri/kanan selalu sejajar di desktop.
+const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
 
 type HomeRepo = {
   id: string;
@@ -73,7 +75,8 @@ const MENU = [
  * Beranda GOBI (desain mockup): header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
  * 4 menu cepat, lalu Proyek Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
  * Beranda memakai header-nya sendiri, jadi SiteHeader global disembunyikan di "/" (lihat __root.tsx) agar tidak dobel.
- * Mobile: satu kolom. Desktop (lg ke atas): menu tampil di header, Proyek Terbaru di kiri, Lowongan + Diskusi di kanan.
+ * Mobile: satu kolom. Desktop (lg ke atas): menu tampil di header, banner (8/12) bersebelahan dengan menu cepat 2x2 (4/12),
+ * lalu Proyek Terbaru di kiri dan Lowongan + Diskusi di kanan. Lebar konten dipegang konstanta WRAP.
  * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
  */
 function GobiHome() {
@@ -114,12 +117,14 @@ function GobiHome() {
   return (
     <main className="min-h-screen bg-[#f4f7fc] pb-10 text-[#0b1a3f]">
       <GobiHeader on={on} />
-      <div className="mx-auto max-w-6xl px-4">
+      <div className={WRAP}>
         <h1 className="sr-only">GOBI — Komunitas Developer Indonesia</h1>
-        <HeroBanner signedIn={signedIn} on={on} />
-        <QuickMenu on={on} />
+        <div className="relative z-10 -mt-12 lg:grid lg:grid-cols-12 lg:items-stretch lg:gap-6">
+          <HeroBanner signedIn={signedIn} on={on} />
+          <QuickMenu on={on} />
+        </div>
 
-        <div className={cn("grid gap-x-8", hasSide && "lg:grid-cols-5")}>
+        <div className={cn("grid gap-x-8 xl:gap-x-10", hasSide && "lg:grid-cols-5")}>
           <div className={cn(hasSide && "lg:col-span-3")}>
             <Section icon={<Flame className="size-6 text-[#ff6a00]" />} title="Proyek Terbaru" to="/explore">
               {repos.isLoading ? <Hint>Memuat…</Hint> : repoList.length === 0 ? <Hint>Belum ada proyek publik.</Hint> : (
@@ -172,7 +177,8 @@ function GobiHome() {
                 <p className="text-lg font-extrabold">Impor dari GitHub</p>
                 <p className="text-sm text-white/80">Sinkronkan repositori Anda dengan mudah!</p>
               </div>
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1d3f9e]"><ArrowRight className="size-6" /></span>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1d3f9e] lg:hidden"><ArrowRight className="size-6" /></span>
+              <span className={cn(ORANGE, "hidden shrink-0 items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white lg:inline-flex")}>Impor sekarang <ArrowRight className="size-4" /></span>
             </Link>
           </div>
         )}
@@ -204,7 +210,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
   return (
     <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] pb-16 pt-4 text-white">
       <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-[#ff8a00]/30 blur-2xl" />
-      <div className="relative mx-auto max-w-6xl px-4">
+      <div className={cn("relative", WRAP)}>
         <div className="flex items-center gap-3">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -268,7 +274,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
           </div>
         </div>
 
-        <form role="search" onSubmit={doSearch} className="relative mx-auto mt-4 flex max-w-5xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30">
+        <form role="search" onSubmit={doSearch} className="relative mx-auto mt-4 flex max-w-3xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30 lg:mt-5">
           <Search className="size-6 shrink-0" />
           <input
             value={q}
@@ -315,7 +321,7 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
     <section
       aria-label="Banner"
       aria-roledescription="carousel"
-      className="group relative z-10 mx-auto -mt-12 max-w-5xl"
+      className="group relative lg:col-span-8"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={(e) => { setPaused(true); touchX.current = e.touches[0]?.clientX ?? null; }}
@@ -371,10 +377,11 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
 // ---------- Menu cepat ----------
 
 function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
-  const tile = "flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:py-4";
-  const dot = "flex size-14 items-center justify-center rounded-full";
+  // Desktop: kotak 2x2 di samping banner, tingginya mengikuti banner. Kalau jumlah kotak ganjil, yang terakhir melebar penuh.
+  const tile = "flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:justify-center lg:gap-3 lg:py-4 lg:text-base lg:last:odd:col-span-2";
+  const dot = "flex size-14 items-center justify-center rounded-full lg:size-16";
   return (
-    <nav aria-label="Menu cepat" className="mx-auto grid max-w-5xl grid-cols-4 gap-2.5 pt-5 lg:gap-4">
+    <nav aria-label="Menu cepat" className="grid grid-cols-4 gap-2.5 pt-5 lg:col-span-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-4 lg:pt-0">
       <Link to="/search" search={{ q: "", type: "users" }} className={tile}>
         <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className="size-8" strokeWidth={2.6} /></span>Developer
       </Link>
