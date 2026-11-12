@@ -1,11 +1,11 @@
-// Logo Pastodev: kucing berorbit (SVG vektor, latar transparan). Dipakai di header, footer, halaman masuk, dan tempat lain lewat BrandMark.
+// Logo GOBI: kucing berorbit (SVG vektor, latar transparan). Dipakai di header, footer, halaman masuk, dan tempat lain lewat BrandMark.
 import logoImg from "@/assets/pastodev-logo.svg";
 
 export function BrandMark({ size = 32 }: { size?: number }) {
   return (
     <img
       src={logoImg}
-      alt="Pastodev"
+      alt="GOBI"
       width={size}
       height={size}
       className="object-contain"

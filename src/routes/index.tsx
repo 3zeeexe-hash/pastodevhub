@@ -1,134 +1,377 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  ArrowRight, Bell, Briefcase, Building2, ChevronDown, Code, Flame, FolderOpen, LayoutDashboard, LayoutGrid, LogOut, Menu,
+  MessageCircle, MessageSquare, Newspaper, Receipt, Search, Settings, ShieldCheck, Star, User, Users, Wallet, Wrench,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { siteJsonLd } from "@/lib/seo";
-import { useAuth } from "@/lib/auth";
+import { timeAgo, useAuth } from "@/lib/auth";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
+import { fetchFeed, fetchUnreadCount } from "@/lib/feed";
+import { budgetLabel } from "@/lib/jobs";
+import { categoryLabel } from "@/lib/market";
+import { workspacePath } from "@/lib/roles";
 import { useSiteConfig } from "@/lib/use-site-config";
-import { SignInCta } from "@/components/sign-in-cta";
-import { Composer } from "@/components/feed/composer";
-import { ForumList } from "@/components/feed/forum-list";
-import { Timeline } from "@/components/feed/timeline";
-import { TrendingTags } from "@/components/feed/trending";
-import { JobCard } from "@/components/job-card";
-import { LeftRail } from "@/components/home/left-rail";
-import { DiscoverStrip, RightRail, TalentStories } from "@/components/home/right-rail";
-import { useHomeData, type HomeData } from "@/components/home/use-home-data";
+import { useHomeData } from "@/components/home/use-home-data";
+import { AvatarMini } from "@/components/avatar-mini";
+import { BrandMark } from "@/components/brand";
+import { VerifiedBadge } from "@/components/verified-badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// Tab beranda memakai linimasa yang sama dengan halaman Diskusi. "untuk-kamu" adalah tab bawaan.
-const TABS = ["untuk-kamu", "linimasa", "mengikuti", "tren", "forum"] as const;
-type Tab = (typeof TABS)[number];
-const DEFAULT_TAB: Tab = "untuk-kamu";
-const TAB_LABEL: Record<Tab, string> = { "untuk-kamu": "Untuk Kamu", linimasa: "Terbaru", mengikuti: "Mengikuti", tren: "Tren", forum: "Forum" };
-
 export const Route = createFileRoute("/")({
-  validateSearch: (s: Record<string, unknown>): { tab?: Tab } => {
-    const t = s["tab"];
-    return TABS.includes(t as Tab) ? { tab: t as Tab } : {};
-  },
   head: ({ matches }) => {
     const origin = (matches[0]?.loaderData as { siteUrl?: string | null } | undefined)?.siteUrl;
     return {
-    scripts: origin ? [{ type: "application/ld+json", children: siteJsonLd(origin) }] : [],
-    meta: [
-      { title: "Pastodev — Tempat developer, freelancer, dan client bekerja bareng" },
-      { name: "description", content: "Satu akun untuk semua: cari developer, ambil proyek freelance, jual karya, pesan jasa, dan simpan kode pribadi bersama komunitas Nusantara." },
-      { property: "og:title", content: "Pastodev — Tempat developer, freelancer, dan client bekerja bareng" },
-      { property: "og:description", content: "Pribadi, client, freelancer, atau developer: semua punya ruang kerja di satu akun." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+      scripts: origin ? [{ type: "application/ld+json", children: siteJsonLd(origin) }] : [],
+      meta: [
+        { title: "GOBI — Komunitas Developer Indonesia" },
+        { name: "description", content: "Belajar, berbagi, dan tumbuh bersama: cari developer, ambil proyek freelance, pamerkan karya, dan ikut diskusi di komunitas GOBI." },
+        { property: "og:title", content: "GOBI — Komunitas Developer Indonesia" },
+        { property: "og:description", content: "Developer, freelancer, dan client bekerja bareng di satu tempat." },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
     };
   },
-  component: Index,
+  component: GobiHome,
 });
 
+const NAVY = "bg-[#0a1a45]";
+const ORANGE = "bg-[#ff8a00]";
+
+type HomeRepo = {
+  id: string;
+  name: string;
+  description: string | null;
+  language: string | null;
+  topics: string[] | null;
+  owner: { username: string } | null;
+  stars: { count: number }[] | null;
+};
+
+const MENU = [
+  { to: "/gobifeed", label: "Linimasa", Icon: Newspaper, feature: "discuss" },
+  { to: "/explore", label: "Proyek", Icon: FolderOpen, feature: null },
+  { to: "/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
+  { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
+  { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
+  { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+] as const;
+
 /**
- * Beranda ala media sosial (Instagram / X), satu tampilan untuk semua peran: menu di kiri, linimasa di tengah,
- * tren dan rekomendasi di kanan. Tombol yang sudah ada di header (notifikasi, profil, ruang kerja, buat baru, masuk)
- * tidak diulang di halaman ini; di beranda, header hanya menyembunyikan menu tautan dan kolom cari yang digantikan kolom samping.
+ * Beranda GOBI (desain app mobile): header biru tua dengan logo, pencarian, banner komunitas, 4 menu cepat,
+ * lalu Proyek Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
+ * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
  */
-function Index() {
-  const { tab = DEFAULT_TAB } = Route.useSearch();
+function GobiHome() {
   const { user, profile } = useAuth();
   const { flags } = useSiteConfig();
   const on = (key: FeatureKey) => isFeatureOn(flags, key);
-  const data = useHomeData(on);
-  const feedOn = on("discuss");
   const signedIn = !!user && !!profile;
+  const data = useHomeData(on);
+
+  const repos = useQuery({
+    queryKey: ["gobi-home", "repos"],
+    staleTime: 60_000,
+    queryFn: async () =>
+      ((await supabase.from("repositories").select("id,name,description,language,topics, owner:profiles!repositories_owner_id_fkey(username), stars(count)").eq("is_private", false).order("created_at", { ascending: false }).limit(3)).data ?? []) as unknown as HomeRepo[],
+  });
+
+  // Diskusi Hangat: post yang ramai; kalau belum ada yang ramai, pakai post terbaru.
+  const hot = useQuery({
+    queryKey: ["gobi-home", "hot", user?.id ?? null],
+    enabled: on("discuss"),
+    staleTime: 60_000,
+    queryFn: async () => {
+      try {
+        let page = await fetchFeed({ tab: "trending" }, user?.id, undefined, 3);
+        if (!page.items.length) page = await fetchFeed({ tab: "all" }, user?.id, undefined, 3);
+        return page.items;
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const jobs = on("jobs") ? (data.jobs.data ?? []).slice(0, 2) : [];
+  const repoList = repos.data ?? [];
+  const hotList = on("discuss") ? (hot.data ?? []) : [];
 
   return (
-    <main className="mx-auto grid max-w-7xl lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-4 lg:px-4 xl:grid-cols-[15rem_minmax(0,40rem)_20rem] xl:justify-center">
-      <LeftRail />
+    <main className="min-h-screen bg-[#f4f7fc] pb-6 text-[#0b1a3f]">
+      <div className="mx-auto max-w-2xl">
+        <GobiHeader on={on} />
+        <HeroBanner signedIn={signedIn} />
+        <QuickMenu on={on} />
 
-      <div className="min-w-0 border-border lg:border-x">
-        <div className="sticky top-14 z-30 border-b border-border bg-background/85 backdrop-blur">
-          <h1 className="sr-only">Beranda Pastodev</h1>
-          {feedOn ? (
-            <nav className="flex overflow-x-auto" aria-label="Tab beranda">
-              {TABS.map((t) => (
-                <Link
-                  key={t}
-                  to="/"
-                  search={t === DEFAULT_TAB ? {} : { tab: t }}
-                  replace
-                  className={cn("flex-1 shrink-0 whitespace-nowrap border-b-2 px-4 py-3.5 text-center text-sm font-medium transition hover:bg-accent/40", tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground")}
-                >
-                  {TAB_LABEL[t]}
-                </Link>
-              ))}
-            </nav>
-          ) : (
-            <p className="px-4 py-3.5 text-sm font-semibold">Beranda</p>
+        <Section icon={<Flame className="size-6 text-[#ff6a00]" />} title="Proyek Terbaru" to="/explore">
+          {repos.isLoading ? <Hint>Memuat…</Hint> : repoList.length === 0 ? <Hint>Belum ada proyek publik.</Hint> : (
+            <div className="space-y-3">{repoList.map((r) => <RepoItem key={r.id} r={r} />)}</div>
           )}
-        </div>
+        </Section>
 
-        <TalentStories data={data} />
-        <DiscoverStrip data={data} on={on} />
-
-        {!feedOn ? (
-          <FeedOffHome data={data} on={on} />
-        ) : tab === "forum" ? (
-          <ForumList />
-        ) : tab === "tren" ? (
-          <>
-            <div className="xl:hidden"><TrendingTags /></div>
-            <h2 className="px-4 pt-4 text-sm font-semibold">Post terpopuler</h2>
-            <Timeline query={{ tab: "trending" }} empty="Belum ada post yang ramai dalam beberapa hari terakhir." />
-          </>
-        ) : (
-          <>
-            <div id="tulis" className="scroll-mt-32 border-b border-border p-4"><Composer kind="post" /></div>
-            {tab === "mengikuti" && !user ? (
-              <div className="p-6"><SignInCta text="Masuk untuk melihat post dari developer yang kamu ikuti." /></div>
-            ) : (
-              <Timeline
-                query={{ tab: tab === "mengikuti" ? "following" : tab === "untuk-kamu" ? "forYou" : "all" }}
-                empty={tab === "mengikuti"
-                  ? <>Linimasa ini masih kosong. Ikuti developer dari <Link to="/search" search={{ q: "", type: "users" }} className="text-primary hover:underline">halaman Talenta</Link>, atau tulis post pertamamu.</>
-                  : "Belum ada post. Jadilah yang pertama!"}
-              />
+        {on("jobs") && (
+          <Section icon={<Briefcase className="size-6 text-[#ff8a00]" />} title="Lowongan Freelance" to="/lowongan">
+            {data.jobs.isLoading ? <Hint>Memuat…</Hint> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
+              <div className="space-y-3">
+                {jobs.map((j) => (
+                  <div key={j.id} className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+                    <div className="flex h-28 w-36 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ffc13b] to-[#ff7a00] sm:w-44">
+                      <Code className="size-12 text-[#0a1a45]/80" strokeWidth={2.4} />
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <h3 className="line-clamp-2 text-lg font-extrabold leading-tight">{j.title}</h3>
+                      <p className="mt-1.5 flex items-center gap-1.5 truncate text-sm text-slate-600"><Building2 className="size-4 shrink-0" />{j.client?.display_name || j.client?.username || "Client"}</p>
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-500"><Wallet className="size-4 shrink-0" />{budgetLabel(j.budget_min, j.budget_max)} · {categoryLabel(j.category)}</p>
+                      <Link to="/lowongan/$id" params={{ id: j.id }} className="mt-auto inline-flex items-center gap-1 self-end rounded-full bg-[#fff1dc] px-4 py-1.5 text-sm font-bold text-[#e67700]">Lihat Detail <ArrowRight className="size-4" /></Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-          </>
+          </Section>
+        )}
+
+        {on("discuss") && (
+          <Section icon={<MessageCircle className="size-6 text-[#1a73e8]" fill="currentColor" />} title="Diskusi Hangat" to="/discuss">
+            {hot.isLoading ? <Hint>Memuat…</Hint> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
+              <div className="space-y-2">
+                {hotList.map((p) => (
+                  <Link key={p.id} to="/discuss/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+                    <AvatarMini name={p.author.username} url={p.author.avatar_url} size={44} />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-1 font-extrabold">{(p.body.split("\n")[0] || "Post").slice(0, 90)}</p>
+                      <p className="truncate text-sm text-slate-500">oleh {p.author.display_name || p.author.username} · {timeAgo(p.created_at)}</p>
+                    </div>
+                    <span className="flex shrink-0 items-center gap-1 text-sm text-slate-500"><MessageSquare className="size-5" />{p.reply_count}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Section>
+        )}
+
+        {on("github") && (
+          <div className="px-4 pt-5">
+            <Link to="/import" className={cn(NAVY, "flex items-center gap-4 rounded-2xl p-4 text-white shadow-md")}>
+              <svg viewBox="0 0 24 24" className="size-14 shrink-0" fill="currentColor" aria-hidden="true">
+                <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z" />
+              </svg>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-extrabold">Impor dari GitHub</p>
+                <p className="text-sm text-white/80">Sinkronkan repositori Anda dengan mudah!</p>
+              </div>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1d3f9e]"><ArrowRight className="size-6" /></span>
+            </Link>
+          </div>
         )}
       </div>
-
-      <RightRail data={data} on={on} userId={signedIn ? user.id : null} />
     </main>
   );
 }
 
-/** Cadangan kalau fitur Diskusi dimatikan admin: linimasa kosong diganti lowongan terbaru. */
-function FeedOffHome({ data, on }: { data: HomeData; on: (k: FeatureKey) => boolean }) {
-  const jobs = on("jobs") ? (data.jobs.data ?? []) : [];
-  if (!jobs.length) {
-    return <p className="px-4 py-12 text-center text-sm text-muted-foreground">Belum ada yang bisa ditampilkan. Jelajahi proyek atau cari talenta lewat menu.</p>;
-  }
+// ---------- Header ----------
+
+function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
+  const { user, profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const signedIn = !!user && !!profile;
+  const menu = MENU.filter((m) => !m.feature || on(m.feature));
+  const unread = useQuery({
+    queryKey: ["feed-unread", user?.id ?? null],
+    queryFn: () => fetchUnreadCount(user!.id),
+    enabled: !!user && on("discuss"),
+    refetchInterval: 60_000,
+  });
+  const dashTo = workspacePath(profile?.account_type);
+  const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q: q.trim(), type: "users" } }); };
+  const item = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent";
+
   return (
-    <div className="space-y-6 p-4">
-      <section>
-        <h2 className="text-lg font-bold">Proyek dan lowongan terbaru</h2>
-        <div className="mt-3 grid gap-3">{jobs.map((j) => <JobCard key={j.id} j={j} />)}</div>
-      </section>
-    </div>
+    <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] px-4 pb-16 pt-4 text-white">
+      <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-[#ff8a00]/30 blur-2xl" />
+      <div className="relative flex items-center gap-3">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <button type="button" aria-label="Buka menu" className="rounded-md p-1.5 hover:bg-white/10"><Menu className="size-8" /></button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 bg-header">
+            <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> GOBI</SheetTitle></SheetHeader>
+            <nav className="mt-4 flex flex-col gap-1">
+              <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className={item}><Users className="size-4 text-primary" />Talenta</Link>
+              {menu.map((m) => (
+                <Link key={m.to} to={m.to} onClick={() => setOpen(false)} className={item}><m.Icon className="size-4 text-primary" />{m.label}</Link>
+              ))}
+              {signedIn
+                ? <Link to={dashTo} onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-accent"><LayoutDashboard className="size-4 text-primary" />Ruang kerja</Link>
+                : <Link to="/auth" onClick={() => setOpen(false)} className="mt-3 rounded-md bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground">Masuk / Daftar</Link>}
+            </nav>
+          </SheetContent>
+        </Sheet>
+
+        <Link to="/" className="flex min-w-0 flex-1 items-center justify-center gap-2" aria-label="GOBI">
+          <BrandMark size={44} />
+          <span className="text-4xl font-black italic leading-none tracking-tight">GOBI</span>
+        </Link>
+
+        <div className="flex items-center gap-3">
+          {signedIn && on("discuss") && (
+            <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-1">
+              <Bell className="size-8" />
+              {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold leading-5">{unread.data > 99 ? "99+" : unread.data}</span>}
+            </Link>
+          )}
+          {signedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger aria-label="Menu akun" className="flex items-center gap-1 rounded-full">
+                <span className="rounded-full ring-2 ring-white/70"><AvatarMini name={profile.username} url={profile.avatar_url} size={40} /></span>
+                <ChevronDown className="size-5 text-white/80" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <span className="flex items-center gap-1 font-semibold"><span className="truncate">{profile.display_name || profile.username}</span><VerifiedBadge username={profile.username} verified={profile.is_verified} size={15} /></span>
+                  <span className="block font-mono text-xs text-muted-foreground">@{profile.username}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild><Link to={dashTo}><LayoutDashboard /> Ruang kerja</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }}><User /> Profil kamu</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/pesanan"><Receipt /> Pesanan</Link></DropdownMenuItem>
+                {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><ShieldCheck /> Admin</Link></DropdownMenuItem>}
+                <DropdownMenuItem asChild><Link to="/settings"><Settings /> Pengaturan</Link></DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/" }); }}><LogOut /> Keluar</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth" className={cn(ORANGE, "rounded-full px-4 py-2 text-sm font-bold text-white")}>Masuk</Link>
+          )}
+        </div>
+      </div>
+
+      <form role="search" onSubmit={doSearch} className="relative mt-4 flex items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30">
+        <Search className="size-6 shrink-0" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Cari developer, proyek, karya, lowongan…"
+          aria-label="Kata kunci pencarian"
+          className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
+        />
+      </form>
+    </header>
   );
+}
+
+// ---------- Banner ----------
+
+const SLIDES = [
+  { lead: "Bergabung dengan", title: "Komunitas Developer", accent: "Indonesia", sub: "Belajar, berbagi, dan tumbuh bersama.", cta: "Gabung Sekarang", ctaSignedIn: "Buka Linimasa", to: "/auth", toSignedIn: "/gobifeed" },
+  { lead: "Temukan", title: "Proyek Freelance", accent: "Impianmu", sub: "Ambil proyek dari client di seluruh Indonesia.", cta: "Lihat Lowongan", ctaSignedIn: "Lihat Lowongan", to: "/lowongan", toSignedIn: "/lowongan" },
+  { lead: "Pamerkan", title: "Karya dan Jasamu", accent: "ke Dunia", sub: "Jual karya digital dan tawarkan jasa developer.", cta: "Jelajahi Karya", ctaSignedIn: "Jelajahi Karya", to: "/katalog", toSignedIn: "/katalog" },
+] as const;
+
+function HeroBanner({ signedIn }: { signedIn: boolean }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % SLIDES.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+  const s = SLIDES[i] ?? SLIDES[0];
+  return (
+    <section aria-label="Banner" className="relative -mt-12 px-4">
+      <div className="relative min-h-[14.5rem] overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1a45] to-[#112b6e] p-5 text-white shadow-xl ring-1 ring-white/10">
+        <div className="pointer-events-none absolute -bottom-20 -right-12 size-72 rounded-full bg-gradient-to-tr from-[#ff7a00] to-[#ffb020] opacity-90" />
+        <div className="pointer-events-none absolute -bottom-2 right-3 opacity-95"><BrandMark size={150} /></div>
+        <div className="relative z-10 max-w-[64%]">
+          <h1 className="text-[1.65rem] font-extrabold leading-tight">
+            {s.lead} <br className="hidden" />{s.title} <span className="text-[#ff9f1a]">{s.accent}</span>
+          </h1>
+          <p className="mt-2 text-sm text-white/90">{s.sub}</p>
+          <Link to={signedIn ? s.toSignedIn : s.to} className={cn(ORANGE, "mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow")}>
+            {signedIn ? s.ctaSignedIn : s.cta} <ArrowRight className="size-4" />
+          </Link>
+        </div>
+        <div className="relative z-10 mt-4 flex gap-2">
+          {SLIDES.map((_, n) => (
+            <button key={n} type="button" aria-label={`Slide ${n + 1}`} onClick={() => setI(n)} className={cn("size-3 rounded-full transition", n === i ? "bg-[#ffb020]" : "bg-[#3b5bb0]")} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------- Menu cepat ----------
+
+function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
+  const tile = "flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition active:scale-95";
+  const dot = "flex size-14 items-center justify-center rounded-full";
+  return (
+    <nav aria-label="Menu cepat" className="grid grid-cols-4 gap-2.5 px-4 pt-5">
+      <Link to="/search" search={{ q: "", type: "users" }} className={tile}>
+        <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className="size-8" strokeWidth={2.6} /></span>Developer
+      </Link>
+      <Link to="/explore" className={tile}>
+        <span className={cn(dot, "bg-[#e2f6ea] text-[#12924a]")}><FolderOpen className="size-8" fill="currentColor" /></span>Proyek
+      </Link>
+      {on("jobs") && (
+        <Link to="/lowongan" className={tile}>
+          <span className={cn(dot, "bg-[#ffeedd] text-[#ff7a00]")}><Briefcase className="size-8" fill="currentColor" /></span>Lowongan
+        </Link>
+      )}
+      {on("discuss") && (
+        <Link to="/discuss" className={tile}>
+          <span className={cn(dot, "bg-[#e3ecff] text-[#2563eb]")}><MessageCircle className="size-8" fill="currentColor" /></span>Diskusi
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+// ---------- Bagian ----------
+
+function Section({ icon, title, to, children }: { icon: ReactNode; title: string; to: "/explore" | "/lowongan" | "/discuss"; children: ReactNode }) {
+  return (
+    <section className="px-4 pt-6">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-2xl font-extrabold">{icon}{title}</h2>
+        <Link to={to} className="flex shrink-0 items-center gap-1 text-sm font-bold text-[#1a73e8]">Lihat Semua <ArrowRight className="size-4" /></Link>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Hint({ children }: { children: ReactNode }) {
+  return <p className="rounded-2xl bg-white p-5 text-center text-sm text-slate-500 shadow-sm ring-1 ring-black/5">{children}</p>;
+}
+
+function RepoItem({ r }: { r: HomeRepo }) {
+  const stars = r.stars?.[0]?.count ?? 0;
+  const chip = r.topics?.[0] ?? r.language;
+  const card = "flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5";
+  const body = (
+    <>
+      <div className="flex h-28 w-36 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] sm:w-44">
+        <Code className="size-12 text-white/90" strokeWidth={2.4} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-xl font-extrabold">{r.name}</h3>
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600"><Star className="size-4" />{stars}{r.language && <span className="ml-3 truncate">{r.language}</span>}</p>
+        <p className="mt-1 line-clamp-2 text-sm text-slate-500">{r.description || "Repositori publik komunitas GOBI."}</p>
+        {chip && <span className="mt-1.5 inline-block max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{chip}</span>}
+      </div>
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e7ecf6]"><ArrowRight className="size-5" /></span>
+    </>
+  );
+  if (!r.owner?.username) return <div className={card}>{body}</div>;
+  return <Link to="/$username/$repo" params={{ username: r.owner.username, repo: r.name }} className={card}>{body}</Link>;
 }
