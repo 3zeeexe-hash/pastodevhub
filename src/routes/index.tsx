@@ -5,6 +5,7 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { SignInCta } from "@/components/sign-in-cta";
 import { Composer } from "@/components/feed/composer";
+import { ForumList } from "@/components/feed/forum-list";
 import { Timeline } from "@/components/feed/timeline";
 import { TrendingTags } from "@/components/feed/trending";
 import { JobCard } from "@/components/job-card";
@@ -15,10 +16,10 @@ import { useHomeData, type HomeData } from "@/components/home/use-home-data";
 import { cn } from "@/lib/utils";
 
 // Tab beranda memakai linimasa yang sama dengan halaman Diskusi. "untuk-kamu" adalah tab bawaan.
-const TABS = ["untuk-kamu", "linimasa", "mengikuti", "tren"] as const;
+const TABS = ["untuk-kamu", "linimasa", "mengikuti", "tren", "forum"] as const;
 type Tab = (typeof TABS)[number];
 const DEFAULT_TAB: Tab = "untuk-kamu";
-const TAB_LABEL: Record<Tab, string> = { "untuk-kamu": "Untuk Kamu", linimasa: "Terbaru", mengikuti: "Mengikuti", tren: "Tren" };
+const TAB_LABEL: Record<Tab, string> = { "untuk-kamu": "Untuk Kamu", linimasa: "Terbaru", mengikuti: "Mengikuti", tren: "Tren", forum: "Forum" };
 
 export const Route = createFileRoute("/")({
   validateSearch: (s: Record<string, unknown>): { tab?: Tab } => {
@@ -87,6 +88,8 @@ function Index() {
 
         {!feedOn ? (
           <FeedOffHome data={data} on={on} />
+        ) : tab === "forum" ? (
+          <ForumList />
         ) : tab === "tren" ? (
           <>
             <div className="xl:hidden"><TrendingTags /></div>

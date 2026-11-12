@@ -5,7 +5,7 @@ import { db, fail } from "@/lib/feed-db";
 import { fetchRankedIds } from "@/lib/feed-discover";
 import { fetchPostExtras, type AutopostInfo, type PollData } from "@/lib/feed-extras";
 import { fetchHiddenAuthorIds } from "@/lib/feed-moderation";
-import { searchWords } from "@/lib/feed-rules";
+import { RANKED_MAX_OFFSET, isTrendingPost, nextRankedCursor, searchWords } from "@/lib/feed-rules";
 
 export type { AutopostInfo, PollData } from "@/lib/feed-extras";
 
@@ -177,22 +177,57 @@ function withoutHidden(query: any, hidden: string[]) {
 const FOR_YOU_HOURS = 336;
 const TRENDING_HOURS = 72;
 
+/** Berapa halaman berperingkat paling banyak dipindai untuk mengisi satu halaman Tren yang sudah disaring. */
+const MAX_TRENDING_SCAN = 4;
+
 /**
  * Halaman berperingkat ("Untuk Kamu" dan "Tren"). Kursornya adalah offset (angka dalam bentuk teks).
- * null = belum bisa diperingkat (fungsi database belum ada, kursor bukan angka, atau belum ada post sama sekali).
+ * - "Tren" hanya memuat post yang sudah ditanggapi (lihat isTrendingPost), jadi beberapa halaman berperingkat bisa dipindai
+ *   sampai halaman terisi.
+ * - "Untuk Kamu" yang daftar berperingkatnya habis disambung dengan post yang lebih lama dari jendela peringkat.
+ * null = belum bisa diperingkat (fungsi database belum ada, kursor bukan angka, atau belum ada post berperingkat sama sekali).
  */
 async function fetchRankedPage(q: { tab: "forYou" | "trending" }, userId: string | undefined, before: string | undefined, limit: number): Promise<FeedPage | null> {
   const personal = q.tab === "forYou";
-  const offset = before === undefined ? 0 : Number(before);
-  if (!Number.isInteger(offset) || offset < 0) return null;
-  const ids = await fetchRankedIds({ hours: personal ? FOR_YOU_HOURS : TRENDING_HOURS, limit, offset, personal });
-  if (ids === null) return null;
-  if (!ids.length) return offset === 0 ? null : { items: [], next: null };
-  const [res, hidden] = await Promise.all([db.from("feed_posts").select(POST_SELECT).in("id", ids), fetchHiddenAuthorIds(userId)]);
-  fail(res.error);
-  const byId = new Map<string, RawPost>((await attachRefs((res.data ?? []) as FeedPostBase[])).map((p) => [p.id, p]));
-  const rows = ids.map((id) => byId.get(id)).filter((p): p is RawPost => !!p && !hidden.includes(p.author_id));
-  return { items: await withViewer(rows, userId), next: ids.length === limit ? String(offset + limit) : null };
+  const hours = personal ? FOR_YOU_HOURS : TRENDING_HOURS;
+  const start = before === undefined ? 0 : Number(before);
+  if (!Number.isInteger(start) || start < 0) return null;
+  const backfillBefore = new Date(Date.now() - hours * 3_600_000).toISOString();
+  const olderPosts = () => fetchFeed({ tab: "all" }, userId, backfillBefore, limit);
+
+  if (start > RANKED_MAX_OFFSET) return personal ? olderPosts() : { items: [], next: null };
+
+  const hidden = await fetchHiddenAuthorIds(userId);
+  const rows: RawPost[] = [];
+  let offset = start;
+  let next: string | null = null;
+  for (let round = 0; round < (personal ? 1 : MAX_TRENDING_SCAN); round++) {
+    const ids = await fetchRankedIds({ hours, limit, offset, personal });
+    if (ids === null) {
+      if (round === 0) return null;
+      next = null;
+      break;
+    }
+    if (!ids.length) {
+      if (offset === 0) return personal ? null : { items: [], next: null };
+      if (personal) return olderPosts();
+      next = null;
+      break;
+    }
+    next = nextRankedCursor({ personal, fetched: ids.length, limit, offset, backfillBefore });
+    offset += limit;
+    const res = await db.from("feed_posts").select(POST_SELECT).in("id", ids);
+    fail(res.error);
+    const byId = new Map<string, RawPost>((await attachRefs((res.data ?? []) as FeedPostBase[])).map((p) => [p.id, p]));
+    for (const id of ids) {
+      const p = byId.get(id);
+      if (!p || hidden.includes(p.author_id)) continue;
+      if (!personal && !isTrendingPost(p)) continue;
+      rows.push(p);
+    }
+    if (rows.length >= limit || next === null) break;
+  }
+  return { items: await withViewer(rows, userId), next };
 }
 
 export async function fetchFeed(q: FeedQuery, userId: string | undefined, before?: string, limit = PAGE_SIZE): Promise<FeedPage> {
