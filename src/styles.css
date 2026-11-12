@@ -122,6 +122,49 @@
   --shadow-glow: 0 12px 44px -12px color-mix(in oklab, var(--primary) 55%, transparent);
 }
 
+/*
+ * Tema terang untuk beranda: hangat, kontras tinggi, dan nyaman dibaca semua kalangan.
+ * Hanya berlaku di dalam elemen ber-class .theme-terang; halaman lain tetap memakai tema "malam Jawa".
+ * Gradien dan bayangan ditulis ulang di sini karena nilainya sudah terhitung di :root.
+ */
+.theme-terang {
+  color-scheme: light;
+  --background: oklch(0.985 0.008 85);
+  --foreground: oklch(0.22 0.03 262);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 262);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.03 262);
+  --primary: oklch(0.56 0.17 45);
+  --primary-foreground: oklch(0.99 0.004 85);
+  --primary-glow: oklch(0.66 0.16 55);
+  --secondary: oklch(0.95 0.015 85);
+  --secondary-foreground: oklch(0.28 0.04 262);
+  --muted: oklch(0.96 0.01 85);
+  --muted-foreground: oklch(0.45 0.03 262);
+  --accent: oklch(0.94 0.025 70);
+  --accent-foreground: oklch(0.25 0.04 262);
+  --link: oklch(0.46 0.14 255);
+  --star: oklch(0.7 0.15 85);
+  --success: oklch(0.5 0.13 150);
+  --success-foreground: oklch(0.99 0.004 85);
+  --warning: oklch(0.72 0.15 75);
+  --warning-foreground: oklch(0.2 0.03 262);
+  --merged: oklch(0.5 0.14 285);
+  --merged-foreground: oklch(0.99 0.004 85);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0.004 85);
+  --border: oklch(0.9 0.012 85);
+  --input: oklch(0.88 0.012 85);
+  --ring: oklch(0.56 0.17 45);
+  --gradient-hero:
+    radial-gradient(ellipse 60% 80% at 85% 0%, oklch(0.93 0.07 70 / 70%), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 5% 100%, oklch(0.93 0.04 250 / 60%), transparent 70%);
+  --shadow-glow: 0 10px 30px -12px oklch(0.56 0.17 45 / 35%);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

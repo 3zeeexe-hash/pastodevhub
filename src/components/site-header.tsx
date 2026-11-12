@@ -15,7 +15,6 @@ import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
-import { RoleSwitcher } from "@/components/role-ui";
 import { BrandMark } from "@/components/brand";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -61,11 +60,11 @@ export function SiteHeader() {
             <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> pasto<span className="-ml-2 text-primary">dev</span></SheetTitle></SheetHeader>
             <form onSubmit={doSearch} className="relative mt-4">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari developer…" className="pl-8" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta…" className="pl-8" />
             </form>
             <nav className="mt-4 flex flex-col gap-1">
               <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent">
-                <Users className="size-4 text-primary" />Developer
+                <Users className="size-4 text-primary" />Talenta
               </Link>
               {nav.map((n) => (
                 <Link key={n.to} to={n.to} onClick={() => setOpen(false)}
@@ -87,7 +86,7 @@ export function SiteHeader() {
           <span className="hidden text-lg font-bold tracking-tight sm:inline">pasto<span className="text-primary">dev</span></span>
         </Link>
         <nav className="ml-3 hidden items-center gap-0.5 text-sm lg:flex">
-          <Link to="/search" search={{ q: "", type: "users" }} className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">Developer</Link>
+          <Link to="/search" search={{ q: "", type: "users" }} className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">Talenta</Link>
           {nav.map((n) => (
             <Link key={n.to} to={n.to}
               className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" activeProps={{ className: "text-foreground" }}>{n.label}</Link>
@@ -95,7 +94,7 @@ export function SiteHeader() {
         </nav>
         <form className="relative ml-auto hidden w-56 md:block xl:w-72" onSubmit={doSearch}>
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari developer, proyek…" className="h-8 bg-background pl-8 text-sm" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta, proyek…" className="h-8 bg-background pl-8 text-sm" />
         </form>
         <div className="ml-auto flex items-center gap-2 md:ml-2">
           <Link to="/search" search={{ q: "", type: "users" }} aria-label="Cari" className="rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden"><Search className="size-4" /></Link>
@@ -108,7 +107,6 @@ export function SiteHeader() {
                 </Link>
               )}
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
-              {profile.account_type && <RoleSwitcher />}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" aria-label="Buat baru"><Plus /></Button>
