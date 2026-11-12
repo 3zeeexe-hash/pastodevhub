@@ -90,6 +90,35 @@ export function dedupeById<T extends { id: string }>(items: readonly T[]): T[] {
   return out;
 }
 
+// ---------- Peringkat "Untuk Kamu" dan "Tren" ----------
+
+/** Fungsi feed_ranked membatasi _offset sampai 1000 (least(_offset, 1000)); lewat dari itu halaman yang sama berulang terus. */
+export const RANKED_MAX_OFFSET = 1000;
+
+/** Bobot interaksi yang sama dengan rumus skor di feed_ranked: suka + 2 x balasan + 3 x repost. */
+export function engagement(p: { like_count: number; reply_count: number; repost_count: number }): number {
+  return p.like_count + 2 * p.reply_count + 3 * p.repost_count;
+}
+
+/**
+ * Tab Tren hanya memuat post yang sudah ditanggapi. Skor di database punya nilai dasar 1,
+ * jadi tanpa penyaring ini post baru tanpa satu pun interaksi ikut naik ke "Post terpopuler".
+ */
+export function isTrendingPost(p: { like_count: number; reply_count: number; repost_count: number }): boolean {
+  return engagement(p) > 0;
+}
+
+/**
+ * Kursor halaman berikutnya setelah satu halaman berperingkat.
+ * Angka (dalam teks) = offset halaman berperingkat berikutnya. Untuk "Untuk Kamu", daftar berperingkat yang habis
+ * disambung dengan post yang lebih lama dari jendela peringkat (kursor berupa waktu ISO). Tren berhenti di situ (null).
+ */
+export function nextRankedCursor(i: { personal: boolean; fetched: number; limit: number; offset: number; backfillBefore: string }): string | null {
+  const nextOffset = i.offset + i.limit;
+  if (i.fetched === i.limit && nextOffset <= RANKED_MAX_OFFSET) return String(nextOffset);
+  return i.personal ? i.backfillBefore : null;
+}
+
 // ---------- Pesan langsung ----------
 
 export const MAX_DM_LENGTH = 2000;
