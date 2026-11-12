@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
-import { Megaphone, PowerOff, TriangleAlert } from "lucide-react";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Lock, Megaphone, PowerOff, TriangleAlert } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { featureForPath, featureLabel, isFeatureOn } from "@/lib/features";
 import { useSiteConfig } from "@/lib/use-site-config";
+import { ROLE_INFO, capabilityForPath, roleCan, roleFor, workspacePath, accountTypeFor } from "@/lib/roles";
+import { useRole } from "@/lib/use-role";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +43,34 @@ export function FeatureGate({ children }: { children: ReactNode }) {
       <h1 className="mt-4 text-xl font-bold">Fitur “{featureLabel(key)}” sedang dinonaktifkan</h1>
       <p className="mt-2 text-sm text-muted-foreground">Pengelola Pastodev menonaktifkan fitur ini untuk sementara. Coba lagi nanti.</p>
       <Button asChild className="mt-6"><Link to="/">Ke beranda</Link></Button>
+    </main>
+  );
+}
+
+/**
+ * Menutup halaman fitur yang bukan milik peran aktif (mis. Repositori baru untuk Client, Pasang lowongan untuk Developer).
+ * Pengguna belum masuk tidak ditahan di sini: halaman itu sendiri menampilkan ajakan masuk.
+ */
+export function RoleGate({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  const { user, profile } = useAuth();
+  const { role, setRole, switching } = useRole();
+  const navigate = useNavigate();
+  const cap = capabilityForPath(pathname);
+  if (!cap || !user || !profile || !profile.account_type || roleCan(role, cap)) return <>{children}</>;
+  const target = roleFor(cap);
+  async function switchAndStay() {
+    if (await setRole(target)) navigate({ to: pathname });
+  }
+  return (
+    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 py-12 text-center">
+      <Lock className="size-10 text-muted-foreground" />
+      <h1 className="mt-4 text-xl font-bold">Halaman ini tidak ada di peran {ROLE_INFO[role].title}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Fitur ini dipakai oleh peran {ROLE_INFO[target].title}. Kamu bisa berganti peran kapan saja tanpa membuat akun baru.</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Button onClick={() => void switchAndStay()} disabled={switching}>Pakai sebagai {ROLE_INFO[target].title}</Button>
+        <Button asChild variant="outline"><Link to={workspacePath(accountTypeFor(role))}>{ROLE_INFO[role].workspaceLabel}</Link></Button>
+      </div>
     </main>
   );
 }
