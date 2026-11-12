@@ -6,7 +6,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { parseLinks, safeUrl, type ProfileLink } from "@/lib/market";
-import { accountTypeFor, readStoredRole, resolveRole, writeStoredRole, type Role } from "@/lib/roles";
+import { accountTypeFor, readStoredRole, resolveRole, type Role } from "@/lib/roles";
+import { useRole } from "@/lib/use-role";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ const EMPTY = { username: "", display_name: "", headline: "", bio: "", avatar_ur
 
 function Settings() {
   const { profile } = useAuth();
+  const { saveRole } = useRole();
   const qc = useQueryClient();
   const [f, setF] = useState(EMPTY);
   const [role, setRole] = useState<Role | null>(null);
@@ -71,7 +73,12 @@ function Settings() {
       skills, links: cleanLinks.slice(0, 10), account_type: role ? accountTypeFor(role) : null, available_for_hire: (role === "developer" || role === "freelancer") && hire,
     }).eq("id", profile!.id);
     if (error) toast.error(error.code === "23505" ? "Username sudah dipakai." : error.message);
-    else { if (role) writeStoredRole(role); toast.success("Profil disimpan"); qc.invalidateQueries(); }
+    else {
+      // Peran ikut disimpan ke database; menulis ke perangkat saja akan dikembalikan ke peran lama oleh sinkronisasi.
+      if (role) await saveRole(role);
+      toast.success("Profil disimpan");
+      qc.invalidateQueries();
+    }
   }
   const field = (k: keyof typeof f, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div><Label htmlFor={k}>{label}</Label><Input id={k} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} maxLength={120} {...props} /></div>

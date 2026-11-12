@@ -4,17 +4,19 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ROLE_INFO, accountTypeFor, defaultRole, isRole, readStoredRole, writeStoredRole, type Role } from "@/lib/roles";
+import { ROLE_INFO, accountTypeFor, defaultRole, isRole, readStoredRole, type Role } from "@/lib/roles";
+import { useRole } from "@/lib/use-role";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RolePicker } from "@/components/role-ui";
 
-/** Set on the sign-up page before Google/Lovable sign-in, so the choice survives the redirect. */
+/** Set on the sign-up page before a Google sign-in that redirects away, so the choice survives the redirect. */
 export const PENDING_TYPE_KEY = "pastodev-pending-account-type";
 
-/** Asks signed-in users without an account type (Google/Lovable sign-ups, older accounts) to pick one. */
+/** Asks signed-in users without an account type (Google/GitHub sign-ups, older accounts) to pick one. */
 export function AccountTypePrompt() {
   const { profile } = useAuth();
+  const { saveRole } = useRole();
   const qc = useQueryClient();
   const [v, setV] = useState<Role | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,12 +30,11 @@ export function AccountTypePrompt() {
     setBusy(false);
     if (error) { toast.error("Gagal menyimpan jenis akun. Coba lagi."); return; }
     window.localStorage.removeItem(PENDING_TYPE_KEY);
-    writeStoredRole(role);
-    toast.success(`Mode ${ROLE_INFO[role].title} aktif`);
+    if (await saveRole(role)) toast.success(`Mode ${ROLE_INFO[role].title} aktif`);
     await qc.invalidateQueries({ queryKey: ["me"] });
   }
 
-  // Apply the choice made on the sign-up page before a Google/Lovable redirect.
+  // Apply the choice made on the sign-up page before a Google redirect.
   useEffect(() => {
     if (!profile || profile.account_type || autoTried.current) return;
     autoTried.current = true;
