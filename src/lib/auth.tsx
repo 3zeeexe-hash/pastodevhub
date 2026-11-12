@@ -18,6 +18,9 @@ export type Profile = {
   skills: string[];
   links: unknown;
   available_for_hire: boolean;
+  /** Peran tampilan yang dipilih (SQL 0009). Kosong sebelum SQL itu diterapkan. */
+  active_role?: string | null;
+  is_verified?: boolean;
 };
 type Ctx = { user: User | null; profile: Profile | null; loading: boolean; isAdmin: boolean; adminLoading: boolean };
 const AuthCtx = createContext<Ctx>({ user: null, profile: null, loading: true, isAdmin: false, adminLoading: false });

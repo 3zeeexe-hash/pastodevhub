@@ -11,6 +11,7 @@ export type DevRow = {
   headline: string | null;
   skills: string[];
   available_for_hire: boolean;
+  active_role?: string | null;
 };
 
 /** Data pendamping beranda (lowongan, karya, talenta). Dipakai bersama oleh kolom tengah dan kolom kanan. */
@@ -24,9 +25,17 @@ export function useHomeData(on: (key: FeatureKey) => boolean) {
   const devs = useQuery({
     queryKey: ["home", "devs"],
     staleTime: 60_000,
-    queryFn: async () =>
-      ((await supabase.from("profiles").select("username,display_name,avatar_url,headline,skills,available_for_hire").eq("account_type", "developer")
-        .order("available_for_hire", { ascending: false }).order("created_at", { ascending: false }).limit(12)).data ?? []) as DevRow[],
+    queryFn: async () => {
+      // Talenta = developer dan freelancer. Kolom active_role ada setelah SQL 0009; sebelum itu semua akun developer tampil seperti dulu.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const withRole = await sb.from("profiles").select("username,display_name,avatar_url,headline,skills,available_for_hire,active_role").eq("account_type", "developer")
+        .or("active_role.is.null,active_role.in.(developer,freelancer)")
+        .order("available_for_hire", { ascending: false }).order("created_at", { ascending: false }).limit(12);
+      if (!withRole.error) return (withRole.data ?? []) as DevRow[];
+      return ((await supabase.from("profiles").select("username,display_name,avatar_url,headline,skills,available_for_hire").eq("account_type", "developer")
+        .order("available_for_hire", { ascending: false }).order("created_at", { ascending: false }).limit(12)).data ?? []) as DevRow[];
+    },
   });
   const karya = useQuery({
     queryKey: ["home", "karya"],

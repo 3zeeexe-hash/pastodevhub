@@ -46,6 +46,9 @@ export const CLIENT_NAV: NavGroup[] = [
   ] },
   { group: "Komunitas", items: [
     { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+  ] },
+  { group: "Akun", items: [
+    { to: "/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck },
     { to: "/settings", label: "Pengaturan", Icon: Settings },
   ] },
 ];
@@ -59,7 +62,7 @@ const PERSONAL_NAV: NavGroup[] = [
     { to: "/new", label: "Repositori baru", Icon: BookMarked, feature: "repos" },
     { to: "/import", label: "Impor dari GitHub", Icon: Download, feature: "github" },
   ] },
-  devGroup("Tools"),
+  { group: "Tools", items: devGroup("Tools").items.filter((i) => i.to !== "/studio/toko") },
   { group: "Jelajah", items: [
     { to: "/katalog", label: "Katalog karya", Icon: LibraryBig, feature: "karya" },
     { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
@@ -68,11 +71,27 @@ const PERSONAL_NAV: NavGroup[] = [
   devGroup("Akun"),
 ];
 
+/** Freelancer: cari proyek, jasa dan portofolio, tanpa repositori, karya, toko, atau AI repo. */
+const FREELANCER_NAV: NavGroup[] = [
+  { group: "Freelance", items: [
+    { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
+    { to: "/lowongan", label: "Cari lowongan", Icon: Search, feature: "jobs" },
+    { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase, feature: "jobs" },
+  ] },
+  { group: "Jasa", items: [
+    { to: "/studio/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
+    { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban, feature: "jasa" },
+    { to: "/pesanan", label: "Pesanan", Icon: Receipt },
+  ] },
+  { group: "Tools", items: devGroup("Tools").items.filter((i) => i.feature === "hosting") },
+  devGroup("Akun"),
+];
+
 /** Menu samping sesuai peran: urutan dan isi grup mengikuti kebutuhan tiap peran. */
 export function navForRole(role: Role): NavGroup[] {
   switch (role) {
     case "client": return CLIENT_NAV;
-    case "freelancer": return [devGroup("Freelance"), devGroup("Jualan"), devGroup("Tools"), devGroup("Akun")];
+    case "freelancer": return FREELANCER_NAV;
     case "personal": return PERSONAL_NAV;
     default: return DEV_NAV;
   }

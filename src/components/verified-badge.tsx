@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const toSet = (names: string[]) => new Set(names);
 
-/** Usernames of every verified developer, loaded once and shared by all badges on the page. */
+/** Usernames of every verified account (developer, freelancer, client, or personal), loaded once and shared by all badges on the page. */
 export function useVerifiedUsernames() {
   return useQuery({
     queryKey: ["verified-usernames"],
@@ -22,7 +22,7 @@ export function useVerifiedUsernames() {
 }
 
 /**
- * Blue check next to a developer's name. Pass `username` (looked up in the shared list)
+ * Blue check next to a verified account's name. Pass `username` (looked up in the shared list)
  * or `verified` when the profile row is already at hand.
  */
 export function VerifiedBadge({ username, verified, size = 16, className }: {
@@ -35,7 +35,7 @@ export function VerifiedBadge({ username, verified, size = 16, className }: {
   const on = typeof verified === "boolean" ? verified : username ? !!data?.has(username) : false;
   if (!on) return null;
   return (
-    <span title="Developer terverifikasi" role="img" aria-label="Developer terverifikasi" className={cn("inline-flex shrink-0 align-middle", className)}>
+    <span title="Akun terverifikasi" role="img" aria-label="Akun terverifikasi" className={cn("inline-flex shrink-0 align-middle", className)}>
       <BadgeCheck width={size} height={size} className="fill-sky-500 text-white" />
     </span>
   );

@@ -58,3 +58,54 @@ describe("pickStoredRole", () => {
     expect(pickStoredRole(undefined, undefined, null)).toBeNull();
   });
 });
+
+describe("role capabilities", () => {
+  it("keeps repositories away from client and freelancer", async () => {
+    const { roleCan } = await import("@/lib/roles");
+    expect(roleCan("client", "repos")).toBe(false);
+    expect(roleCan("freelancer", "repos")).toBe(false);
+    expect(roleCan("developer", "repos")).toBe(true);
+    expect(roleCan("personal", "repos")).toBe(true);
+  });
+
+  it("lets only the client post jobs and only the developer sell karya or open a store", async () => {
+    const { roleCan, ROLE_ORDER } = await import("@/lib/roles");
+    expect(ROLE_ORDER.filter((r) => roleCan(r, "post_job"))).toEqual(["client"]);
+    expect(ROLE_ORDER.filter((r) => roleCan(r, "karya"))).toEqual(["developer"]);
+    expect(ROLE_ORDER.filter((r) => roleCan(r, "toko"))).toEqual(["developer"]);
+  });
+
+  it("gives every role at least one capability and the studio roles apply for jobs", async () => {
+    const { ROLE_CAPS, roleCan } = await import("@/lib/roles");
+    for (const caps of Object.values(ROLE_CAPS)) expect(caps.length).toBeGreaterThan(0);
+    expect(roleCan("freelancer", "lamaran")).toBe(true);
+    expect(roleCan("client", "lamaran")).toBe(false);
+  });
+
+  it("maps gated pages to a capability and leaves shared pages open", async () => {
+    const { capabilityForPath } = await import("@/lib/roles");
+    expect(capabilityForPath("/new")).toBe("repos");
+    expect(capabilityForPath("/studio/karya/baru")).toBe("karya");
+    expect(capabilityForPath("/studio/lamaran")).toBe("lamaran");
+    expect(capabilityForPath("/lowongan/baru")).toBe("post_job");
+    expect(capabilityForPath("/lowongan")).toBeNull();
+    expect(capabilityForPath("/pesanan")).toBeNull();
+    expect(capabilityForPath("/newsletter")).toBeNull();
+  });
+
+  it("uses the public role when it fits and falls back to the account type", async () => {
+    const { publicRoleOf } = await import("@/lib/roles");
+    expect(publicRoleOf({ active_role: "freelancer", account_type: "developer" })).toBe("freelancer");
+    expect(publicRoleOf({ active_role: "freelancer", account_type: "client" })).toBe("client");
+    expect(publicRoleOf({ active_role: null, account_type: "developer" })).toBe("developer");
+    expect(publicRoleOf({ account_type: null })).toBe("developer");
+  });
+
+  it("shows no repository tab on client and freelancer profiles", async () => {
+    const { PROFILE_TABS } = await import("@/lib/roles");
+    expect(PROFILE_TABS.client).not.toContain("repos");
+    expect(PROFILE_TABS.freelancer).not.toContain("repos");
+    expect(PROFILE_TABS.freelancer).not.toContain("stars");
+    expect(PROFILE_TABS.developer).toContain("repos");
+  });
+});
