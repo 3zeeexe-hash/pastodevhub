@@ -72,11 +72,14 @@ const MENU = [
 ] as const;
 
 /**
- * Beranda GOBI (desain mockup): header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
+ * Beranda GOBI: header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
  * 4 menu cepat, lalu Proyek Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
  * Beranda memakai header-nya sendiri, jadi SiteHeader global disembunyikan di "/" (lihat __root.tsx) agar tidak dobel.
- * Mobile: satu kolom. Desktop (lg ke atas): menu tampil di header, banner (8/12) bersebelahan dengan menu cepat 2x2 (4/12),
- * lalu Proyek Terbaru di kiri dan Lowongan + Diskusi di kanan. Lebar konten dipegang konstanta WRAP.
+ * Mobile: satu kolom, menu cepat berupa 4 kotak ikon.
+ * Desktop (lg ke atas), grid 12 kolom yang sama di semua bagian supaya tepinya sejajar:
+ *  - header: logo, menu (ikon kecil + teks, ukuran seimbang), pencarian (inline mulai xl), notifikasi, akun.
+ *  - atas: banner (8/12) + menu cepat berupa 4 baris (ikon 48px + judul + keterangan) setinggi banner (4/12).
+ *  - bawah: Proyek Terbaru sebagai kartu 2 kolom (8/12), Lowongan + Diskusi di kanan (4/12).
  * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
  */
 function GobiHome() {
@@ -86,11 +89,12 @@ function GobiHome() {
   const signedIn = !!user && !!profile;
   const data = useHomeData(on);
 
+  // Ambil 6 proyek: desktop menampilkan semuanya (kartu 2 kolom), mobile hanya 4 pertama.
   const repos = useQuery({
     queryKey: ["gobi-home", "repos"],
     staleTime: 60_000,
     queryFn: async () =>
-      ((await supabase.from("repositories").select("id,name,description,language,topics, owner:profiles!repositories_owner_id_fkey(username), stars(count)").eq("is_private", false).order("created_at", { ascending: false }).limit(4)).data ?? []) as unknown as HomeRepo[],
+      ((await supabase.from("repositories").select("id,name,description,language,topics, owner:profiles!repositories_owner_id_fkey(username), stars(count)").eq("is_private", false).order("created_at", { ascending: false }).limit(6)).data ?? []) as unknown as HomeRepo[],
   });
 
   // Diskusi Hangat: post yang ramai; kalau belum ada yang ramai, pakai post terbaru.
@@ -124,17 +128,21 @@ function GobiHome() {
           <QuickMenu on={on} />
         </div>
 
-        <div className={cn("grid gap-x-8 xl:gap-x-10", hasSide && "lg:grid-cols-5")}>
-          <div className={cn(hasSide && "lg:col-span-3")}>
+        <div className="grid gap-x-6 lg:grid-cols-12">
+          <div className={hasSide ? "lg:col-span-8" : "lg:col-span-12"}>
             <Section icon={<Flame className="size-6 text-[#ff6a00]" />} title="Proyek Terbaru" to="/explore">
               {repos.isLoading ? <Hint>Memuat…</Hint> : repoList.length === 0 ? <Hint>Belum ada proyek publik.</Hint> : (
-                <div className="space-y-3">{repoList.map((r) => <RepoItem key={r.id} r={r} />)}</div>
+                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                  {repoList.map((r, n) => (
+                    <div key={r.id} className={n >= 4 ? "hidden lg:block" : undefined}><RepoItem r={r} /></div>
+                  ))}
+                </div>
               )}
             </Section>
           </div>
 
           {hasSide && (
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-4">
               {on("jobs") && (
                 <Section icon={<Briefcase className="size-6 text-[#ff8a00]" />} title="Lowongan Freelance" to="/lowongan">
                   {data.jobs.isLoading ? <Hint>Memuat…</Hint> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
@@ -205,10 +213,25 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
   const dashTo = workspacePath(profile?.account_type);
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q: q.trim(), type: "users" } }); };
   const item = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent";
-  const navLink = "rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white";
+  // Menu desktop: ikon 16px + teks 14px (ukuran seimbang), pil tipis yang terang saat disorot.
+  const navLink = "inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white xl:px-3";
+
+  // Satu kotak pencarian, dua bentuk: pil lebar di bawah header (mobile sampai lg) dan pil ringkas di baris header (xl ke atas).
+  const searchBox = (cls: string, compact: boolean) => (
+    <form role="search" onSubmit={doSearch} className={cls}>
+      <Search className={compact ? "size-4 shrink-0 text-slate-500" : "size-6 shrink-0"} />
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={compact ? "Cari di GOBI…" : "Cari developer, proyek, karya, lowongan…"}
+        aria-label="Kata kunci pencarian"
+        className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500", compact ? "text-sm" : "text-base")}
+      />
+    </form>
+  );
 
   return (
-    <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] pb-16 pt-4 text-white">
+    <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] pb-16 pt-4 text-white xl:pb-20">
       <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-[#ff8a00]/30 blur-2xl" />
       <div className={cn("relative", WRAP)}>
         <div className="flex items-center gap-3">
@@ -235,15 +258,17 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
           </Link>
 
           {/* Menu di header untuk layar lebar (di mobile lewat tombol menu di kiri). */}
-          <nav aria-label="Menu utama" className="ml-4 hidden flex-1 items-center gap-1 lg:flex">
-            <Link to="/search" search={{ q: "", type: "users" }} className={navLink}>Talenta</Link>
-            {menu.map((m) => <Link key={m.to} to={m.to} className={navLink}>{m.label}</Link>)}
+          <nav aria-label="Menu utama" className="ml-3 hidden min-w-0 flex-1 items-center gap-0.5 lg:flex">
+            <Link to="/search" search={{ q: "", type: "users" }} className={navLink}><Users className="size-4 opacity-80" />Talenta</Link>
+            {menu.map((m) => <Link key={m.to} to={m.to} className={navLink}><m.Icon className="size-4 opacity-80" />{m.label}</Link>)}
           </nav>
+
+          {searchBox("hidden h-10 w-56 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-[#0b1a3f] shadow-sm xl:flex", true)}
 
           <div className="flex items-center gap-3">
             {signedIn && on("discuss") && (
               <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative flex size-11 items-center justify-center rounded-full hover:bg-white/10">
-                <Bell className="size-7" />
+                <Bell className="size-7 lg:size-6" />
                 {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold leading-5">{unread.data > 99 ? "99+" : unread.data}</span>}
               </Link>
             )}
@@ -269,21 +294,12 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/auth" className={cn(ORANGE, "inline-flex h-11 items-center rounded-full px-5 text-sm font-bold text-white")}>Masuk</Link>
+              <Link to="/auth" className={cn(ORANGE, "inline-flex h-11 items-center rounded-full px-5 text-sm font-bold text-white lg:h-10")}>Masuk</Link>
             )}
           </div>
         </div>
 
-        <form role="search" onSubmit={doSearch} className="relative mx-auto mt-4 flex max-w-3xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30 lg:mt-5">
-          <Search className="size-6 shrink-0" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Cari developer, proyek, karya, lowongan…"
-            aria-label="Kata kunci pencarian"
-            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
-          />
-        </form>
+        {searchBox("relative mx-auto mt-4 flex max-w-3xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30 lg:mt-5 xl:hidden", false)}
       </div>
     </header>
   );
@@ -377,25 +393,39 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
 // ---------- Menu cepat ----------
 
 function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
-  // Desktop: kotak 2x2 di samping banner, tingginya mengikuti banner. Kalau jumlah kotak ganjil, yang terakhir melebar penuh.
-  const tile = "flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:justify-center lg:gap-3 lg:py-4 lg:text-base lg:last:odd:col-span-2";
-  const dot = "flex size-14 items-center justify-center rounded-full lg:size-16";
+  // Mobile: 4 kotak (ikon bulat di atas, teks di bawah).
+  // Desktop: daftar 4 baris di samping banner, tingginya mengikuti banner. Tiap baris = ikon kotak 48px + judul + keterangan + panah,
+  // jadi ikon dan teks seimbang (tidak ada kotak besar berisi ikon kecil).
+  const tile = "group flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:flex-row lg:gap-4 lg:px-5 lg:py-3 lg:text-base";
+  const dot = "flex size-14 shrink-0 items-center justify-center rounded-full lg:size-12 lg:rounded-xl";
+  const icon = "size-8 lg:size-6";
+  const text = "lg:min-w-0 lg:flex-1";
+  const desc = "hidden truncate text-sm font-medium text-slate-500 lg:block";
+  const arrow = <ChevronRight className="hidden size-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#1a73e8] lg:block" />;
   return (
-    <nav aria-label="Menu cepat" className="grid grid-cols-4 gap-2.5 pt-5 lg:col-span-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-4 lg:pt-0">
+    <nav aria-label="Menu cepat" className="grid grid-cols-4 gap-2.5 pt-5 lg:col-span-4 lg:auto-rows-fr lg:grid-cols-1 lg:gap-3 lg:pt-0">
       <Link to="/search" search={{ q: "", type: "users" }} className={tile}>
-        <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className="size-8" strokeWidth={2.6} /></span>Developer
+        <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className={icon} strokeWidth={2.6} /></span>
+        <span className={text}><span className="block lg:truncate">Developer</span><span className={desc}>Temukan talenta terbaik</span></span>
+        {arrow}
       </Link>
       <Link to="/explore" className={tile}>
-        <span className={cn(dot, "bg-[#e2f6ea] text-[#12924a]")}><FolderOpen className="size-8" fill="currentColor" /></span>Proyek
+        <span className={cn(dot, "bg-[#e2f6ea] text-[#12924a]")}><FolderOpen className={icon} fill="currentColor" /></span>
+        <span className={text}><span className="block lg:truncate">Proyek</span><span className={desc}>Jelajahi repositori publik</span></span>
+        {arrow}
       </Link>
       {on("jobs") && (
         <Link to="/lowongan" className={tile}>
-          <span className={cn(dot, "bg-[#ffeedd] text-[#ff7a00]")}><Briefcase className="size-8" fill="currentColor" /></span>Lowongan
+          <span className={cn(dot, "bg-[#ffeedd] text-[#ff7a00]")}><Briefcase className={icon} fill="currentColor" /></span>
+          <span className={text}><span className="block lg:truncate">Lowongan</span><span className={desc}>Ambil proyek freelance</span></span>
+          {arrow}
         </Link>
       )}
       {on("discuss") && (
         <Link to="/discuss" className={tile}>
-          <span className={cn(dot, "bg-[#e3ecff] text-[#2563eb]")}><MessageCircle className="size-8" fill="currentColor" /></span>Diskusi
+          <span className={cn(dot, "bg-[#e3ecff] text-[#2563eb]")}><MessageCircle className={icon} fill="currentColor" /></span>
+          <span className={text}><span className="block lg:truncate">Diskusi</span><span className={desc}>Tanya jawab dan berbagi ilmu</span></span>
+          {arrow}
         </Link>
       )}
     </nav>
@@ -423,7 +453,7 @@ function Hint({ children }: { children: ReactNode }) {
 /**
  * Kartu lowongan di beranda. Seluruh kartu bisa diketuk. Gambar ilustrasi lowongan dipakai di semua kartu.
  * Mobile: gambar 96px + teks yang boleh turun baris (judul maks. 2 baris, anggaran tidak dipotong), tombol di kiri.
- * sm ke atas: gambar 112px dan tombol rata kanan.
+ * sm: gambar 112px dan tombol rata kanan. Desktop (kolom kanan sempit): gambar 80px supaya teks tetap lega.
  */
 function JobItem({ j }: { j: JobCardData }) {
   const client = j.client?.display_name || j.client?.username || "Client";
@@ -436,11 +466,11 @@ function JobItem({ j }: { j: JobCardData }) {
         height={112}
         loading="lazy"
         draggable={false}
-        className="size-24 shrink-0 select-none rounded-xl bg-[#0a1a45] object-cover sm:size-28"
+        className="size-24 shrink-0 select-none rounded-xl bg-[#0a1a45] object-cover sm:size-28 lg:size-20"
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[11px] font-bold uppercase tracking-wide text-[#e67700]">{categoryLabel(j.category)}</span>
-        <h3 className="mt-0.5 line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg">{j.title}</h3>
+        <h3 className="mt-0.5 line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg lg:text-base">{j.title}</h3>
         <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-slate-600"><Building2 className="size-4 shrink-0" /><span className="truncate">{client}</span></p>
         <p className="mt-0.5 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-slate-700"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p>
         <span className="mt-2 inline-flex items-center gap-1 self-start rounded-full bg-[#fff1dc] px-4 py-1.5 text-sm font-bold text-[#e67700] transition group-hover:bg-[#ffe3bd] sm:self-end">Lihat Detail <ArrowRight className="size-4" /></span>
@@ -449,22 +479,38 @@ function JobItem({ j }: { j: JobCardData }) {
   );
 }
 
+/**
+ * Kartu proyek di beranda.
+ * Mobile/tablet: baris horizontal (thumbnail gradasi di kiri, teks di tengah, panah di kanan).
+ * Desktop (lg): kartu vertikal untuk grid 2 kolom: kepala (ikon 44px + nama + bintang), deskripsi, lalu label topik/bahasa.
+ */
 function RepoItem({ r }: { r: HomeRepo }) {
   const stars = r.stars?.[0]?.count ?? 0;
   const chip = r.topics?.[0] ?? r.language;
-  const card = "flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md";
+  const showLang = !!r.language && r.language !== chip;
+  const card = "flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md lg:h-full lg:flex-col lg:items-stretch lg:gap-3 lg:p-4 lg:hover:-translate-y-0.5";
   const body = (
     <>
-      <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] sm:h-28 sm:w-40">
+      <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] sm:h-28 sm:w-40 lg:hidden">
         <Code className="size-10 text-white/90 sm:size-12" strokeWidth={2.4} />
       </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate text-lg font-extrabold sm:text-xl">{r.name}</h3>
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600"><Star className="size-4" />{stars}{r.language && <span className="ml-3 truncate">{r.language}</span>}</p>
-        <p className="mt-1 line-clamp-2 text-sm text-slate-500">{r.description || "Repositori publik komunitas GOBI."}</p>
-        {chip && <span className="mt-1.5 inline-block max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{chip}</span>}
+      <div className="hidden items-center gap-3 lg:flex">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] text-white"><Code className="size-5" strokeWidth={2.4} /></span>
+        <h3 className="min-w-0 flex-1 truncate text-base font-extrabold">{r.name}</h3>
+        <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-slate-500"><Star className="size-4" />{stars}</span>
       </div>
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e7ecf6]"><ArrowRight className="size-5" /></span>
+      <div className="min-w-0 flex-1 lg:flex-none">
+        <h3 className="truncate text-lg font-extrabold sm:text-xl lg:hidden">{r.name}</h3>
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600 lg:hidden"><Star className="size-4" />{stars}{r.language && <span className="ml-3 truncate">{r.language}</span>}</p>
+        <p className="mt-1 line-clamp-2 text-sm text-slate-500 lg:mt-0 lg:min-h-10 lg:leading-5">{r.description || "Repositori publik komunitas GOBI."}</p>
+        {(chip || showLang) && (
+          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 lg:mt-3">
+            {chip && <span className="inline-block max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{chip}</span>}
+            {showLang && <span className="hidden truncate text-xs font-semibold text-slate-500 lg:inline">{r.language}</span>}
+          </div>
+        )}
+      </div>
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e7ecf6] lg:hidden"><ArrowRight className="size-5" /></span>
     </>
   );
   if (!r.owner?.username) return <div className={card}>{body}</div>;
