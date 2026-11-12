@@ -1,7 +1,6 @@
-// 1. Impor gambar langsung menggunakan ES6 import Vite
-import logoImg from "@/assets/20261110_235342.png";
+// Logo Pastodev: kucing berorbit (SVG vektor, latar transparan). Dipakai di header, footer, halaman masuk, dan tempat lain lewat BrandMark.
+import logoImg from "@/assets/pastodev-logo.svg";
 
-// 2. Gunakan variabel logoImg pada src gambar
 export function BrandMark({ size = 32 }: { size?: number }) {
   return (
     <img
@@ -9,12 +8,12 @@ export function BrandMark({ size = 32 }: { size?: number }) {
       alt="Pastodev"
       width={size}
       height={size}
-      className="rounded-full ring-1 ring-primary/40 object-cover"
+      className="object-contain"
       style={{ width: size, height: size }}
     />
   );
 }
 
-// 3. Ekspor variabel yang sama untuk rute/halaman lain
+// Ekspor URL yang sama untuk rute/halaman lain yang butuh alamat gambar.
 export const brandLogoUrl = logoImg;
 export const brandMarkUrl = logoImg;

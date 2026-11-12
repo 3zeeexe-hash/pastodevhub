@@ -2,14 +2,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Briefcase, Package, Receipt, Search, Sparkles, UserPlus, Users, MessageSquare } from "lucide-react";
+import { Briefcase, Package, Receipt, Search, Sparkles, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchDmUnread } from "@/lib/dm";
 import type { FeatureKey } from "@/lib/features";
 import { budgetLabel } from "@/lib/jobs";
 import { formatRupiah } from "@/lib/market";
 import { SEARCH_TYPES } from "@/lib/search-types";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
 import { TrendingTags } from "@/components/feed/trending";
@@ -38,6 +36,7 @@ function Card({ title, icon: Icon, more, children }: { title: string; icon: Luci
 
 const muted = "px-4 py-4 text-sm text-muted-foreground";
 
+/** Pencarian dengan pilihan jenis. Di beranda layar sangat lebar, kolom pencarian header disembunyikan dan diganti kartu ini. */
 function SearchCard() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -69,22 +68,12 @@ function SearchCard() {
   );
 }
 
-function GuestCard({ canSignUp }: { canSignUp: boolean }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold"><Sparkles className="size-5 text-primary" />Gabung Pastodev</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Satu akun untuk developer, freelancer, client, dan pribadi. Posting, cari proyek, jual karya, dan simpan kode.</p>
-      <div className="mt-3 flex flex-col gap-2">
-        {canSignUp && <Button asChild className="rounded-full"><Link to="/auth">Buat akun gratis</Link></Button>}
-        <Button asChild variant="outline" className="rounded-full"><Link to="/auth">Masuk</Link></Button>
-      </div>
-    </section>
-  );
-}
-
 type ActivityTile = { key: string; to: string; label: string; Icon: LucideIcon; count: number | null | undefined };
 
-/** Hal yang menunggu perhatian pengguna. Hanya tampil kalau ada isinya, supaya beranda tetap bersih. */
+/**
+ * Hal yang menunggu perhatian pengguna. Hanya tampil kalau ada isinya, supaya beranda tetap bersih.
+ * Pesan belum dibaca tidak diulang di sini karena sudah punya lencana di menu kiri.
+ */
 function ActivityCard({ userId, on }: { userId: string; on: On }) {
   const orders = useQuery({
     queryKey: ["home", "activity-orders", userId],
@@ -115,18 +104,11 @@ function ActivityCard({ userId, on }: { userId: string; on: On }) {
       return error ? null : (count ?? 0);
     },
   });
-  const dm = useQuery({
-    queryKey: ["home", "activity-dm", userId],
-    enabled: on("discuss"),
-    staleTime: 30_000,
-    queryFn: () => fetchDmUnread(userId),
-  });
 
   const all: ActivityTile[] = [
     { key: "orders", to: "/pesanan", label: "Pesanan berjalan", Icon: Receipt, count: orders.data },
     { key: "received", to: "/dashboard", label: "Pelamar menunggu jawabanmu", Icon: UserPlus, count: received.data },
     { key: "mine", to: "/studio/lamaran", label: "Lamaranmu menunggu jawaban", Icon: Briefcase, count: myApps.data },
-    { key: "dm", to: "/discuss/pesan", label: "Percakapan belum dibaca", Icon: MessageSquare, count: dm.data },
   ];
   const tiles = all.filter((t) => typeof t.count === "number" && t.count > 0);
   if (!tiles.length) return null;
@@ -136,7 +118,7 @@ function ActivityCard({ userId, on }: { userId: string; on: On }) {
       <ul className="mt-1 pb-1">
         {tiles.map(({ key, to, label, Icon, count }) => (
           <li key={key}>
-            <Link to={to} search={(key === "dm" ? {} : undefined) as never} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
+            <Link to={to} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
               <Icon className="size-4 shrink-0 text-primary" />
               <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
               <span className="font-mono text-sm font-bold">{count}</span>
@@ -191,36 +173,15 @@ function KaryaCard({ data }: { data: HomeData }) {
   );
 }
 
-function TalentCard({ data }: { data: HomeData }) {
-  const devs = data.devs.data ?? [];
-  return (
-    <Card title="Talenta untuk diikuti" icon={Users} more={<Link to="/search" search={{ q: "", type: "users" }}>Semua</Link>}>
-      {data.devs.isLoading ? <p className={muted}>Memuat…</p> : devs.length === 0 ? <p className={muted}>Belum ada talenta terdaftar.</p> : (
-        <ul className="mt-1 pb-1">
-          {devs.slice(0, 4).map((d) => (
-            <li key={d.username}>
-              <Link to="/$username" params={{ username: d.username }} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
-                <AvatarMini name={d.username} url={d.avatar_url} size={36} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{d.display_name || d.username}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{d.headline || `@${d.username}`}</span>
-                </span>
-                {d.available_for_hire && <span className="shrink-0 rounded-full bg-success px-2 py-0.5 text-[11px] font-semibold text-success-foreground">Siap</span>}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-/** Kolom kanan ala X: pencarian, tren, dan rekomendasi. Tampil di layar sangat lebar. */
-export function RightRail({ data, on, userId, canSignUp }: { data: HomeData; on: On; userId: string | null; canSignUp: boolean }) {
+/**
+ * Kolom kanan beranda (layar sangat lebar): pencarian, aktivitas, tren, lowongan, dan karya.
+ * Talenta tidak diulang di sini karena sudah tampil sebagai baris avatar di atas linimasa.
+ */
+export function RightRail({ data, on, userId }: { data: HomeData; on: On; userId: string | null }) {
   return (
     <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] space-y-4 overflow-y-auto py-4 xl:block">
       <SearchCard />
-      {userId ? <ActivityCard userId={userId} on={on} /> : <GuestCard canSignUp={canSignUp} />}
+      {userId && <ActivityCard userId={userId} on={on} />}
       {on("discuss") && (
         <div className="overflow-hidden rounded-2xl border border-border bg-card [&_section]:border-b-0">
           <TrendingTags limit={5} />
@@ -228,7 +189,6 @@ export function RightRail({ data, on, userId, canSignUp }: { data: HomeData; on:
       )}
       {on("jobs") && <JobsCard data={data} />}
       {on("karya") && <KaryaCard data={data} />}
-      <TalentCard data={data} />
     </aside>
   );
 }

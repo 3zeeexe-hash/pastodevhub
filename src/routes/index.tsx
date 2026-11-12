@@ -9,7 +9,7 @@ import { Timeline } from "@/components/feed/timeline";
 import { TrendingTags } from "@/components/feed/trending";
 import { JobCard } from "@/components/job-card";
 import { ProductCard } from "@/components/market-cards";
-import { LeftRail, MobileTabBar } from "@/components/home/left-rail";
+import { LeftRail } from "@/components/home/left-rail";
 import { DiscoverStrip, RightRail, TalentStories } from "@/components/home/right-rail";
 import { useHomeData, type HomeData } from "@/components/home/use-home-data";
 import { cn } from "@/lib/utils";
@@ -43,8 +43,9 @@ export const Route = createFileRoute("/")({
 });
 
 /**
- * Beranda ala media sosial (Instagram / X), satu tampilan untuk semua peran:
- * menu di kiri, linimasa di tengah, tren dan rekomendasi di kanan; di ponsel ada bilah tab bawah.
+ * Beranda ala media sosial (Instagram / X), satu tampilan untuk semua peran: menu di kiri, linimasa di tengah,
+ * tren dan rekomendasi di kanan. Tombol yang sudah ada di header (notifikasi, profil, ruang kerja, buat baru, masuk)
+ * tidak diulang di halaman ini; di beranda, header hanya menyembunyikan menu tautan dan kolom cari yang digantikan kolom samping.
  */
 function Index() {
   const { tab = DEFAULT_TAB } = Route.useSearch();
@@ -56,66 +57,61 @@ function Index() {
   const signedIn = !!user && !!profile;
 
   return (
-    <>
-      {/* Ruang untuk bilah tab bawah di ponsel (termasuk footer); dilepas begitu halaman ditinggalkan. */}
-      <style>{"@media (max-width: 1023px){body{padding-bottom:calc(3.5rem + env(safe-area-inset-bottom))}}"}</style>
-      <main className="mx-auto grid max-w-7xl lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-4 lg:px-4 xl:grid-cols-[15rem_minmax(0,40rem)_20rem] xl:justify-center">
-        <LeftRail />
+    <main className="mx-auto grid max-w-7xl lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-4 lg:px-4 xl:grid-cols-[15rem_minmax(0,40rem)_20rem] xl:justify-center">
+      <LeftRail />
 
-        <div className="min-w-0 border-border lg:border-x">
-          <div className="sticky top-14 z-30 border-b border-border bg-background/85 backdrop-blur">
-            <h1 className="sr-only">Beranda Pastodev</h1>
-            {feedOn ? (
-              <nav className="flex overflow-x-auto" aria-label="Tab beranda">
-                {TABS.map((t) => (
-                  <Link
-                    key={t}
-                    to="/"
-                    search={t === DEFAULT_TAB ? {} : { tab: t }}
-                    replace
-                    className={cn("flex-1 shrink-0 whitespace-nowrap border-b-2 px-4 py-3.5 text-center text-sm font-medium transition hover:bg-accent/40", tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground")}
-                  >
-                    {TAB_LABEL[t]}
-                  </Link>
-                ))}
-              </nav>
-            ) : (
-              <p className="px-4 py-3.5 text-sm font-semibold">Beranda</p>
-            )}
-          </div>
-
-          <TalentStories data={data} />
-          <DiscoverStrip data={data} on={on} />
-
-          {!feedOn ? (
-            <FeedOffHome data={data} on={on} />
-          ) : tab === "tren" ? (
-            <>
-              <div className="xl:hidden"><TrendingTags /></div>
-              <h2 className="px-4 pt-4 text-sm font-semibold">Post terpopuler</h2>
-              <Timeline query={{ tab: "trending" }} empty="Belum ada post yang ramai dalam beberapa hari terakhir." />
-            </>
+      <div className="min-w-0 border-border lg:border-x">
+        <div className="sticky top-14 z-30 border-b border-border bg-background/85 backdrop-blur">
+          <h1 className="sr-only">Beranda Pastodev</h1>
+          {feedOn ? (
+            <nav className="flex overflow-x-auto" aria-label="Tab beranda">
+              {TABS.map((t) => (
+                <Link
+                  key={t}
+                  to="/"
+                  search={t === DEFAULT_TAB ? {} : { tab: t }}
+                  replace
+                  className={cn("flex-1 shrink-0 whitespace-nowrap border-b-2 px-4 py-3.5 text-center text-sm font-medium transition hover:bg-accent/40", tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground")}
+                >
+                  {TAB_LABEL[t]}
+                </Link>
+              ))}
+            </nav>
           ) : (
-            <>
-              <div id="tulis" className="scroll-mt-32 border-b border-border p-4"><Composer kind="post" /></div>
-              {tab === "mengikuti" && !user ? (
-                <div className="p-6"><SignInCta text="Masuk untuk melihat post dari developer yang kamu ikuti." /></div>
-              ) : (
-                <Timeline
-                  query={{ tab: tab === "mengikuti" ? "following" : tab === "untuk-kamu" ? "forYou" : "all" }}
-                  empty={tab === "mengikuti"
-                    ? <>Linimasa ini masih kosong. Ikuti developer dari <Link to="/search" search={{ q: "", type: "users" }} className="text-primary hover:underline">halaman Talenta</Link>, atau tulis post pertamamu.</>
-                    : "Belum ada post. Jadilah yang pertama!"}
-                />
-              )}
-            </>
+            <p className="px-4 py-3.5 text-sm font-semibold">Beranda</p>
           )}
         </div>
 
-        <RightRail data={data} on={on} userId={signedIn ? user.id : null} canSignUp={on("signup")} />
-      </main>
-      <MobileTabBar />
-    </>
+        <TalentStories data={data} />
+        <DiscoverStrip data={data} on={on} />
+
+        {!feedOn ? (
+          <FeedOffHome data={data} on={on} />
+        ) : tab === "tren" ? (
+          <>
+            <div className="xl:hidden"><TrendingTags /></div>
+            <h2 className="px-4 pt-4 text-sm font-semibold">Post terpopuler</h2>
+            <Timeline query={{ tab: "trending" }} empty="Belum ada post yang ramai dalam beberapa hari terakhir." />
+          </>
+        ) : (
+          <>
+            <div id="tulis" className="scroll-mt-32 border-b border-border p-4"><Composer kind="post" /></div>
+            {tab === "mengikuti" && !user ? (
+              <div className="p-6"><SignInCta text="Masuk untuk melihat post dari developer yang kamu ikuti." /></div>
+            ) : (
+              <Timeline
+                query={{ tab: tab === "mengikuti" ? "following" : tab === "untuk-kamu" ? "forYou" : "all" }}
+                empty={tab === "mengikuti"
+                  ? <>Linimasa ini masih kosong. Ikuti developer dari <Link to="/search" search={{ q: "", type: "users" }} className="text-primary hover:underline">halaman Talenta</Link>, atau tulis post pertamamu.</>
+                  : "Belum ada post. Jadilah yang pertama!"}
+              />
+            )}
+          </>
+        )}
+      </div>
+
+      <RightRail data={data} on={on} userId={signedIn ? user.id : null} />
+    </main>
   );
 }
 
