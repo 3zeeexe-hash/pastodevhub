@@ -4,8 +4,10 @@ import type { AccountType } from "@/lib/market";
  * Peran tampilan Pastodev. Satu akun bisa berganti peran kapan saja.
  *
  * Database hanya mengenal dua jenis akun (client / developer), jadi tiap peran
- * dipetakan ke salah satu dari keduanya. Peran sendiri disimpan di perangkat
- * (localStorage) dan hanya mengatur tampilan: menu, beranda, dan pintasan.
+ * dipetakan ke salah satu dari keduanya. Peran aktif disimpan di tabel
+ * `user_role_prefs` (ikut ke perangkat mana pun) dan disalin ke localStorage
+ * sebagai cadangan, sehingga tetap jalan sebelum SQL 0008 diterapkan.
+ * Peran hanya mengatur tampilan: menu, beranda, dan pintasan.
  * Hak akses yang sebenarnya tetap mengikuti jenis akun di database.
  */
 export type Role = "personal" | "client" | "freelancer" | "developer";
@@ -55,6 +57,14 @@ export function defaultRole(type: AccountType | null): Role {
 /** Peran tersimpan dipakai kalau masih cocok dengan jenis akun; kalau tidak, pakai peran awal. */
 export function resolveRole(stored: string | null | undefined, type: AccountType | null): Role {
   return isRole(stored) && roleFitsAccount(stored, type) ? stored : defaultRole(type);
+}
+
+/**
+ * Memilih sumber peran: peran dari database dipakai lebih dulu selama masih cocok
+ * dengan jenis akun; kalau tidak ada (atau tabelnya belum aktif), pakai peran dari perangkat ini.
+ */
+export function pickStoredRole(fromDatabase: string | null | undefined, fromDevice: string | null | undefined, type: AccountType | null): string | null {
+  return isRole(fromDatabase) && roleFitsAccount(fromDatabase, type) ? fromDatabase : fromDevice ?? null;
 }
 
 /** Halaman ruang kerja: studio untuk akun developer, dashboard untuk client. */

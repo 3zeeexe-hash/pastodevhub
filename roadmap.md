@@ -37,3 +37,5 @@
 - [x] Admin: menu Escrow, Midtrans, Pantau aktivitas + ringkasan dana siap diteruskan dan perlu refund
 - [x] Lowongan: lamaran diterima menjadi pesanan berbayar dengan escrow yang sama (SQL `002_lowongan_pesanan.sql`)
 - [ ] Verify Midtrans sandbox live — waiting on the owner running `docs/sql/midtrans-escrow` 001 + 002 and entering sandbox keys in /admin/midtrans
+- [x] Peran aktif (Developer / Freelancer / Client / Pribadi) disimpan di database (`user_role_prefs`), localStorage jadi cadangan (SQL `docs/sql/0008_peran_pengguna.sql`)
+- [ ] Terapkan `docs/sql/0008_peran_pengguna.sql` lewat Lovable — sebelum itu peran tetap tersimpan di perangkat

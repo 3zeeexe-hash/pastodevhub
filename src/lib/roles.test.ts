@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ROLE_ORDER, accountTypeFor, defaultRole, isRole, resolveRole, roleFitsAccount, workspacePath } from "@/lib/roles";
+import { ROLE_ORDER, accountTypeFor, defaultRole, isRole, pickStoredRole, resolveRole, roleFitsAccount, workspacePath } from "@/lib/roles";
 
 describe("roles", () => {
   it("maps every role to one of the two database account types", () => {
@@ -34,5 +34,27 @@ describe("roles", () => {
     expect(workspacePath("developer")).toBe("/studio");
     expect(workspacePath("client")).toBe("/dashboard");
     expect(workspacePath(null)).toBe("/dashboard");
+  });
+});
+
+describe("pickStoredRole", () => {
+  it("prefers the database role while it fits the account type", () => {
+    expect(pickStoredRole("freelancer", "personal", "developer")).toBe("freelancer");
+    expect(pickStoredRole("client", "developer", "client")).toBe("client");
+  });
+
+  it("uses the device role when the database has none or the table is not active yet", () => {
+    expect(pickStoredRole(null, "personal", "developer")).toBe("personal");
+    expect(pickStoredRole(undefined, "client", "client")).toBe("client");
+  });
+
+  it("ignores a database role that no longer fits the account type", () => {
+    expect(pickStoredRole("freelancer", "client", "client")).toBe("client");
+    expect(pickStoredRole("bogus", "personal", "developer")).toBe("personal");
+  });
+
+  it("returns null when neither source has a role", () => {
+    expect(pickStoredRole(null, null, "developer")).toBeNull();
+    expect(pickStoredRole(undefined, undefined, null)).toBeNull();
   });
 });
