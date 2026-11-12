@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { parseLinks, safeUrl, type AccountType, type ProfileLink } from "@/lib/market";
+import { parseLinks, safeUrl, type ProfileLink } from "@/lib/market";
+import { accountTypeFor, readStoredRole, resolveRole, writeStoredRole, type Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { GithubConnectCard } from "@/components/github-connect";
 import { GitTokensCard } from "@/components/git-tokens";
 import { ImageUpload } from "@/components/image-upload";
-import { AccountTypePicker } from "@/components/account-type-picker";
+import { RolePicker } from "@/components/role-ui";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -39,13 +40,13 @@ function Settings() {
   const { profile } = useAuth();
   const qc = useQueryClient();
   const [f, setF] = useState(EMPTY);
-  const [type, setType] = useState<AccountType | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
   const [hire, setHire] = useState(false);
   const [links, setLinks] = useState<ProfileLink[]>([]);
   useEffect(() => {
     if (!profile) return;
     setF({ username: profile.username, display_name: profile.display_name ?? "", headline: profile.headline ?? "", bio: profile.bio ?? "", avatar_url: profile.avatar_url ?? "", location: profile.location ?? "", website: profile.website ?? "", company: profile.company ?? "", skills: (profile.skills ?? []).join(", ") });
-    setType(profile.account_type);
+    setRole(profile.account_type ? resolveRole(readStoredRole(), profile.account_type) : null);
     setHire(profile.available_for_hire);
     setLinks(parseLinks(profile.links));
   }, [profile]);
@@ -66,10 +67,10 @@ function Settings() {
     const { error } = await supabase.from("profiles").update({
       username: f.username.toLowerCase(), display_name: f.display_name || null, headline: f.headline || null, bio: f.bio || null,
       avatar_url: f.avatar_url || null, location: f.location || null, website: f.website || null, company: f.company || null,
-      skills, links: cleanLinks.slice(0, 10), account_type: type, available_for_hire: type === "developer" && hire,
+      skills, links: cleanLinks.slice(0, 10), account_type: role ? accountTypeFor(role) : null, available_for_hire: (role === "developer" || role === "freelancer") && hire,
     }).eq("id", profile!.id);
     if (error) toast.error(error.code === "23505" ? "Username sudah dipakai." : error.message);
-    else { toast.success("Profil disimpan"); qc.invalidateQueries(); }
+    else { if (role) writeStoredRole(role); toast.success("Profil disimpan"); qc.invalidateQueries(); }
   }
   const field = (k: keyof typeof f, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div><Label htmlFor={k}>{label}</Label><Input id={k} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} maxLength={120} {...props} /></div>
@@ -79,9 +80,10 @@ function Settings() {
       <div>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
         <form onSubmit={save} className="space-y-4">
-          <h2 className="mt-8 border-b border-border pb-2 text-lg font-semibold">Jenis akun</h2>
-          <AccountTypePicker value={type} onChange={setType} />
-          {type === "developer" && (
+          <h2 className="mt-8 border-b border-border pb-2 text-lg font-semibold">Peran</h2>
+          <p className="text-sm text-muted-foreground">Satu akun untuk semua kebutuhan. Peran mengatur menu dan beranda; ganti kapan saja, juga lewat tombol peran di header.</p>
+          <RolePicker value={role} onChange={setRole} />
+          {(role === "developer" || role === "freelancer") && (
             <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
               <span><b>Terbuka untuk proyek</b><span className="block text-xs text-muted-foreground">Tampilkan lencana "Siap di-hire" di profil.</span></span>
               <Switch checked={hire} onCheckedChange={setHire} />

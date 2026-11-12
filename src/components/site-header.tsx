@@ -7,12 +7,15 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { ROLE_INFO, workspacePath, type Role } from "@/lib/roles";
+import { useRole } from "@/lib/use-role";
 import { isFeatureOn } from "@/lib/features";
 import { fetchUnreadCount } from "@/lib/feed";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
+import { RoleSwitcher } from "@/components/role-ui";
 import { BrandMark } from "@/components/brand";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -26,12 +29,15 @@ const NAV = [
   { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
 ] as const;
 
+const WORKSPACE_SHORT: Record<Role, string> = { developer: "Studio", freelancer: "Freelance", client: "Dashboard", personal: "Ruang saya" };
+
 export function SiteHeader() {
   const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const isDev = profile?.account_type === "developer";
+  const { role } = useRole();
   const { flags } = useSiteConfig();
   const on = (key: Parameters<typeof isFeatureOn>[1]) => isFeatureOn(flags, key);
   const nav = NAV.filter((n) => !n.feature || on(n.feature));
@@ -41,7 +47,8 @@ export function SiteHeader() {
     enabled: !!user && on("discuss"),
     refetchInterval: 60_000,
   });
-  const dashTo = isDev ? "/studio" : "/dashboard";
+  const dashTo = workspacePath(profile?.account_type);
+  const workspaceLabel = ROLE_INFO[role].workspaceLabel;
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); setOpen(false); navigate({ to: "/search", search: { q, type: "users" } }); };
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-header/95 backdrop-blur">
@@ -68,7 +75,7 @@ export function SiteHeader() {
               ))}
               {user && profile && (
                 <Link to={dashTo} onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-accent">
-                  <LayoutDashboard className="size-4 text-primary" />{isDev ? "Studio developer" : "Dashboard client"}
+                  <LayoutDashboard className="size-4 text-primary" />{workspaceLabel}
                 </Link>
               )}
               {!user && <Button asChild className="mt-3" onClick={() => setOpen(false)}><Link to="/auth">Masuk / Daftar</Link></Button>}
@@ -100,14 +107,15 @@ export function SiteHeader() {
                   {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-center font-mono text-[10px] leading-4 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
                 </Link>
               )}
-              <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {isDev ? "Studio" : "Dashboard"}</Link></Button>
+              <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
+              {profile.account_type && <RoleSwitcher />}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" aria-label="Buat baru"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {!isDev && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
-                  {isDev && on("karya") && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
+                  {isDev && role !== "personal" && on("karya") && <DropdownMenuItem asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Package /> Unggah karya</Link></DropdownMenuItem>}
                   {on("repos") && <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>}
                   {on("github") && <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>}
                   {on("discuss") && <DropdownMenuItem asChild><Link to="/discuss"><MessageSquare /> Diskusi baru</Link></DropdownMenuItem>}
@@ -120,10 +128,10 @@ export function SiteHeader() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-normal">
                     <span className="block font-semibold">{profile.display_name || profile.username}</span>
-                    <span className="block font-mono text-xs text-muted-foreground">@{profile.username} · {isDev ? "Developer" : profile.account_type === "client" ? "Client" : "—"}</span>
+                    <span className="block font-mono text-xs text-muted-foreground">@{profile.username} · {profile.account_type ? ROLE_INFO[role].title : "—"}</span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild><Link to={dashTo}><LayoutDashboard /> {isDev ? "Studio developer" : "Dashboard client"}</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to={dashTo}><LayoutDashboard /> {workspaceLabel}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }}><User /> Profil kamu</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "repos" }}><BookMarked /> Repositori kamu</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/$username" params={{ username: profile.username }} search={{ tab: "stars" }}><Star /> Bintang kamu</Link></DropdownMenuItem>

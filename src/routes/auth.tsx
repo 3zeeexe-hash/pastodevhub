@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandMark } from "@/components/brand";
-import { AccountTypePicker } from "@/components/account-type-picker";
-import type { AccountType } from "@/lib/market";
+import { RolePicker } from "@/components/role-ui";
+import { accountTypeFor, isRole, readStoredRole, writeStoredRole, type Role } from "@/lib/roles";
 import { PENDING_TYPE_KEY } from "@/components/account-type-prompt";
 import { firebaseSignIn, getFirebasePublicConfig } from "@/lib/firebase-auth.functions";
 import { firebaseGoogleIdToken, preloadFirebase } from "@/lib/firebase-client";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Masuk — Pastodev" },
-      { name: "description", content: "Masuk atau daftar ke Pastodev, komunitas developer Nusantara." },
+      { name: "description", content: "Masuk atau daftar ke Pastodev: tempat developer, freelancer, dan client bekerja bersama." },
       { property: "og:title", content: "Masuk — Pastodev" },
       { property: "og:description", content: "Masuk atau daftar ke Pastodev." },
       { property: "og:type", content: "website" },
@@ -37,13 +37,16 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
+  const accountType = role ? accountTypeFor(role) : null;
   const { user } = useAuth();
   const navigate = useNavigate();
   const loadFirebase = useServerFn(getFirebasePublicConfig);
   const exchange = useServerFn(firebaseSignIn);
   const { data: firebase } = useQuery({ queryKey: ["firebase-public"], queryFn: () => loadFirebase(), staleTime: 60_000 });
   useEffect(() => { if (user) navigate({ to: "/" }); }, [user, navigate]);
+  // Peran yang dipilih di beranda langsung terpilih di sini.
+  useEffect(() => { const saved = readStoredRole(); if (isRole(saved)) setRole(saved); }, []);
   // Load Firebase before the tap so the Google popup opens right away (browsers block slow popups).
   useEffect(() => { if (firebase?.enabled && firebase.config) preloadFirebase(firebase.config); }, [firebase]);
 
@@ -51,7 +54,8 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     if (mode === "up") {
-      if (!accountType) { toast.error("Pilih daftar sebagai Developer atau Client."); setBusy(false); return; }
+      if (!role || !accountType) { toast.error("Pilih dulu kamu daftar sebagai apa."); setBusy(false); return; }
+      writeStoredRole(role);
       const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin, data: { username, account_type: accountType } } });
       if (error) toast.error(error.message);
       else if (!data.session) toast.success("Cek email kamu untuk konfirmasi akun.");
@@ -65,7 +69,7 @@ function AuthPage() {
     setBusy(false);
   }
   async function oauth(provider: "google" | "lovable") {
-    if (mode === "up" && accountType) window.localStorage.setItem(PENDING_TYPE_KEY, accountType);
+    if (mode === "up" && role && accountType) { writeStoredRole(role); window.localStorage.setItem(PENDING_TYPE_KEY, accountType); }
     else window.localStorage.removeItem(PENDING_TYPE_KEY);
     let fb = firebase;
     if (provider === "google" && !fb) {
@@ -102,7 +106,7 @@ function AuthPage() {
         {mode === "up" && (
           <div className="mt-6">
             <p className="mb-2 text-sm font-medium">Daftar sebagai</p>
-            <AccountTypePicker value={accountType} onChange={setAccountType} />
+            <RolePicker value={role} onChange={setRole} />
           </div>
         )}
         {mode !== "forgot" && (
