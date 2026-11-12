@@ -182,6 +182,99 @@ export type Database = {
           },
         ]
       }
+      dm_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          pair_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          pair_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          pair_key?: string
+        }
+        Relationships: []
+      }
+      dm_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "dm_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_participants: {
+        Row: {
+          conversation_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "dm_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           enabled: boolean
@@ -202,6 +295,85 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      feed_autopost_repos: {
+        Row: {
+          created_at: string
+          last_posted_at: string | null
+          repo_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_posted_at?: string | null
+          repo_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_posted_at?: string | null
+          repo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_autopost_repos_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: true
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_autopost_repos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_autoposts: {
+        Row: {
+          commit_id: string | null
+          created_at: string
+          post_id: string
+          repo_id: string
+        }
+        Insert: {
+          commit_id?: string | null
+          created_at?: string
+          post_id: string
+          repo_id: string
+        }
+        Update: {
+          commit_id?: string | null
+          created_at?: string
+          post_id?: string
+          repo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_autoposts_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_autoposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_autoposts_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feed_bookmarks: {
         Row: {
@@ -499,6 +671,116 @@ export type Database = {
             columns: ["ref_id"]
             isOneToOne: false
             referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_reports: {
+        Row: {
+          action: string | null
+          author_id: string | null
+          created_at: string
+          id: string
+          note: string
+          post_id: string | null
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          snapshot: string
+          status: string
+        }
+        Insert: {
+          action?: string | null
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          post_id?: string | null
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          snapshot?: string
+          status?: string
+        }
+        Update: {
+          action?: string | null
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          post_id?: string | null
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          snapshot?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_reports_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_user_blocks: {
+        Row: {
+          created_at: string
+          kind: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_user_blocks_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_user_blocks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1816,6 +2098,22 @@ export type Database = {
           pending: number
         }[]
       }
+      dm_get_or_create: { Args: { _other: string }; Returns: string }
+      dm_inbox: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          conversation_id: string
+          display_name: string
+          last_at: string
+          last_body: string
+          last_sender: string
+          other_id: string
+          unread: number
+          username: string
+        }[]
+      }
+      dm_unread_count: { Args: never; Returns: number }
       ensure_my_profile: { Args: never; Returns: undefined }
       feature_allowed: { Args: { _key: string }; Returns: boolean }
       feature_enabled: { Args: { _key: string }; Returns: boolean }
@@ -1874,6 +2172,7 @@ export type Database = {
       is_banned: { Args: { _user: string }; Returns: boolean }
       is_client: { Args: { _user_id: string }; Returns: boolean }
       is_developer: { Args: { _user_id: string }; Returns: boolean }
+      is_dm_member: { Args: { _conv: string; _uid: string }; Returns: boolean }
       issue_repo: { Args: { _issue_id: string }; Returns: string }
       job_is_open: { Args: { _job_id: string }; Returns: boolean }
       job_owner: { Args: { _job_id: string }; Returns: string }
