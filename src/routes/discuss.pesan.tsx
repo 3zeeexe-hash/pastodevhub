@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -15,8 +15,17 @@ const searchSchema = z.object({ u: z.string().optional().catch(undefined) });
 export const Route = createFileRoute("/discuss/pesan")({
   validateSearch: searchSchema,
   head: () => ({ meta: [{ title: "Pesan — Pastodev" }, { name: "robots", content: "noindex" }] }),
-  component: InboxPage,
+  component: PesanLayout,
 });
+
+/**
+ * /discuss/pesan/$id (layar percakapan) adalah anak rute ini. Tanpa <Outlet /> layar percakapan tidak pernah
+ * tampil: tombol "Kirim pesan" di profil hanya membawa pengguna ke kotak masuk yang kosong.
+ */
+function PesanLayout() {
+  const { pathname } = useLocation();
+  return /^\/discuss\/pesan\/[^/]+/.test(pathname) ? <Outlet /> : <InboxPage />;
+}
 
 function InboxPage() {
   const { user, loading } = useAuth();
