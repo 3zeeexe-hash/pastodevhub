@@ -22,10 +22,10 @@ import { errorText, githubLoginCode } from "@/lib/github-client";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Masuk — Pastodev" },
-      { name: "description", content: "Masuk atau daftar ke Pastodev: tempat developer, freelancer, dan client bekerja bersama." },
-      { property: "og:title", content: "Masuk — Pastodev" },
-      { property: "og:description", content: "Masuk atau daftar ke Pastodev." },
+      { title: "Masuk — GoBi" },
+      { name: "description", content: "Masuk atau daftar ke GoBi: tempat developer, freelancer, dan client bekerja bersama." },
+      { property: "og:title", content: "Masuk — GoBi" },
+      { property: "og:description", content: "Masuk atau daftar ke GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -118,7 +118,7 @@ function AuthPage() {
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-glow">
         <div className="flex flex-col items-center text-center">
           <BrandMark size={64} />
-          <h1 className="mt-3 text-2xl font-bold">{mode === "in" ? "Masuk ke Pastodev" : mode === "up" ? "Buat akun Pastodev" : "Lupa kata sandi"}</h1>
+          <h1 className="mt-3 text-2xl font-bold">{mode === "in" ? "Masuk ke GoBi" : mode === "up" ? "Buat akun GoBi" : "Lupa kata sandi"}</h1>
         </div>
         {mode === "up" && (
           <div className="mt-6">
