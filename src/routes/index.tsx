@@ -19,6 +19,7 @@ import { useHomeData } from "@/components/home/use-home-data";
 import { PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
+import { GobiLoader } from "@/components/gobi-loader";
 import banner1 from "@/assets/gobi-banner-1.png";
 import banner2 from "@/assets/gobi-banner-2.png";
 import banner3 from "@/assets/gobi-banner-3.png";
@@ -133,7 +134,7 @@ function GobiHome() {
                 title="Karya Terbaru"
                 action={<Link to="/katalog" search={{ tab: "karya" }} className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
               >
-                {karya.isLoading ? <Hint>Memuat…</Hint> : karyaList.length === 0 ? <Hint>Belum ada karya yang dipublikasikan.</Hint> : (
+                {karya.isLoading ? <HomeLoading /> : karyaList.length === 0 ? <Hint>Belum ada karya yang dipublikasikan.</Hint> : (
                   <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                     {karyaList.map((p, n) => (
                       <div key={p.id} className={n >= 4 ? "hidden lg:block" : undefined}><ProductItem p={p} /></div>
@@ -152,7 +153,7 @@ function GobiHome() {
                   title="Lowongan Freelance"
                   action={<Link to="/lowongan" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
                 >
-                  {data.jobs.isLoading ? <Hint>Memuat…</Hint> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
+                  {data.jobs.isLoading ? <HomeLoading /> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
                     <div className="space-y-3">
                       {jobs.map((j) => <JobItem key={j.id} j={j} />)}
                     </div>
@@ -166,7 +167,7 @@ function GobiHome() {
                   title="Diskusi Hangat"
                   action={<Link to="/discuss" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
                 >
-                  {hot.isLoading ? <Hint>Memuat…</Hint> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
+                  {hot.isLoading ? <HomeLoading /> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
                     <div className="space-y-2">
                       {hotList.map((p) => (
                         <Link key={p.id} to="/discuss/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md">
@@ -460,6 +461,11 @@ function Section({ icon, title, action, children }: { icon: ReactNode; title: st
 
 function Hint({ children }: { children: ReactNode }) {
   return <p className="rounded-2xl bg-card p-5 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border">{children}</p>;
+}
+
+/** Status memuat di tiap bagian beranda: logo GOBI + "Memuat data…" di tengah kartu. */
+function HomeLoading() {
+  return <GobiLoader compact className="rounded-2xl bg-card shadow-sm ring-1 ring-border" />;
 }
 
 /**
