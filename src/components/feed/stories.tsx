@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const BG_LABEL: Record<StoryBg, string> = { senja: "Senja", malam: "Malam", laut: "Laut", hutan: "Hutan", mawar: "Mawar" };
+const BG_LABEL: Record<StoryBg, string> = { senja: "Oranye", malam: "Biru tua", laut: "Biru", hutan: "Abu-abu", mawar: "Api" };
 
 export function useStoryGroups() {
   const { user } = useAuth();
@@ -28,36 +28,58 @@ export function useStoryGroups() {
   });
 }
 
-/** Satu bulatan story: cincin oranye = belum dilihat, abu-abu = sudah dilihat. */
-export function StoryBubble({ group, onOpen }: { group: StoryGroup; onOpen: () => void }) {
+/** Ukuran kartu seragam untuk semua item di baris story, supaya tinggi dan jarak selalu rata. */
+export const STORY_CARD = "relative h-44 w-28 shrink-0 snap-start overflow-hidden rounded-2xl text-left shadow-sm ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:h-48 sm:w-32";
+
+/**
+ * Satu kartu story (potret 9:16 ala Facebook): latar = gambar atau warna story terbaru, avatar bercincin di kiri atas
+ * (oranye = belum dilihat, putih redup = sudah dilihat), nama di bawah, dan angka kalau lebih dari satu story.
+ */
+export function StoryCard({ group, onOpen }: { group: StoryGroup; onOpen: () => void }) {
   const name = group.isMine ? "Story kamu" : group.author.display_name || group.author.username;
+  const latest = group.stories[group.stories.length - 1]!;
+  const bg = (STORY_BGS as readonly string[]).includes(latest.bg) ? (latest.bg as StoryBg) : "senja";
   return (
-    <button type="button" onClick={onOpen} className="flex w-16 flex-col items-center gap-1.5" aria-label={`Lihat story ${name}`}>
-      <span className={cn("rounded-full p-[3px]", group.seen ? "bg-border" : "bg-sun")}>
-        <span className="block rounded-full bg-background p-0.5"><AvatarMini name={group.author.username} url={group.author.avatar_url} size={56} /></span>
+    <button type="button" onClick={onOpen} className={cn(STORY_CARD, "group text-header-foreground")} aria-label={`Lihat story ${name}`}>
+      {latest.image_url
+        ? <img src={latest.image_url} alt="" loading="lazy" draggable={false} className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105" />
+        : <span className={cn("absolute inset-0", STORY_BG_CLASS[bg])} />}
+      {!latest.image_url && latest.body && (
+        <span className="absolute inset-x-3 top-1/2 -translate-y-1/2 line-clamp-4 break-words text-center text-xs font-bold leading-snug">{latest.body}</span>
+      )}
+      <span aria-hidden className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-navy-deep/60 to-transparent" />
+      <span aria-hidden className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-navy-deep/85 to-transparent" />
+      <span className={cn("absolute left-2 top-2 rounded-full p-[2.5px]", group.seen ? "bg-white/50" : "bg-sun")}>
+        <span className="block rounded-full bg-card p-0.5"><AvatarMini name={group.author.username} url={group.author.avatar_url} size={32} /></span>
       </span>
-      <span className={cn("w-full truncate text-center text-xs", !group.seen && "font-semibold")}>{name}</span>
+      {group.stories.length > 1 && (
+        <span className="absolute right-2 top-2 flex min-w-5 items-center justify-center rounded-full bg-navy-deep/70 px-1.5 text-[11px] font-bold leading-5 backdrop-blur">{group.stories.length}</span>
+      )}
+      <span className="absolute inset-x-2.5 bottom-2 truncate text-xs font-bold drop-shadow">{name}</span>
     </button>
   );
 }
 
-/** Tile "Buat Story" di awal baris. Tamu diarahkan ke halaman masuk. */
-export function CreateStoryTile() {
+/** Kartu "Buat Story" di awal baris: foto profil di atas, tombol + oranye di perbatasan, label di bawah. Tamu diarahkan ke halaman masuk. */
+export function CreateStoryCard() {
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
-  const tile = (
+  const body = (
     <>
-      <span className="relative flex size-[66px] items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-card text-primary transition group-hover:border-primary">
-        {profile ? <AvatarMini name={profile.username} url={profile.avatar_url} size={56} /> : <Plus className="size-6" />}
-        {profile && <span className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background"><Plus className="size-4" /></span>}
+      <span className="relative block h-[68%] w-full overflow-hidden bg-header-gradient">
+        {profile?.avatar_url
+          ? <img src={profile.avatar_url} alt="" draggable={false} className="size-full object-cover" />
+          : <span className="flex size-full items-center justify-center font-mono text-3xl font-bold text-primary">{profile ? profile.username.slice(0, 1).toUpperCase() : <Plus className="size-8" />}</span>}
       </span>
-      <span className="w-16 truncate text-center text-xs font-medium">Buat Story</span>
+      <span className="absolute left-1/2 top-[68%] flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-card transition group-hover:scale-110"><Plus className="size-5" strokeWidth={3} /></span>
+      <span className="flex h-[32%] items-end justify-center pb-2.5 text-xs font-bold text-foreground">Buat Story</span>
     </>
   );
-  if (!user || !profile) return <Link to="/auth" className="group flex w-16 flex-col items-center gap-1.5">{tile}</Link>;
+  const cls = cn(STORY_CARD, "group flex flex-col bg-card");
+  if (!user || !profile) return <Link to="/auth" className={cls} aria-label="Masuk untuk membuat story">{body}</Link>;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="group flex w-16 flex-col items-center gap-1.5">{tile}</button>
+      <button type="button" onClick={() => setOpen(true)} className={cls} aria-label="Buat story">{body}</button>
       <CreateStoryDialog open={open} onOpenChange={setOpen} />
     </>
   );

@@ -6,7 +6,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
 import { SignInCta } from "@/components/sign-in-cta";
 import { Composer } from "@/components/feed/composer";
-import { CreateStoryTile, StoryBubble, StoryViewer, useStoryGroups } from "@/components/feed/stories";
+import { CreateStoryCard, STORY_CARD, StoryCard, StoryViewer, useStoryGroups } from "@/components/feed/stories";
 import type { StoryGroup } from "@/lib/stories";
 import type { HomeData } from "@/components/home/use-home-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -55,41 +55,47 @@ export function ComposerBar() {
 }
 
 /**
- * Baris story di atas linimasa: tile "Buat Story", lalu story aktif (hilang setelah 24 jam), lalu talenta
- * (cincin oranye = siap menerima proyek) supaya baris tidak kosong saat belum ada story.
+ * Baris story di atas linimasa: kartu "Buat Story", lalu story aktif (hilang setelah 24 jam). Kalau story masih sedikit,
+ * baris diisi kartu talenta (cincin oranye = siap menerima proyek) supaya tidak kosong. Semua kartu berukuran sama,
+ * bisa digeser dengan snap, dan ada panah geser di layar lebar.
  */
+const STORY_FILL = 8;
+
 export function StoryRow({ data }: { data: HomeData }) {
   const scroller = useRef<HTMLUListElement>(null);
   const stories = useStoryGroups();
   const [viewing, setViewing] = useState<{ groups: StoryGroup[]; index: number } | null>(null);
   const groups = stories.data ?? [];
   const withStory = new Set(groups.map((g) => g.author.username));
-  const devs = (data.devs.data ?? []).filter((d) => !withStory.has(d.username));
+  const devs = (data.devs.data ?? []).filter((d) => !withStory.has(d.username)).slice(0, Math.max(0, STORY_FILL - groups.length));
 
   return (
     <section aria-label="Story" className="relative">
-      <ul ref={scroller} className="flex gap-4 overflow-x-auto px-4 py-3 pr-16 [scrollbar-width:none]">
-        <li className="shrink-0"><CreateStoryTile /></li>
+      <ul ref={scroller} className="flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <li className="shrink-0"><CreateStoryCard /></li>
         {groups.map((g, n) => (
-          <li key={g.authorId} className="shrink-0"><StoryBubble group={g} onOpen={() => setViewing({ groups, index: n })} /></li>
+          <li key={g.authorId} className="shrink-0"><StoryCard group={g} onOpen={() => setViewing({ groups, index: n })} /></li>
         ))}
         {devs.map((d) => (
           <li key={d.username} className="shrink-0">
-            <Link to="/$username" params={{ username: d.username }} className="flex w-16 flex-col items-center gap-1.5">
-              <span className={cn("rounded-full p-[3px]", d.available_for_hire ? "bg-sun opacity-70" : "bg-border")}>
-                <span className="block rounded-full bg-background p-0.5"><AvatarMini name={d.username} url={d.avatar_url} size={56} /></span>
+            <Link to="/$username" params={{ username: d.username }} className={cn(STORY_CARD, "group flex flex-col items-center justify-center gap-2 bg-header-gradient px-2 text-center text-header-foreground")} aria-label={`Lihat profil ${d.display_name || d.username}`}>
+              <span className={cn("rounded-full p-[3px]", d.available_for_hire ? "bg-sun" : "bg-white/30")}>
+                <span className="block rounded-full bg-card p-0.5"><AvatarMini name={d.username} url={d.avatar_url} size={56} /></span>
               </span>
-              <span className="w-full truncate text-center text-xs text-muted-foreground">{d.display_name || d.username}</span>
+              <span className="w-full truncate text-xs font-bold">{d.display_name || d.username}</span>
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", d.available_for_hire ? "bg-primary text-primary-foreground" : "bg-white/15 text-header-foreground/80")}>{d.available_for_hire ? "Siap proyek" : "Developer"}</span>
             </Link>
           </li>
         ))}
+        <li aria-hidden className="w-2 shrink-0" />
       </ul>
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent" />
       {groups.length + devs.length > 3 && (
         <button
           type="button"
           aria-label="Geser ke kanan"
-          onClick={() => scroller.current?.scrollBy({ left: 240, behavior: "smooth" })}
-          className="absolute right-3 top-8 hidden size-9 items-center justify-center rounded-full bg-card text-foreground shadow ring-1 ring-border transition hover:bg-accent sm:flex"
+          onClick={() => scroller.current?.scrollBy({ left: 280, behavior: "smooth" })}
+          className="absolute right-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-border transition hover:bg-accent sm:flex"
         >
           <ChevronRight className="size-5" />
         </button>
@@ -117,13 +123,13 @@ export function WelcomeBanner() {
 
   return (
     <section aria-label="Selamat datang" className="px-3 pb-3 sm:px-4">
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#081638] via-[#0a1d4d] to-[#0f2f7a] p-5 text-white shadow-lg sm:p-7">
-        <div aria-hidden className="pointer-events-none absolute -bottom-12 -right-10 h-44 w-64 -rotate-[18deg] rounded-[2rem] bg-gradient-to-tr from-[#ff7a00] to-[#ffb340] opacity-90 sm:h-56 sm:w-80" />
-        <div aria-hidden className="pointer-events-none absolute -left-12 -top-12 size-40 rounded-full bg-[#1a56e8]/30 blur-3xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-deep via-navy to-navy-mid p-5 text-white shadow-lg sm:p-7">
+        <div aria-hidden className="pointer-events-none absolute -bottom-12 -right-10 h-44 w-64 -rotate-[18deg] rounded-[2rem] bg-gradient-to-tr from-primary to-primary-glow opacity-90 sm:h-56 sm:w-80" />
+        <div aria-hidden className="pointer-events-none absolute -left-12 -top-12 size-40 rounded-full bg-navy-soft/50 blur-3xl" />
         <button type="button" aria-label="Tutup banner" onClick={close} className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-white/80 transition hover:bg-white/10 hover:text-white">
           <X className="size-5" />
         </button>
-        <span aria-hidden className="absolute right-4 top-12 flex size-11 items-center justify-center rounded-xl bg-[#1a73e8]/40 text-sky-200 ring-1 ring-white/10 sm:right-8">
+        <span aria-hidden className="absolute right-4 top-12 flex size-11 items-center justify-center rounded-xl bg-white/10 text-primary-glow ring-1 ring-white/10 sm:right-8">
           <Code className="size-6" />
         </span>
         <div className="relative">
@@ -133,9 +139,9 @@ export function WelcomeBanner() {
               Selamat Datang di GOBI!
             </p>
             <h2 className="mt-3 text-xl font-extrabold leading-tight sm:text-2xl">
-              Bergabung, Berbagi, dan Tumbuh Bersama Komunitas Developer <span className="text-[#ff9f1a]">Indonesia</span>
+              Bergabung, Berbagi, dan Tumbuh Bersama Komunitas Developer <span className="text-primary-glow">Indonesia</span>
             </h2>
-            <Link to="/explore" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0a1a45] transition hover:bg-white/90">
+            <Link to="/explore" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-navy transition hover:bg-white/90">
               Jelajahi Sekarang <ArrowRight className="size-4" />
             </Link>
           </div>
