@@ -33,12 +33,12 @@ const NAV = [
 
 const WORKSPACE_SHORT: Record<Role, string> = { developer: "Studio", freelancer: "Freelance", client: "Dashboard", personal: "Ruang saya" };
 
-// Tombol ikon di kartu header: biru tua di latar putih (terang), putih di latar biru tua (halaman repositori bertema gelap).
-const ctl = "text-navy/75 hover:bg-accent hover:text-navy dark:text-header-foreground/85 dark:hover:bg-white/10 dark:hover:text-white";
+// Tombol ikon dan tautan di navbar biru tua: putih redup, sorotan putih transparan saat disentuh.
+const ctl = "text-white/80 hover:bg-white/10 hover:text-white";
 
 /**
- * Header global bergaya topbar GOBI: kartu putih membulat mengambang (biru tua di tema gelap) berisi logo, garis pemisah,
- * pencarian pil dengan petunjuk Ctrl + K, lonceng notifikasi, dan avatar dengan panah menu akun.
+ * Navbar atas GOBI: bar biru tua (gradasi) membulat dan mengambang, berisi logo, garis pemisah, pencarian pil dengan petunjuk Ctrl + K,
+ * tautan menu, lonceng notifikasi, dan avatar dengan panah menu akun. Warnanya biru tua di semua halaman.
  * Tinggi total tetap 3,5rem supaya elemen lengket lain (top-14) tidak bergeser.
  * Lebar isinya sama dengan beranda (max-w-6xl, xl: max-w-7xl) supaya tepi kiri/kanan sejajar.
  */
@@ -79,7 +79,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 px-3 py-1 sm:px-4">
-      <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2 rounded-2xl bg-card px-2.5 text-foreground shadow-[0_8px_24px_-12px_rgb(10_26_69/0.35)] ring-1 ring-black/5 dark:bg-header dark:text-header-foreground dark:ring-white/10 sm:px-3 xl:max-w-7xl">
+      <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2 rounded-2xl bg-gradient-to-r from-navy-deep via-navy to-navy-mid px-2.5 text-header-foreground shadow-[0_10px_28px_-12px_rgb(7_19_54/0.7)] ring-1 ring-white/10 sm:px-3 xl:max-w-7xl">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button size="icon" variant="ghost" className={`${ctl} size-9 lg:hidden`} aria-label="Buka menu"><Menu /></Button>
@@ -112,28 +112,28 @@ export function SiteHeader() {
 
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandMark size={32} />
-          <span className="hidden text-lg font-bold tracking-tight sm:inline">Go<span className="text-primary">Bi</span></span>
+          <span className="hidden text-lg font-bold tracking-tight text-white sm:inline">Go<span className="text-primary">Bi</span></span>
         </Link>
-        <span aria-hidden className="mx-1 hidden h-7 w-px bg-border dark:bg-white/20 md:block" />
+        <span aria-hidden className="mx-1 hidden h-7 w-px bg-white/20 md:block" />
 
         <form className="relative hidden min-w-0 flex-1 md:block md:max-w-xs xl:max-w-md" onSubmit={doSearch}>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-navy/60 dark:text-white/70" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/70" />
           <Input
             ref={searchRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari di website…"
             aria-label="Kata kunci pencarian"
-            className="h-9 rounded-full border-0 bg-muted pl-10 pr-20 text-sm text-foreground shadow-none placeholder:text-navy/50 dark:bg-white/10 dark:text-white dark:placeholder:text-white/60"
+            className="h-9 rounded-full border-0 bg-white/10 pl-10 pr-20 text-sm text-white shadow-none placeholder:text-white/60 focus-visible:bg-white/15"
           />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-md bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground lg:inline dark:bg-white/10 dark:text-white/70">Ctrl + K</kbd>
+          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-md bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white/70 lg:inline">Ctrl + K</kbd>
         </form>
 
         <nav className="ml-1 hidden items-center gap-0.5 text-sm font-semibold lg:flex">
           <Link to="/search" search={{ q: "", type: "users" }} className={`rounded-full px-3 py-1.5 transition ${ctl}`}>Talenta</Link>
           {nav.map((n) => (
             <Link key={n.to} to={n.to}
-              className={`rounded-full px-3 py-1.5 transition ${ctl} data-[status=active]:bg-accent data-[status=active]:text-navy dark:data-[status=active]:bg-white/15 dark:data-[status=active]:text-white`}>{n.label}</Link>
+              className={`rounded-full px-3 py-1.5 transition ${ctl} data-[status=active]:bg-white/15 data-[status=active]:text-white`}>{n.label}</Link>
           ))}
         </nav>
 
@@ -144,14 +144,14 @@ export function SiteHeader() {
               {on("discuss") && (
                 <Link to="/discuss/notifikasi" aria-label="Notifikasi" className={`relative rounded-full p-2 ${ctl}`}>
                   <Bell className="size-5" />
-                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-500 px-1 text-center font-mono text-[10px] leading-4 text-white ring-2 ring-card dark:ring-header">{unread.data > 99 ? "99+" : unread.data}</span>}
+                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-500 px-1 text-center font-mono text-[10px] leading-4 text-white ring-2 ring-navy">{unread.data > 99 ? "99+" : unread.data}</span>}
                 </Link>
               )}
               <Button asChild size="sm" variant="ghost" className={`hidden rounded-full xl:inline-flex ${ctl}`}><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
               {/* Tombol Buat baru di header hanya untuk layar lebar; di mobile ada tombol + di menu bawah. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden rounded-full border-border bg-transparent text-navy hover:bg-accent dark:border-white/30 dark:text-header-foreground dark:hover:bg-white/10 dark:hover:text-white lg:inline-flex"><Plus /></Button>
+                  <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden rounded-full border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white lg:inline-flex"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {roleCan(role, "post_job") && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
@@ -164,7 +164,7 @@ export function SiteHeader() {
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger aria-label="Menu akun" className="flex items-center gap-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className="rounded-full ring-2 ring-border dark:ring-white/60"><AvatarMini name={profile.username} url={profile.avatar_url} size={32} /></span>
+                  <span className="rounded-full ring-2 ring-white/60"><AvatarMini name={profile.username} url={profile.avatar_url} size={32} /></span>
                   <ChevronDown className="size-4 text-primary" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
