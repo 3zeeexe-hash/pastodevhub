@@ -8,6 +8,7 @@ import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { errMsg, formatRupiah } from "@/lib/market";
 import { JOB_SELECT, budgetLabel, canApply, canRespond, jobCategoryLabel, type ApplicationStatus, type JobCardData } from "@/lib/jobs";
+import { acceptedMessage, normalizeModeration, slotsLeft, type ModerationStatus, type RespondSummary } from "@/lib/job-review";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/job-card";
 import { JobExtras } from "@/components/job-extras";
+import { JobReviewBanner } from "@/components/job-review-banner";
 import { ApplicationThread } from "@/components/application-thread";
 import { GobiLoader } from "@/components/gobi-loader";
 import { Pill, ReportButton } from "@/components/work-ui";
@@ -45,6 +47,19 @@ const STAGE_LABEL: Record<string, string> = { viewed: "Dilihat", shortlisted: "S
 const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
 const CARD = "rounded-2xl bg-card shadow-sm ring-1 ring-border";
 
+/**
+ * Menjawab lamaran lewat work_respond_application (SQL 005): menerima satu pelamar tidak menutup lowongan selama posisi masih ada.
+ * Jika SQL 005 belum dijalankan, dipakai fungsi lama respond_job_application (yang menutup lowongan saat satu pelamar diterima).
+ */
+async function respondToApplication(applicationId: string, accept: boolean) {
+  const r = await looseDb.rpc("work_respond_application", { _application_id: applicationId, _accept: accept });
+  if (r.error && (r.error.code === "PGRST202" || /could not find the function/i.test(r.error.message ?? ""))) {
+    const old = await supabase.rpc("respond_job_application", { _application_id: applicationId, _accept: accept });
+    return { error: old.error, summary: null as RespondSummary | null };
+  }
+  return { error: r.error, summary: (r.data ?? null) as RespondSummary | null };
+}
+
 function JobDetail() {
   const { id } = Route.useParams();
   const { user, profile } = useAuth();
@@ -57,6 +72,16 @@ function JobDetail() {
     queryKey: ["job-apps", id, user?.id],
     enabled: !!user,
     queryFn: async () => ((await supabase.from("job_applications").select(APP_SELECT).eq("job_id", id).order("created_at")).data ?? []) as unknown as App[],
+  });
+  // Jumlah posisi dan status peninjauan admin (GOBI WORK, SQL 001/005). Diambil terpisah supaya halaman tetap jalan sebelum SQL itu dijalankan.
+  const review = useQuery({
+    queryKey: ["job-review", id],
+    queryFn: async () => {
+      const { data, error } = await looseDb.from("jobs").select("positions,moderation_status,moderation_note").eq("id", id).maybeSingle();
+      const r = (data ?? null) as { positions: number | null; moderation_status: string | null; moderation_note: string | null } | null;
+      if (error || !r) return { positions: 1, moderation: "approved" as ModerationStatus, note: null as string | null };
+      return { positions: r.positions ?? 1, moderation: normalizeModeration(r.moderation_status), note: r.moderation_note };
+    },
   });
   const ownerId = job.data?.client_id;
   const viewerIsOwner = !!user && !!ownerId && user.id === ownerId;
@@ -77,7 +102,10 @@ function JobDetail() {
       looseDb.rpc("work_mark_applications_viewed", { _job_id: id }).then(() => qc.invalidateQueries({ queryKey: ["job-app-stages", id] }), () => undefined);
     }
   }, [viewerIsOwner, hasPending, id, qc]);
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["job-app-stages", id] }); qc.invalidateQueries({ queryKey: ["jobs"] }); };
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["job-app-stages", id] });
+    qc.invalidateQueries({ queryKey: ["job-review", id] }); qc.invalidateQueries({ queryKey: ["jobs"] });
+  };
 
   if (job.isLoading) return <main className="min-h-screen bg-background"><GobiLoader page /></main>;
   const j = job.data;
@@ -86,6 +114,11 @@ function JobDetail() {
   const isOwner = user?.id === j.client_id;
   const mine = apps.data?.find((a) => a.developer_id === user?.id) ?? null;
   const viewer = { id: user?.id ?? null, accountType: profile?.account_type ?? null };
+  const moderation = review.data?.moderation ?? "approved";
+  const positions = review.data?.positions ?? 1;
+  // Hanya pemilik yang melihat semua lamaran, jadi hitungan ini dipakai di tampilan pemilik.
+  const acceptedCount = apps.data?.filter((a) => a.status === "accepted").length ?? 0;
+  const left = slotsLeft(positions, acceptedCount);
 
   async function setStatus(status: "open" | "closed") {
     const { error } = await supabase.from("jobs").update({ status }).eq("id", id);
@@ -132,6 +165,7 @@ function JobDetail() {
 
       <div className={cn("relative z-10 -mt-8 grid gap-6 lg:grid-cols-[1fr_320px]", WRAP)}>
         <article className="min-w-0 space-y-4">
+          {isOwner && <JobReviewBanner status={moderation} note={review.data?.note} />}
           <header className={cn(CARD, "p-4 sm:p-5")}>
             <div className="grid grid-cols-1 gap-3 text-sm min-[420px]:grid-cols-3">
               <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Anggaran</p><p className="flex items-start gap-1 font-bold"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p></div>
@@ -149,9 +183,14 @@ function JobDetail() {
           {isOwner && (
             <section className="space-y-3">
               <h2 className="flex items-center gap-2 text-lg font-extrabold"><Users className="size-5 text-primary" /> Pelamar ({apps.data?.length ?? 0})</h2>
+              <p className="text-sm text-muted-foreground">
+                Posisi terisi <b className="text-foreground">{acceptedCount}</b> dari <b className="text-foreground">{positions}</b>
+                {j.status === "open" && left > 0 && acceptedCount > 0 ? <> · sisa {left} posisi, lowongan tetap dibuka</> : null}
+                {left === 0 ? <> · semua posisi sudah terisi</> : null}
+              </p>
               {apps.isLoading && <div className={CARD}><GobiLoader compact /></div>}
-              {apps.data?.length === 0 && <p className={cn(CARD, "p-8 text-center text-sm text-muted-foreground")}>Belum ada pelamar. Bagikan link lowongan ini ke komunitas.</p>}
-              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} stage={stages.data?.[a.id] ?? null} canAnswer={canRespond(j, a, user?.id ?? null)} onDone={refresh} />)}
+              {apps.data?.length === 0 && <p className={cn(CARD, "p-8 text-center text-sm text-muted-foreground")}>{moderation === "approved" ? "Belum ada pelamar. Bagikan link lowongan ini ke komunitas." : "Belum ada pelamar. Lowongan baru bisa dilamar setelah disetujui admin."}</p>}
+              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} stage={stages.data?.[a.id] ?? null} canAnswer={canRespond(j, a, user?.id ?? null) && moderation === "approved"} slots={left} onDone={refresh} />)}
             </section>
           )}
 
@@ -277,7 +316,7 @@ function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
   return <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat kontrak atau pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
 }
 
-function ApplicantCard({ a, stage, canAnswer, onDone }: { a: App; stage: string | null; canAnswer: boolean; onDone: () => void }) {
+function ApplicantCard({ a, stage, canAnswer, slots, onDone }: { a: App; stage: string | null; canAnswer: boolean; slots: number; onDone: () => void }) {
   const [chat, setChat] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
@@ -285,11 +324,22 @@ function ApplicantCard({ a, stage, canAnswer, onDone }: { a: App; stage: string 
   const order = useApplicationOrder(a.id, a.status === "accepted");
   const contract = useApplicationContract(a.id, a.status === "accepted");
   async function respond(accept: boolean) {
-    if (accept && !confirm(`Terima @${a.developer?.username}? Pelamar lain otomatis tidak dipilih.`)) return;
+    if (accept) {
+      const name = `@${a.developer?.username}`;
+      const ask = slots > 1
+        ? `Terima ${name}? Lowongan tetap dibuka untuk ${slots - 1} posisi lainnya.`
+        : `Terima ${name}? Ini posisi terakhir: pelamar lain yang masih menunggu otomatis tidak dipilih dan lowongan ditutup untuk lamaran baru.`;
+      if (!confirm(ask)) return;
+    }
     setBusy(true);
-    const { error } = await supabase.rpc("respond_job_application", { _application_id: a.id, _accept: accept });
+    const { error, summary } = await respondToApplication(a.id, accept);
     setBusy(false);
-    if (error) toast.error(errMsg(error)); else { toast.success(accept ? "Developer diterima! Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow." : "Lamaran ditolak"); onDone(); if (accept) setChat(true); }
+    if (error) { toast.error(errMsg(error)); return; }
+    if (!accept) toast.success("Lamaran ditolak");
+    else if (summary) toast.success(`${acceptedMessage(Math.max(0, summary.positions - summary.accepted))} Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.`);
+    else toast.success("Developer diterima! Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.");
+    onDone();
+    if (accept) setChat(true);
   }
   async function setStage(next: "shortlisted" | "interview") {
     setBusy(true);
@@ -324,7 +374,7 @@ function ApplicantCard({ a, stage, canAnswer, onDone }: { a: App; stage: string 
       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{a.cover_letter}</p>
       {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-navy/10 px-1.5 py-0.5 font-mono text-[11px] text-navy">{s}</span>)}</div> : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        {canAnswer && <><Button size="sm" className="rounded-full" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button><Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
+        {canAnswer && <>{slots > 0 && <Button size="sm" className="rounded-full" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button>}<Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
         {canAnswer && stage !== "shortlisted" && <Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setStage("shortlisted")}>Shortlist</Button>}
         {canAnswer && stage !== "interview" && <Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setStage("interview")}>Undang interview</Button>}
         {a.status === "accepted" && (contract.data
