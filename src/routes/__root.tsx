@@ -101,7 +101,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { title: "GoBi — Komunitas Developer" },
         { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
         { name: "author", content: "GoBi" },
-        { name: "theme-color", content: "#0d1020" },
+        // Biru tua yang sama dengan header dan menu bawah.
+        { name: "theme-color", content: "#0a1a45" },
         { property: "og:site_name", content: "GoBi" },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
@@ -124,9 +125,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Tanpa class "dark": tema situs sekarang terang (token di styles.css), jadi varian dark: bawaan komponen ui tidak boleh aktif.
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id">
       <head>
         <HeadContent />
       </head>
