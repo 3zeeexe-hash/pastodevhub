@@ -12,7 +12,6 @@ import {
 } from "@/lib/stories";
 import { AvatarMini } from "@/components/avatar-mini";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +84,12 @@ export function CreateStoryCard() {
   );
 }
 
+/**
+ * Form Buat Story. Di HP tampil sebagai lembar yang naik dari bawah (slide-up): pegangan di atas, judul + tombol tutup
+ * sebaris, isi yang bisa di-scroll (pratinjau, teks, warna, gambar), dan tombol Bagikan yang selalu terlihat di dasar.
+ * Di layar lebar (sm ke atas) tampil sebagai kotak di tengah. Kolom teks tidak fokus otomatis supaya keyboard HP
+ * tidak langsung menutupi form.
+ */
 function CreateStoryDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -120,38 +125,54 @@ function CreateStoryDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   const left = STORY_MAX_CHARS - body.length;
   const canShare = !saving && !uploading && (!!body.trim() || !!image);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[95dvh] gap-0 overflow-y-auto p-0 sm:max-w-2xl sm:overflow-hidden">
-        <div className="grid sm:grid-cols-[17rem_1fr]">
-          {/* Pratinjau: panel biru tua supaya kartu story menonjol, di mobile ringkas di atas form. */}
-          <div className="relative flex items-center justify-center overflow-hidden bg-header-gradient px-6 py-5 sm:py-8">
-            <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/30 blur-3xl" />
-            <div className={cn("relative flex aspect-[9/16] w-full max-w-[8.5rem] items-center justify-center overflow-hidden rounded-2xl p-4 text-center text-header-foreground shadow-xl ring-1 ring-white/20 sm:max-w-[11.5rem]", !image && STORY_BG_CLASS[bg])}>
-              {image && <img src={image} alt="" className="absolute inset-0 size-full object-cover" />}
-              {image && body && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-navy-deep/90 to-transparent" />}
-              <p className={cn("relative line-clamp-[9] whitespace-pre-wrap break-words font-bold", image ? "mt-auto self-end text-xs" : "text-sm sm:text-base")}>{body || (image ? "" : "Tulis sesuatu…")}</p>
-              {uploading && <div className="absolute inset-0 flex items-center justify-center bg-navy-deep/60"><Loader2 className="size-6 animate-spin" /></div>}
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-navy-deep/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+        <DialogPrimitive.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-3xl border-t border-border bg-card text-card-foreground shadow-2xl outline-none duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:border sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95"
+        >
+          {/* Kepala: pegangan (HP), judul, tombol tutup */}
+          <div className="shrink-0 px-5 pt-2.5 sm:pt-5">
+            <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <DialogPrimitive.Title className="text-lg font-bold leading-tight">Buat story</DialogPrimitive.Title>
+                <p className="mt-0.5 text-sm text-muted-foreground">Hilang otomatis setelah 24 jam.</p>
+              </div>
+              <DialogPrimitive.Close aria-label="Tutup" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X className="size-5" />
+              </DialogPrimitive.Close>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 p-5 sm:p-6">
-            <DialogHeader className="pr-6">
-              <DialogTitle>Buat story</DialogTitle>
-              <p className="text-sm text-muted-foreground">Hilang otomatis setelah 24 jam.</p>
-            </DialogHeader>
+          {/* Isi yang bisa di-scroll */}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
+            {/* Pratinjau di panel biru tua dengan cahaya oranye, ukuran tetap supaya tidak melar di layar mana pun */}
+            <div className="relative flex justify-center overflow-hidden rounded-2xl bg-header-gradient py-4">
+              <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/35 blur-3xl" />
+              <div aria-hidden className="pointer-events-none absolute -bottom-12 -left-10 size-36 rounded-full bg-navy-soft/60 blur-3xl" />
+              <div className={cn("relative flex aspect-[9/16] w-32 items-center justify-center overflow-hidden rounded-2xl p-3 text-center text-header-foreground shadow-xl ring-1 ring-white/20 sm:w-36", !image && STORY_BG_CLASS[bg])}>
+                {image && <img src={image} alt="" className="absolute inset-0 size-full object-cover" />}
+                {image && body && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-navy-deep/90 to-transparent" />}
+                <p className={cn("relative line-clamp-[9] w-full whitespace-pre-wrap break-words font-bold", image ? "mt-auto self-end text-[11px] leading-snug" : "text-sm leading-snug")}>{body || (image ? "" : "Tulis sesuatu…")}</p>
+                {uploading && <div className="absolute inset-0 flex items-center justify-center bg-navy-deep/60"><Loader2 className="size-6 animate-spin" /></div>}
+              </div>
+            </div>
 
             <div>
-              <Textarea value={body} onChange={(e) => setBody(e.target.value.slice(0, STORY_MAX_CHARS))} placeholder={image ? "Tambah keterangan (opsional)" : "Apa kabar hari ini?"} rows={4} autoFocus className="resize-none" />
+              <Textarea value={body} onChange={(e) => setBody(e.target.value.slice(0, STORY_MAX_CHARS))} placeholder={image ? "Tambah keterangan (opsional)" : "Apa kabar hari ini?"} rows={3} className="resize-none" />
               <p className={cn("mt-1 text-right text-xs text-muted-foreground", left < 20 && "text-destructive")} aria-live="polite">{left} huruf tersisa</p>
             </div>
 
             {!image && (
               <div>
                 <p className="mb-2 text-sm font-semibold">Warna latar</p>
-                <div className="flex flex-wrap items-center gap-2.5" role="radiogroup" aria-label="Warna latar">
+                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 py-1" role="radiogroup" aria-label="Warna latar">
                   {STORY_BGS.map((b) => (
                     <button key={b} type="button" role="radio" aria-checked={bg === b} aria-label={BG_LABEL[b]} title={BG_LABEL[b]} onClick={() => setBg(b)}
-                      className={cn("flex size-10 items-center justify-center rounded-full text-white ring-offset-2 ring-offset-card transition", STORY_BG_CLASS[b], bg === b ? "ring-2 ring-primary" : "hover:scale-105")}>
+                      className={cn("flex size-11 shrink-0 items-center justify-center rounded-full text-white ring-offset-2 ring-offset-card transition", STORY_BG_CLASS[b], bg === b ? "ring-2 ring-primary" : "hover:scale-105")}>
                       {bg === b && <Check className="size-5 drop-shadow" strokeWidth={3} />}
                     </button>
                   ))}
@@ -164,14 +185,17 @@ function CreateStoryDialog({ open, onOpenChange }: { open: boolean; onOpenChange
               <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}><ImagePlus /> {image ? "Ganti gambar" : "Tambah gambar"}</Button>
               {image && <Button type="button" variant="ghost" size="sm" onClick={() => setImage(null)}><X /> Hapus gambar</Button>}
             </div>
+          </div>
 
-            <Button type="button" size="lg" className="mt-auto w-full font-bold" disabled={!canShare} onClick={submit}>
+          {/* Dasar: tombol Bagikan selalu terlihat, aman dari tepi layar iPhone */}
+          <div className="shrink-0 border-t border-border bg-card px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+            <Button type="button" size="lg" className="w-full font-bold" disabled={!canShare} onClick={submit}>
               {saving && <Loader2 className="animate-spin" />} Bagikan story
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
