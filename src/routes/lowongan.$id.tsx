@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Check, CreditCard, Loader2, MessageSquare, Send, Users, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CreditCard, Loader2, MessageSquare, Send, Share2, Users, Wallet, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
@@ -18,8 +18,11 @@ import { SignInCta } from "@/components/sign-in-cta";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/job-card";
 import { JobExtras } from "@/components/job-extras";
 import { ApplicationThread } from "@/components/application-thread";
+import { GobiLoader } from "@/components/gobi-loader";
+import jobImage from "@/assets/lowongan-job.jpg";
 import { getSeoInfo } from "@/lib/seo.functions";
 import { seoHead } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/lowongan/$id")({
   // Real title, description and structured data come from the database; the text below is the fallback.
@@ -34,6 +37,10 @@ type App = {
   developer: { username: string; display_name: string | null; avatar_url: string | null; headline: string | null; skills: string[] } | null;
 };
 const APP_SELECT = "id,job_id,developer_id,cover_letter,bid_amount,est_days,status,created_at, developer:profiles!job_applications_developer_id_fkey(username,display_name,avatar_url,headline,skills)";
+
+// Lebar dan gaya kartu yang sama dengan beranda dan daftar lowongan.
+const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
+const CARD = "rounded-2xl bg-card shadow-sm ring-1 ring-border";
 
 function JobDetail() {
   const { id } = Route.useParams();
@@ -50,9 +57,9 @@ function JobDetail() {
   });
   const refresh = () => { qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["jobs"] }); };
 
-  if (job.isLoading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (job.isLoading) return <main className="min-h-screen bg-background"><GobiLoader page /></main>;
   const j = job.data;
-  if (!j) return <main className="mx-auto max-w-xl px-4 py-16 text-center"><h1 className="text-xl font-semibold">Lowongan tidak ditemukan</h1><Button asChild className="mt-4"><Link to="/lowongan">Lihat lowongan lain</Link></Button></main>;
+  if (!j) return <main className="mx-auto max-w-xl px-4 py-16 text-center"><h1 className="text-xl font-semibold">Lowongan tidak ditemukan</h1><Button asChild className="mt-4 rounded-full"><Link to="/lowongan">Lihat lowongan lain</Link></Button></main>;
 
   const isOwner = user?.id === j.client_id;
   const mine = apps.data?.find((a) => a.developer_id === user?.id) ?? null;
@@ -63,45 +70,79 @@ function JobDetail() {
     if (error) toast.error(errMsg(error)); else { toast.success(status === "closed" ? "Lowongan ditutup" : "Lowongan dibuka lagi"); refresh(); }
   }
 
+  async function share() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ title: j!.title, url }); return; }
+      await navigator.clipboard.writeText(url);
+      toast.success("Link lowongan disalin");
+    } catch {
+      // Pengguna membatalkan dialog bagikan atau izin clipboard ditolak; tidak perlu pesan error.
+    }
+  }
+
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <Link to="/lowongan" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Semua lowongan</Link>
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <article className="min-w-0 space-y-5">
-          <header className="rounded-xl border border-border bg-card p-5">
-            <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-medium uppercase tracking-wide text-primary">{jobCategoryLabel(j.category)}</span><JobStatusBadge status={j.status} /></div>
-            <h1 className="mt-2 text-2xl font-bold leading-tight md:text-3xl">{j.title}</h1>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div className="rounded-lg bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Anggaran</p><p className="font-semibold">{budgetLabel(j.budget_min, j.budget_max)}</p></div>
-              <div className="rounded-lg bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Pelamar</p><p className="flex items-center gap-1 font-semibold"><Users className="size-4" />{j.applications_count}</p></div>
-              <div className="rounded-lg bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Tenggat</p><p className="flex items-center gap-1 font-semibold"><CalendarClock className="size-4" />{j.deadline ? new Date(j.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "Fleksibel"}</p></div>
+    <main className="min-h-screen bg-background pb-10 text-foreground">
+      <section className="relative overflow-hidden rounded-b-[2rem] bg-header-gradient pb-16 pt-5 text-white sm:pb-20">
+        <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-primary/30 blur-2xl" />
+        <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl" />
+        <div className={cn("relative", WRAP)}>
+          <Link to="/lowongan" className="inline-flex items-center gap-1 text-sm font-semibold text-white/80 hover:text-white"><ArrowLeft className="size-4" /> Semua lowongan</Link>
+          <div className="mt-4 flex items-start gap-4">
+            <img src={jobImage} alt="" width={112} height={112} draggable={false} className="size-20 shrink-0 select-none rounded-2xl bg-navy object-cover ring-2 ring-white/30 sm:size-28" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-bold uppercase tracking-wide text-primary">{jobCategoryLabel(j.category)}</span>
+                <JobStatusBadge status={j.status} />
+              </div>
+              <h1 className="mt-1.5 break-words text-2xl font-extrabold leading-tight md:text-3xl">{j.title}</h1>
+              {j.client && (
+                <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-white/80">
+                  <AvatarMini name={j.client.username} url={j.client.avatar_url} size={20} />
+                  <span className="truncate">{j.client.display_name || j.client.username}</span>
+                  <span className="shrink-0">· {timeAgo(j.created_at)}</span>
+                </p>
+              )}
             </div>
-            {j.skills.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{j.skills.map((s) => <span key={s} className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs">{s}</span>)}</div>}
+          </div>
+        </div>
+      </section>
+
+      <div className={cn("relative z-10 -mt-8 grid gap-6 lg:grid-cols-[1fr_320px]", WRAP)}>
+        <article className="min-w-0 space-y-4">
+          <header className={cn(CARD, "p-4 sm:p-5")}>
+            <div className="grid grid-cols-1 gap-3 text-sm min-[420px]:grid-cols-3">
+              <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Anggaran</p><p className="flex items-start gap-1 font-bold"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p></div>
+              <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Pelamar</p><p className="flex items-center gap-1 font-bold"><Users className="size-4" />{j.applications_count}</p></div>
+              <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Tenggat</p><p className="flex items-center gap-1 font-bold"><CalendarClock className="size-4 shrink-0" />{j.deadline ? new Date(j.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "Fleksibel"}</p></div>
+            </div>
+            {j.skills.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{j.skills.map((s) => <span key={s} className="rounded-md bg-navy/10 px-2 py-0.5 font-mono text-xs text-navy">{s}</span>)}</div>}
           </header>
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-3 font-semibold">Deskripsi proyek</h2>
+          <section className={cn(CARD, "p-4 sm:p-5")}>
+            <h2 className="mb-3 font-extrabold">Deskripsi proyek</h2>
             {j.description ? <Markdown>{j.description}</Markdown> : <p className="text-sm text-muted-foreground">Tidak ada deskripsi.</p>}
           </section>
           <JobExtras jobId={j.id} />
 
           {isOwner && (
             <section className="space-y-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold"><Users className="size-5 text-primary" /> Pelamar ({apps.data?.length ?? 0})</h2>
-              {apps.data?.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Belum ada pelamar. Bagikan link lowongan ini ke komunitas.</p>}
+              <h2 className="flex items-center gap-2 text-lg font-extrabold"><Users className="size-5 text-primary" /> Pelamar ({apps.data?.length ?? 0})</h2>
+              {apps.isLoading && <div className={CARD}><GobiLoader compact /></div>}
+              {apps.data?.length === 0 && <p className={cn(CARD, "p-8 text-center text-sm text-muted-foreground")}>Belum ada pelamar. Bagikan link lowongan ini ke komunitas.</p>}
               {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} canAnswer={canRespond(j, a, user?.id ?? null)} onDone={refresh} />)}
             </section>
           )}
 
           {!isOwner && mine && (
-            <section className="space-y-3 rounded-xl border border-primary/40 bg-card p-5">
+            <section className="space-y-3 rounded-2xl bg-card p-4 shadow-sm ring-2 ring-primary/40 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold">Lamaran kamu</h2>
+                <h2 className="font-extrabold">Lamaran kamu</h2>
                 <ApplicationStatusBadge status={mine.status} />
               </div>
               <p className="text-sm">Penawaran <b>{formatRupiah(mine.bid_amount, "Nego")}</b> · {mine.est_days} hari · dikirim {timeAgo(mine.created_at)}</p>
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{mine.cover_letter}</p>
+              <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{mine.cover_letter}</p>
               {mine.status === "pending" && (
-                <Button size="sm" variant="outline" onClick={async () => {
+                <Button size="sm" variant="outline" className="rounded-full" onClick={async () => {
                   const { error } = await supabase.rpc("withdraw_job_application", { _application_id: mine.id });
                   if (error) toast.error(errMsg(error)); else { toast.success("Lamaran ditarik"); refresh(); }
                 }}>Tarik lamaran</Button>
@@ -114,30 +155,31 @@ function JobDetail() {
 
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           {j.client && (
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className={cn(CARD, "p-4")}>
               <p className="text-xs text-muted-foreground">Diposting oleh</p>
               <Link to="/$username" params={{ username: j.client.username }} className="mt-2 flex items-center gap-3 hover:text-primary">
                 <AvatarMini name={j.client.username} url={j.client.avatar_url} size={40} />
-                <span className="min-w-0"><span className="block truncate font-semibold">{j.client.display_name || j.client.username}</span><span className="block text-xs text-muted-foreground">{timeAgo(j.created_at)}</span></span>
+                <span className="min-w-0"><span className="block truncate font-bold">{j.client.display_name || j.client.username}</span><span className="block text-xs text-muted-foreground">{timeAgo(j.created_at)}</span></span>
               </Link>
             </div>
           )}
           {isOwner ? (
-            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
-              <p className="text-sm font-semibold">Kelola lowongan</p>
-              {j.status !== "closed" ? <Button variant="outline" className="w-full" onClick={() => setStatus("closed")}>Tutup lowongan</Button>
-                : <Button className="w-full" onClick={() => setStatus("open")}>Buka lagi</Button>}
-              <Button asChild variant="ghost" className="w-full"><Link to="/dashboard">Ke dashboard</Link></Button>
+            <div className={cn(CARD, "space-y-2 p-4")}>
+              <p className="text-sm font-bold">Kelola lowongan</p>
+              {j.status !== "closed" ? <Button variant="outline" className="w-full rounded-full" onClick={() => setStatus("closed")}>Tutup lowongan</Button>
+                : <Button className="w-full rounded-full" onClick={() => setStatus("open")}>Buka lagi</Button>}
+              <Button asChild variant="ghost" className="w-full rounded-full"><Link to="/dashboard">Ke dashboard</Link></Button>
             </div>
           ) : !user ? (
             <SignInCta text="Masuk sebagai developer untuk melamar." />
           ) : canApply(j, viewer, !!mine) ? (
             <ApplyForm jobId={j.id} userId={user.id} onDone={refresh} />
           ) : !mine ? (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            <div className={cn(CARD, "p-4 text-sm text-muted-foreground")}>
               {j.status !== "open" ? "Lowongan ini sudah tidak menerima lamaran." : profile?.account_type !== "developer" ? "Hanya akun developer yang bisa melamar. Ganti jenis akun di Pengaturan." : "Kamu tidak bisa melamar lowongan ini."}
             </div>
           ) : null}
+          <Button type="button" variant="outline" className="w-full rounded-full" onClick={share}><Share2 /> Bagikan lowongan</Button>
         </aside>
       </div>
     </main>
@@ -161,14 +203,14 @@ function ApplyForm({ jobId, userId, onDone }: { jobId: string; userId: string; o
     onDone();
   }
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-xl border border-primary/40 bg-card p-4 shadow-glow">
-      <p className="font-semibold">Lamar proyek ini</p>
+    <form onSubmit={submit} className="space-y-3 rounded-2xl bg-card p-4 shadow-glow ring-2 ring-primary/40">
+      <p className="font-extrabold">Lamar proyek ini</p>
       <div><Label htmlFor="cl">Surat lamaran</Label><Textarea id="cl" rows={6} value={f.letter} onChange={(e) => setF({ ...f, letter: e.target.value })} placeholder="Kenapa kamu cocok? Sertakan link portofolio atau proyek serupa." /></div>
       <div className="grid grid-cols-2 gap-2">
         <div><Label htmlFor="bid">Penawaran (Rp)</Label><Input id="bid" type="number" min={0} step={1000} value={f.bid} onChange={(e) => setF({ ...f, bid: e.target.value })} placeholder="1500000" /></div>
         <div><Label htmlFor="days">Lama kerja (hari)</Label><Input id="days" type="number" min={1} max={365} value={f.days} onChange={(e) => setF({ ...f, days: e.target.value })} /></div>
       </div>
-      <Button disabled={busy} className="w-full">{busy ? <Loader2 className="animate-spin" /> : <Send />} Kirim lamaran</Button>
+      <Button disabled={busy} className="w-full rounded-full">{busy ? <Loader2 className="animate-spin" /> : <Send />} Kirim lamaran</Button>
     </form>
   );
 }
@@ -189,9 +231,9 @@ function useApplicationOrder(applicationId: string, enabled: boolean) {
 function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
   const order = useApplicationOrder(applicationId, true);
   if (order.data) {
-    return <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan</Link></Button>;
+    return <Button asChild size="sm" className="rounded-full"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan</Link></Button>;
   }
-  return <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
+  return <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
 }
 
 function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; onDone: () => void }) {
@@ -217,25 +259,25 @@ function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; o
     navigate({ to: "/pesanan/$id", params: { id: String(data) } });
   }
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className={cn(CARD, "p-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         {a.developer && (
           <Link to="/$username" params={{ username: a.developer.username }} className="flex min-w-0 items-center gap-3 hover:text-primary">
             <AvatarMini name={a.developer.username} url={a.developer.avatar_url} size={44} />
-            <span className="min-w-0"><span className="block truncate font-semibold">{a.developer.display_name || a.developer.username}</span><span className="block truncate text-xs text-muted-foreground">{a.developer.headline || `@${a.developer.username}`}</span></span>
+            <span className="min-w-0"><span className="block truncate font-bold">{a.developer.display_name || a.developer.username}</span><span className="block truncate text-xs text-muted-foreground">{a.developer.headline || `@${a.developer.username}`}</span></span>
           </Link>
         )}
         <ApplicationStatusBadge status={a.status} />
       </div>
       <p className="mt-3 text-sm">Penawaran <b className="text-primary">{formatRupiah(a.bid_amount, "Nego")}</b> · {a.est_days} hari · {timeAgo(a.created_at)}</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{a.cover_letter}</p>
-      {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px]">{s}</span>)}</div> : null}
+      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{a.cover_letter}</p>
+      {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-navy/10 px-1.5 py-0.5 font-mono text-[11px] text-navy">{s}</span>)}</div> : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        {canAnswer && <><Button size="sm" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
+        {canAnswer && <><Button size="sm" className="rounded-full" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button><Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
         {a.status === "accepted" && (order.data
-          ? <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan &amp; bayar</Link></Button>
-          : <Button size="sm" disabled={busy} onClick={createOrder}><CreditCard /> Buat pesanan &amp; bayar</Button>)}
-        {a.status !== "withdrawn" && <Button size="sm" variant="ghost" onClick={() => setChat(!chat)}><MessageSquare /> {chat ? "Tutup obrolan" : "Obrolan"}</Button>}
+          ? <Button asChild size="sm" className="rounded-full"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan &amp; bayar</Link></Button>
+          : <Button size="sm" className="rounded-full" disabled={busy} onClick={createOrder}><CreditCard /> Buat pesanan &amp; bayar</Button>)}
+        {a.status !== "withdrawn" && <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setChat(!chat)}><MessageSquare /> {chat ? "Tutup obrolan" : "Obrolan"}</Button>}
       </div>
       {a.status === "accepted" && !order.data && (
         <p className="mt-2 text-xs text-muted-foreground">Pembayaran lewat Midtrans. Dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
