@@ -1,4 +1,4 @@
-// GOBI WORK Fase 6: tab admin tambahan (pengguna, lamaran, transaksi, pencairan, audit) dan detail sengketa.
+// GOBI WORK Fase 6: tab admin tambahan (lamaran, transaksi, pencairan, audit) dan detail sengketa.
 // Semua hanya MEMBACA lewat RLS khusus admin yang sudah ada (docs/sql/midtrans-escrow/001, gobi-work/003).
 // Aksi yang mengubah uang tetap di /admin/escrow dan /admin/pembayaran; aksi moderasi lewat fungsi work_admin_*.
 import { Link } from "@tanstack/react-router";
@@ -9,7 +9,6 @@ import { errMsg } from "@/lib/market";
 import { looseDb } from "@/lib/escrow-db";
 import { eventLabel, fmtDate, rp } from "@/lib/work-db";
 import { evidenceItems, pickEscrow, summarizeTx } from "@/lib/admin-work";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,7 +17,7 @@ import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
 
 type Names = Record<string, string>;
 
-async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
+export async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
   const { data, error } = await p;
   if (error) throw new Error(errMsg(error));
   return data;
@@ -33,55 +32,12 @@ async function usernameMap(ids: (string | null | undefined)[]): Promise<Names> {
 
 const at = (names: Names, id: string | null | undefined) => (id ? `@${names[id] ?? "?"}` : "—");
 
-function Loading({ q }: { q: { isLoading: boolean; error: unknown; refetch: () => unknown } }) {
+export function Loading({ q }: { q: { isLoading: boolean; error: unknown; refetch: () => unknown } }) {
   return (
     <>
       {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
       {q.error ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : null}
     </>
-  );
-}
-
-/* ---------- Pengguna (client & freelancer) ---------- */
-type UserRow = { id: string; username: string; display_name: string | null; account_type: string | null; created_at: string };
-export function UsersTab() {
-  const [role, setRole] = useState("all");
-  const [term, setTerm] = useState("");
-  const q = useQuery({
-    queryKey: ["work-admin-users", role, term],
-    queryFn: async () => {
-      let query = looseDb
-        .from("profiles")
-        .select("id,username,display_name,account_type,created_at")
-        .in("account_type", role === "all" ? ["client", "developer"] : [role])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      const t = term.trim().replace(/[%,()*]/g, "");
-      if (t) query = query.ilike("username", `%${t}%`);
-      return (await must<UserRow[]>(query)) ?? [];
-    },
-  });
-  return (
-    <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-[200px_1fr]">
-        <Select value={role} onValueChange={setRole}>
-          <SelectTrigger aria-label="Jenis akun"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Client & freelancer</SelectItem><SelectItem value="client">Client</SelectItem><SelectItem value="developer">Freelancer</SelectItem></SelectContent>
-        </Select>
-        <Input aria-label="Cari username" placeholder="Cari username…" value={term} onChange={(e) => setTerm(e.target.value)} maxLength={40} />
-      </div>
-      <p className="text-xs text-muted-foreground">Daftar ini hanya untuk melihat. Verifikasi, blokir, dan aktivasi dengan alasan dilakukan di <Link to="/admin/pengguna" className="text-primary underline">Pengguna</Link> dan <Link to="/admin/verifikasi" className="text-primary underline">Verifikasi developer</Link>.</p>
-      <Loading q={q} />
-      {q.data?.length === 0 && <EmptyState>Tidak ada pengguna yang cocok.</EmptyState>}
-      <ul className="space-y-1.5">
-        {q.data?.map((u) => (
-          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-            <Link to="/$username" params={{ username: u.username }} className="min-w-0 truncate font-medium hover:text-primary">{u.display_name || u.username} <span className="text-xs text-muted-foreground">@{u.username}</span></Link>
-            <span className="flex items-center gap-2"><Pill tone="info">{u.account_type === "developer" ? "Freelancer" : "Client"}</Pill><span className="text-xs text-muted-foreground">bergabung {fmtDate(u.created_at)}</span></span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

@@ -17,7 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContractPill, EmptyState, ErrorState, Pill, ReasonDialog, Stat, type Ask } from "@/components/work-ui";
-import { ApplicationsTab, AuditTab, DisputeDetail, PayoutsTab, TransactionsTab, UsersTab } from "@/components/admin-work-extra";
+import { ApplicationsTab, AuditTab, DisputeDetail, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
+import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
 
 export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
 
@@ -26,7 +27,7 @@ function AdminWork() {
     <div className="space-y-4">
       <header>
         <h2 className="text-xl font-bold">GOBI WORK</h2>
-        <p className="text-sm text-muted-foreground">Moderasi lowongan, kontrak, sengketa, laporan, transaksi, rekonsiliasi, kategori, dan audit log. Aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab pengguna, lamaran, transaksi, dan pencairan hanya untuk melihat.</p>
+        <p className="text-sm text-muted-foreground">Pengguna, moderasi lowongan, lamaran, kontrak, transaksi, sengketa, laporan, rekonsiliasi, kategori, pengaturan komisi, dan audit log. Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran, transaksi, dan pencairan hanya untuk melihat.</p>
       </header>
       <Tabs defaultValue="ringkasan">
         <TabsList className="h-auto flex-wrap justify-start">
@@ -41,6 +42,7 @@ function AdminWork() {
           <TabsTrigger value="laporan">Laporan</TabsTrigger>
           <TabsTrigger value="rekonsiliasi">Rekonsiliasi</TabsTrigger>
           <TabsTrigger value="kategori">Kategori</TabsTrigger>
+          <TabsTrigger value="pengaturan">Pengaturan</TabsTrigger>
           <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
         <TabsContent value="ringkasan" className="mt-4"><Overview /></TabsContent>
@@ -54,6 +56,7 @@ function AdminWork() {
         <TabsContent value="laporan" className="mt-4"><ReportsTab /></TabsContent>
         <TabsContent value="rekonsiliasi" className="mt-4"><ReconcileTab /></TabsContent>
         <TabsContent value="kategori" className="mt-4"><CategoriesTab /></TabsContent>
+        <TabsContent value="pengaturan" className="mt-4"><SettingsTab /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
       </Tabs>
     </div>
@@ -128,58 +131,6 @@ function Overview() {
 }
 const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <section className="rounded-xl border border-border bg-card p-4"><h3 className="mb-3 text-sm font-semibold">{title}</h3>{children}</section>;
 const None = () => <p className="text-sm text-muted-foreground">Belum ada data.</p>;
-
-/* ---------- Moderasi lowongan ---------- */
-type JobRow = { id: string; title: string; status: string; moderation_status: string | null; moderation_note: string | null; category: string; created_at: string; client: { username: string } | null };
-function JobsTab() {
-  const qc = useQueryClient();
-  const [filter, setFilter] = useState("pending");
-  const [ask, setAsk] = useState<Ask | null>(null);
-  const q = useQuery({
-    queryKey: ["work-admin-jobs", filter],
-    queryFn: async () => {
-      let query = looseDb.from("jobs").select("id,title,status,moderation_status,moderation_note,category,created_at,client:profiles(username)").order("created_at", { ascending: false }).limit(100);
-      if (filter !== "all") query = query.eq("moderation_status", filter);
-      const { data, error } = await query;
-      if (error) throw new Error(errMsg(error));
-      return (data ?? []) as unknown as JobRow[];
-    },
-  });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["work-admin-jobs"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] }); };
-  async function moderate(id: string, status: string, note = "") {
-    try { await workRpc("work_admin_moderate_job", { _job_id: id, _status: status, _note: note }); toast.success("Moderasi disimpan"); refresh(); } catch (e) { toast.error(errMsg(e)); }
-  }
-  return (
-    <div className="space-y-3">
-      <div className="max-w-xs">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="pending">Menunggu moderasi</SelectItem><SelectItem value="approved">Disetujui</SelectItem><SelectItem value="rejected">Ditolak</SelectItem><SelectItem value="all">Semua</SelectItem></SelectContent>
-        </Select>
-      </div>
-      {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
-      {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
-      {q.data?.length === 0 && <EmptyState>Tidak ada lowongan pada filter ini.</EmptyState>}
-      <ul className="space-y-2">
-        {q.data?.map((j) => (
-          <li key={j.id} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link to="/lowongan/$id" params={{ id: j.id }} className="font-semibold hover:text-primary">{j.title}</Link>
-              <Pill tone={j.moderation_status === "rejected" ? "bad" : j.moderation_status === "pending" ? "warn" : "ok"}>{j.moderation_status ?? "approved"}</Pill>
-            </div>
-            <p className="text-xs text-muted-foreground">@{j.client?.username ?? "?"} · {j.category} · {j.status} · {timeAgo(j.created_at)}</p>
-            {j.moderation_note && <p className="mt-1 text-xs">Catatan: {j.moderation_note}</p>}
-            <div className="mt-2 flex gap-2">
-              {j.moderation_status !== "approved" && <Button size="sm" onClick={() => moderate(j.id, "approved")}>Setujui</Button>}
-              {j.moderation_status !== "rejected" && <Button size="sm" variant="outline" onClick={() => setAsk({ title: "Tolak lowongan", label: "Alasan penolakan (dilihat pemilik)", min: 3, confirm: "Tolak", onSubmit: async (t) => { await moderate(j.id, "rejected", t); } })}>Tolak</Button>}
-            </div>
-          </li>
-        ))}
-      </ul>
-      <ReasonDialog ask={ask} onClose={() => setAsk(null)} />
-    </div>
-  );
-}
 
 /* ---------- Kontrak ---------- */
 function ContractsTab() {
@@ -304,7 +255,7 @@ function ReportsTab() {
       return (data ?? []) as unknown as ReportRow[];
     },
   });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["work-admin-reports"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] }); };
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["work-admin-reports"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] }); qc.invalidateQueries({ queryKey: ["work-admin-jobs"] }); };
   async function setStatus(id: string, status: string, note = "") {
     try { await workRpc("work_admin_set_report", { _report_id: id, _status: status, _note: note }); toast.success("Laporan diperbarui"); refresh(); } catch (e) { toast.error(errMsg(e)); }
   }
