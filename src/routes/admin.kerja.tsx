@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContractPill, EmptyState, ErrorState, Pill, ReasonDialog, Stat, type Ask } from "@/components/work-ui";
+import { ApplicationsTab, AuditTab, DisputeDetail, PayoutsTab, TransactionsTab, UsersTab } from "@/components/admin-work-extra";
 
 export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
 
@@ -25,25 +26,35 @@ function AdminWork() {
     <div className="space-y-4">
       <header>
         <h2 className="text-xl font-bold">GOBI WORK</h2>
-        <p className="text-sm text-muted-foreground">Moderasi lowongan, kontrak, sengketa, laporan, rekonsiliasi, dan kategori. Semua aksi lewat fungsi database khusus admin dan tercatat di audit log.</p>
+        <p className="text-sm text-muted-foreground">Moderasi lowongan, kontrak, sengketa, laporan, transaksi, rekonsiliasi, kategori, dan audit log. Aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab pengguna, lamaran, transaksi, dan pencairan hanya untuk melihat.</p>
       </header>
       <Tabs defaultValue="ringkasan">
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+          <TabsTrigger value="pengguna">Pengguna</TabsTrigger>
           <TabsTrigger value="lowongan">Lowongan</TabsTrigger>
+          <TabsTrigger value="lamaran">Lamaran</TabsTrigger>
           <TabsTrigger value="kontrak">Kontrak</TabsTrigger>
+          <TabsTrigger value="transaksi">Transaksi</TabsTrigger>
+          <TabsTrigger value="pencairan">Pencairan</TabsTrigger>
           <TabsTrigger value="sengketa">Sengketa</TabsTrigger>
           <TabsTrigger value="laporan">Laporan</TabsTrigger>
           <TabsTrigger value="rekonsiliasi">Rekonsiliasi</TabsTrigger>
           <TabsTrigger value="kategori">Kategori</TabsTrigger>
+          <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
         <TabsContent value="ringkasan" className="mt-4"><Overview /></TabsContent>
+        <TabsContent value="pengguna" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="lowongan" className="mt-4"><JobsTab /></TabsContent>
+        <TabsContent value="lamaran" className="mt-4"><ApplicationsTab /></TabsContent>
         <TabsContent value="kontrak" className="mt-4"><ContractsTab /></TabsContent>
+        <TabsContent value="transaksi" className="mt-4"><TransactionsTab /></TabsContent>
+        <TabsContent value="pencairan" className="mt-4"><PayoutsTab /></TabsContent>
         <TabsContent value="sengketa" className="mt-4"><DisputesTab /></TabsContent>
         <TabsContent value="laporan" className="mt-4"><ReportsTab /></TabsContent>
         <TabsContent value="rekonsiliasi" className="mt-4"><ReconcileTab /></TabsContent>
         <TabsContent value="kategori" className="mt-4"><CategoriesTab /></TabsContent>
+        <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
       </Tabs>
     </div>
   );
@@ -215,6 +226,7 @@ function DisputesTab() {
     },
   });
   const [target, setTarget] = useState<DisputeAdmin | null>(null);
+  const [detail, setDetail] = useState<string | null>(null);
   const [decision, setDecision] = useState("favor_freelancer");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -242,12 +254,16 @@ function DisputesTab() {
               <Pill tone={d.status === "resolved" ? "ok" : "bad"}>{d.status === "resolved" ? "Diputuskan" : "Terbuka"}</Pill>
             </div>
             <p className="mt-1 whitespace-pre-wrap">{d.reason}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{timeAgo(d.created_at)} · buka kontrak untuk melihat bukti, riwayat, dan hasil kerja</p>
+            <p className="mt-1 text-xs text-muted-foreground">{timeAgo(d.created_at)}</p>
             {d.decision && <p className="mt-2 rounded-md bg-muted p-2"><b>{d.decision}</b>: {d.decision_note}</p>}
-            {d.status !== "resolved" && <Button size="sm" className="mt-2" onClick={() => setTarget(d)}>Putuskan</Button>}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setDetail(d.id)}>Bukti & riwayat</Button>
+              {d.status !== "resolved" && <Button size="sm" onClick={() => setTarget(d)}>Putuskan</Button>}
+            </div>
           </li>
         ))}
       </ul>
+      <DisputeDetail disputeId={detail} onClose={() => setDetail(null)} />
       <Dialog open={!!target} onOpenChange={(o) => !busy && !o && setTarget(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Putuskan sengketa</DialogTitle></DialogHeader>
