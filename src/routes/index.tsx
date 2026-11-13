@@ -48,12 +48,12 @@ export const Route = createFileRoute("/")({
   component: GobiHome,
 });
 
-const NAVY = "bg-[#0a1a45]";
-const ORANGE = "bg-[#ff8a00]";
+const NAVY = "bg-navy";
+const ORANGE = "bg-primary text-primary-foreground";
 // Lebar konten yang sama untuk header dan isi beranda, supaya tepi kiri/kanan selalu sejajar di desktop.
 const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
 // Gaya tautan "Lihat Semua" di kepala tiap bagian.
-const SEE_ALL = "flex shrink-0 items-center gap-1 text-sm font-bold text-[#1a73e8] hover:underline";
+const SEE_ALL = "flex shrink-0 items-center gap-1 text-sm font-bold text-link hover:underline";
 
 const MENU = [
   { to: "/gobifeed", label: "Linimasa", Icon: Newspaper, feature: "discuss" },
@@ -75,6 +75,7 @@ const MENU = [
  *  - bawah: Karya Terbaru sebagai kartu 2 kolom (8/12), Lowongan + Diskusi di kanan (4/12).
  * Karya Terbaru hanya tampil kalau fitur karya aktif. Repositori publik tetap ada di menu Proyek (/explore).
  * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
+ * Warna hanya dari palet GOBI (biru tua, oranye, abu-abu, putih) lewat token di styles.css, tanpa hex/slate hardcode.
  */
 function GobiHome() {
   const { user, profile } = useAuth();
@@ -115,7 +116,7 @@ function GobiHome() {
   const hasSide = on("jobs") || on("discuss");
 
   return (
-    <main className="min-h-screen bg-[#f4f7fc] pb-10 text-[#0b1a3f]">
+    <main className="min-h-screen bg-background pb-10 text-foreground">
       <GobiHeader on={on} />
       <div className={WRAP}>
         <h1 className="sr-only">GOBI — Komunitas Developer Indonesia</h1>
@@ -128,7 +129,7 @@ function GobiHome() {
           {showKarya && (
             <div className={hasSide ? "lg:col-span-8" : "lg:col-span-12"}>
               <Section
-                icon={<Package className="size-6 text-[#ff6a00]" />}
+                icon={<Package className="size-6 text-primary" />}
                 title="Karya Terbaru"
                 action={<Link to="/katalog" search={{ tab: "karya" }} className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
               >
@@ -147,7 +148,7 @@ function GobiHome() {
             <div className={showKarya ? "lg:col-span-4" : "lg:col-span-12"}>
               {on("jobs") && (
                 <Section
-                  icon={<Briefcase className="size-6 text-[#ff8a00]" />}
+                  icon={<Briefcase className="size-6 text-link" />}
                   title="Lowongan Freelance"
                   action={<Link to="/lowongan" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
                 >
@@ -161,20 +162,20 @@ function GobiHome() {
 
               {on("discuss") && (
                 <Section
-                  icon={<MessageCircle className="size-6 text-[#1a73e8]" fill="currentColor" />}
+                  icon={<MessageCircle className="size-6 text-primary" fill="currentColor" />}
                   title="Diskusi Hangat"
                   action={<Link to="/discuss" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
                 >
                   {hot.isLoading ? <Hint>Memuat…</Hint> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
                     <div className="space-y-2">
                       {hotList.map((p) => (
-                        <Link key={p.id} to="/discuss/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md">
+                        <Link key={p.id} to="/discuss/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md">
                           <AvatarMini name={p.author.username} url={p.author.avatar_url} size={44} />
                           <div className="min-w-0 flex-1">
                             <p className="line-clamp-1 font-extrabold">{(p.body.split("\n")[0] || "Post").slice(0, 90)}</p>
-                            <p className="truncate text-sm text-slate-500">oleh {p.author.display_name || p.author.username} · {timeAgo(p.created_at)}</p>
+                            <p className="truncate text-sm text-muted-foreground">oleh {p.author.display_name || p.author.username} · {timeAgo(p.created_at)}</p>
                           </div>
-                          <span className="flex shrink-0 items-center gap-1 text-sm text-slate-500"><MessageSquare className="size-5" />{p.reply_count}</span>
+                          <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground"><MessageSquare className="size-5" />{p.reply_count}</span>
                         </Link>
                       ))}
                     </div>
@@ -195,8 +196,8 @@ function GobiHome() {
                 <p className="text-lg font-extrabold">Impor dari GitHub</p>
                 <p className="text-sm text-white/80">Sinkronkan repositori Anda dengan mudah!</p>
               </div>
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#1d3f9e] lg:hidden"><ArrowRight className="size-6" /></span>
-              <span className={cn(ORANGE, "hidden shrink-0 items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white lg:inline-flex")}>Impor sekarang <ArrowRight className="size-4" /></span>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15 lg:hidden"><ArrowRight className="size-6" /></span>
+              <span className={cn(ORANGE, "hidden shrink-0 items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold lg:inline-flex")}>Impor sekarang <ArrowRight className="size-4" /></span>
             </Link>
           </div>
         )}
@@ -229,20 +230,20 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
   // Satu kotak pencarian, dua bentuk: pil lebar di bawah header (mobile sampai lg) dan pil ringkas di baris header (xl ke atas).
   const searchBox = (cls: string, compact: boolean) => (
     <form role="search" onSubmit={doSearch} className={cls}>
-      <Search className={compact ? "size-4 shrink-0 text-slate-500" : "size-6 shrink-0"} />
+      <Search className={compact ? "size-4 shrink-0 text-muted-foreground" : "size-6 shrink-0"} />
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={compact ? "Cari di GOBI…" : "Cari developer, proyek, karya, lowongan…"}
         aria-label="Kata kunci pencarian"
-        className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500", compact ? "text-sm" : "text-base")}
+        className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground", compact ? "text-sm" : "text-base")}
       />
     </form>
   );
 
   return (
-    <header className="relative overflow-hidden rounded-b-[2rem] bg-gradient-to-b from-[#071336] to-[#0d2a6b] pb-16 pt-4 text-white xl:pb-20">
-      <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-[#ff8a00]/30 blur-2xl" />
+    <header className="relative overflow-hidden rounded-b-[2rem] bg-header-gradient pb-16 pt-4 text-white xl:pb-20">
+      <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-primary/30 blur-2xl" />
       <div className={cn("relative", WRAP)}>
         <div className="flex items-center gap-3">
           <Sheet open={open} onOpenChange={setOpen}>
@@ -273,13 +274,13 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
             {menu.map((m) => <Link key={m.to} to={m.to} className={navLink}><m.Icon className="size-4 opacity-80" />{m.label}</Link>)}
           </nav>
 
-          {searchBox("hidden h-10 w-56 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-[#0b1a3f] shadow-sm xl:flex", true)}
+          {searchBox("hidden h-10 w-56 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-navy shadow-sm xl:flex", true)}
 
           <div className="flex items-center gap-3">
             {signedIn && on("discuss") && (
               <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative flex size-11 items-center justify-center rounded-full hover:bg-white/10">
                 <Bell className="size-7 lg:size-6" />
-                {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold leading-5">{unread.data > 99 ? "99+" : unread.data}</span>}
+                {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-primary px-1 text-center text-xs font-bold leading-5 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
               </Link>
             )}
             {signedIn ? (
@@ -304,12 +305,12 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/auth" className={cn(ORANGE, "inline-flex h-11 items-center rounded-full px-5 text-sm font-bold text-white lg:h-10")}>Masuk</Link>
+              <Link to="/auth" className={cn(ORANGE, "inline-flex h-11 items-center rounded-full px-5 text-sm font-bold lg:h-10")}>Masuk</Link>
             )}
           </div>
         </div>
 
-        {searchBox("relative mx-auto mt-4 flex max-w-3xl items-center gap-3 rounded-full bg-white px-5 py-3 text-[#0b1a3f] shadow-lg ring-4 ring-white/30 lg:mt-5 xl:hidden", false)}
+        {searchBox("relative mx-auto mt-4 flex max-w-3xl items-center gap-3 rounded-full bg-white px-5 py-3 text-navy shadow-lg ring-4 ring-white/30 lg:mt-5 xl:hidden", false)}
       </div>
     </header>
   );
@@ -361,7 +362,7 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
         if (Math.abs(dx) > 40) go(idx + (dx < 0 ? 1 : -1));
       }}
     >
-      <div className="relative aspect-video overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1a45] to-[#112b6e] shadow-xl ring-1 ring-white/10">
+      <div className="relative aspect-video overflow-hidden rounded-3xl bg-gradient-to-br from-navy to-navy-mid shadow-xl ring-1 ring-white/10">
         {slides.map((s, n) => (
           <Link
             key={s.src}
@@ -390,7 +391,7 @@ function HeroBanner({ signedIn, on }: { signedIn: boolean; on: (k: FeatureKey) =
           <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 backdrop-blur">
             {slides.map((s, n) => (
               <button key={s.src} type="button" aria-label={`Slide ${n + 1}`} aria-current={n === idx} onClick={() => go(n)} className="p-1">
-                <span className={cn("block h-2 rounded-full transition-all", n === idx ? "w-5 bg-[#ff9f1a]" : "w-2 bg-white/70")} />
+                <span className={cn("block h-2 rounded-full transition-all", n === idx ? "w-5 bg-primary" : "w-2 bg-white/70")} />
               </button>
             ))}
           </div>
@@ -406,34 +407,35 @@ function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
   // Mobile: 4 kotak (ikon bulat di atas, teks di bawah).
   // Desktop: daftar 4 baris di samping banner, tingginya mengikuti banner. Tiap baris = ikon kotak 48px + judul + keterangan + panah,
   // jadi ikon dan teks seimbang (tidak ada kotak besar berisi ikon kecil).
-  const tile = "group flex flex-col items-center gap-2 rounded-2xl bg-white px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:flex-row lg:gap-4 lg:px-5 lg:py-3 lg:text-base";
-  const dot = "flex size-14 shrink-0 items-center justify-center rounded-full lg:size-12 lg:rounded-xl";
+  // Semua ikon seragam: lingkaran/kotak biru tua dengan ikon oranye.
+  const tile = "group flex flex-col items-center gap-2 rounded-2xl bg-card px-1 py-3 text-sm font-bold shadow-sm ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-md active:scale-95 lg:flex-row lg:gap-4 lg:px-5 lg:py-3 lg:text-base";
+  const dot = "flex size-14 shrink-0 items-center justify-center rounded-full bg-navy text-primary lg:size-12 lg:rounded-xl";
   const icon = "size-8 lg:size-6";
   const text = "lg:min-w-0 lg:flex-1";
-  const desc = "hidden truncate text-sm font-medium text-slate-500 lg:block";
-  const arrow = <ChevronRight className="hidden size-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#1a73e8] lg:block" />;
+  const desc = "hidden truncate text-sm font-medium text-muted-foreground lg:block";
+  const arrow = <ChevronRight className="hidden size-5 shrink-0 text-grey-500 transition group-hover:translate-x-0.5 group-hover:text-primary lg:block" />;
   return (
     <nav aria-label="Menu cepat" className="grid grid-cols-4 gap-2.5 pt-5 lg:col-span-4 lg:auto-rows-fr lg:grid-cols-1 lg:gap-3 lg:pt-0">
       <Link to="/search" search={{ q: "", type: "users" }} className={tile}>
-        <span className={cn(dot, "bg-[#e3f0ff] text-[#1a73e8]")}><Code className={icon} strokeWidth={2.6} /></span>
+        <span className={dot}><Code className={icon} strokeWidth={2.6} /></span>
         <span className={text}><span className="block lg:truncate">Developer</span><span className={desc}>Temukan talenta terbaik</span></span>
         {arrow}
       </Link>
       <Link to="/explore" className={tile}>
-        <span className={cn(dot, "bg-[#e2f6ea] text-[#12924a]")}><FolderOpen className={icon} fill="currentColor" /></span>
+        <span className={dot}><FolderOpen className={icon} fill="currentColor" /></span>
         <span className={text}><span className="block lg:truncate">Proyek</span><span className={desc}>Jelajahi repositori publik</span></span>
         {arrow}
       </Link>
       {on("jobs") && (
         <Link to="/lowongan" className={tile}>
-          <span className={cn(dot, "bg-[#ffeedd] text-[#ff7a00]")}><Briefcase className={icon} fill="currentColor" /></span>
+          <span className={dot}><Briefcase className={icon} fill="currentColor" /></span>
           <span className={text}><span className="block lg:truncate">Lowongan</span><span className={desc}>Ambil proyek freelance</span></span>
           {arrow}
         </Link>
       )}
       {on("discuss") && (
         <Link to="/discuss" className={tile}>
-          <span className={cn(dot, "bg-[#e3ecff] text-[#2563eb]")}><MessageCircle className={icon} fill="currentColor" /></span>
+          <span className={dot}><MessageCircle className={icon} fill="currentColor" /></span>
           <span className={text}><span className="block lg:truncate">Diskusi</span><span className={desc}>Tanya jawab dan berbagi ilmu</span></span>
           {arrow}
         </Link>
@@ -457,7 +459,7 @@ function Section({ icon, title, action, children }: { icon: ReactNode; title: st
 }
 
 function Hint({ children }: { children: ReactNode }) {
-  return <p className="rounded-2xl bg-white p-5 text-center text-sm text-slate-500 shadow-sm ring-1 ring-black/5">{children}</p>;
+  return <p className="rounded-2xl bg-card p-5 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border">{children}</p>;
 }
 
 /**
@@ -468,7 +470,7 @@ function Hint({ children }: { children: ReactNode }) {
 function JobItem({ j }: { j: JobCardData }) {
   const client = j.client?.display_name || j.client?.username || "Client";
   return (
-    <Link to="/lowongan/$id" params={{ id: j.id }} className="group flex items-start gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md">
+    <Link to="/lowongan/$id" params={{ id: j.id }} className="group flex items-start gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md">
       <img
         src={jobImage}
         alt=""
@@ -476,14 +478,14 @@ function JobItem({ j }: { j: JobCardData }) {
         height={112}
         loading="lazy"
         draggable={false}
-        className="size-24 shrink-0 select-none rounded-xl bg-[#0a1a45] object-cover sm:size-28 lg:size-20"
+        className="size-24 shrink-0 select-none rounded-xl bg-navy object-cover sm:size-28 lg:size-20"
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[11px] font-bold uppercase tracking-wide text-[#e67700]">{categoryLabel(j.category)}</span>
+        <span className="truncate text-[11px] font-bold uppercase tracking-wide text-orange-ink">{categoryLabel(j.category)}</span>
         <h3 className="mt-0.5 line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg lg:text-base">{j.title}</h3>
-        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-slate-600"><Building2 className="size-4 shrink-0" /><span className="truncate">{client}</span></p>
-        <p className="mt-0.5 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-slate-700"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p>
-        <span className="mt-2 inline-flex items-center gap-1 self-start rounded-full bg-[#fff1dc] px-4 py-1.5 text-sm font-bold text-[#e67700] transition group-hover:bg-[#ffe3bd] sm:self-end">Lihat Detail <ArrowRight className="size-4" /></span>
+        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"><Building2 className="size-4 shrink-0" /><span className="truncate">{client}</span></p>
+        <p className="mt-0.5 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-foreground/80"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p>
+        <span className="mt-2 inline-flex items-center gap-1 self-start rounded-full bg-primary/15 px-4 py-1.5 text-sm font-bold text-orange-ink transition group-hover:bg-primary/25 sm:self-end">Lihat Detail <ArrowRight className="size-4" /></span>
       </div>
     </Link>
   );
@@ -496,29 +498,29 @@ function JobItem({ j }: { j: JobCardData }) {
  * Tanpa sampul, dipakai latar gradasi oranye dengan ikon paket.
  */
 function ProductItem({ p }: { p: ProductCardData }) {
-  const card = "flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md lg:h-full lg:flex-col lg:items-stretch lg:gap-3 lg:p-4 lg:hover:-translate-y-0.5";
+  const card = "flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md lg:h-full lg:flex-col lg:items-stretch lg:gap-3 lg:p-4 lg:hover:-translate-y-0.5";
   return (
     <Link to="/karya/$id" params={{ id: p.id }} className={card}>
-      <div className="flex h-24 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#ffb340] to-[#ff6a00] sm:h-28 sm:w-40 lg:aspect-video lg:h-auto lg:w-full">
+      <div className="flex h-24 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-glow to-primary sm:h-28 sm:w-40 lg:aspect-video lg:h-auto lg:w-full">
         {p.cover_url
           ? <img src={p.cover_url} alt="" loading="lazy" draggable={false} className="size-full select-none object-cover" />
-          : <Package className="size-10 text-white/90 sm:size-12" strokeWidth={2.2} />}
+          : <Package className="size-10 text-navy/80 sm:size-12" strokeWidth={2.2} />}
       </div>
       <div className="min-w-0 flex-1 lg:flex-none">
         <h3 className="line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg lg:text-base">{p.title}</h3>
-        {p.summary && <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.summary}</p>}
+        {p.summary && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.summary}</p>}
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-          <span className={cn("rounded-full px-3 py-0.5 text-xs font-bold", p.price ? "bg-[#fff1dc] text-[#e67700]" : "bg-[#e2f6ea] text-[#12924a]")}>{formatRupiah(p.price)}</span>
-          <span className="max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{categoryLabel(p.category)}</span>
+          <span className={cn("rounded-full px-3 py-0.5 text-xs font-bold", p.price ? "bg-primary/15 text-orange-ink" : "bg-navy/10 text-navy")}>{formatRupiah(p.price)}</span>
+          <span className="max-w-full truncate rounded-full bg-secondary px-3 py-0.5 text-xs font-bold text-link">{categoryLabel(p.category)}</span>
         </div>
         {p.owner && (
-          <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-slate-600">
+          <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
             <AvatarMini name={p.owner.username} url={p.owner.avatar_url} size={20} />
             <span className="truncate">{p.owner.display_name || p.owner.username}</span>
           </p>
         )}
       </div>
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e7ecf6] lg:hidden"><ArrowRight className="size-5" /></span>
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary lg:hidden"><ArrowRight className="size-5" /></span>
     </Link>
   );
 }
