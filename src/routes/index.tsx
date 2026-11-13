@@ -239,7 +239,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
             <SheetTrigger asChild>
               <button type="button" aria-label="Buka menu" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10 lg:hidden"><Menu className="size-7" /></button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 bg-header">
+            <SheetContent side="left" className="w-72 bg-card">
               <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> GOBI</SheetTitle></SheetHeader>
               <nav className="mt-4 flex flex-col gap-1">
                 <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className={item}><Users className="size-4 text-primary" />Talenta</Link>
