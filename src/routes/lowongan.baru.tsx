@@ -94,8 +94,9 @@ function NewJob() {
     const errs = validateJobForm(v);
     if (Object.keys(errs).length > 0) { setErrors(errs); setStep("edit"); return; }
     setBusy(true);
+    // Lowongan baru selalu ditinjau admin dulu. Database (SQL 005) memaksa 'pending' untuk akun biasa, jadi nilai ini bukan penentu.
     const { data, error } = await looseDb.from("jobs").insert({
-      client_id: user!.id, title: v.title.trim(), description: v.description.trim(), category: v.category, skills: v.skills,
+      client_id: user!.id, moderation_status: "pending", title: v.title.trim(), description: v.description.trim(), category: v.category, skills: v.skills,
       budget_min: v.min, budget_max: v.max, deadline: v.deadline || null,
       job_type: v.jobType, work_mode: v.workMode, location: v.location.trim() || null, experience_level: v.experience,
       payment_type: v.paymentType, positions: v.positions, requirements: v.requirements.trim() || null,
@@ -103,10 +104,10 @@ function NewJob() {
     setBusy(false);
     if (error || !data) {
       if (error?.code === "42703") toast.error("Skema GOBI WORK belum aktif di database. Jalankan docs/sql/gobi-work/001_gobi_work_core.sql lewat Lovable.");
-      else toast.error(error ? errMsg(error) : "Gagal memasang lowongan.");
+      else toast.error(error ? errMsg(error) : "Gagal mengirim lowongan.");
       return;
     }
-    toast.success("Lowongan dipasang. Developer sudah bisa melamar.");
+    toast.success("Lowongan dikirim dan menunggu peninjauan admin. Setelah disetujui, lowongan tampil dan developer bisa melamar.", { duration: 8000 });
     navigate({ to: "/lowongan/$id", params: { id: String(data.id) } });
   }
 
@@ -121,7 +122,7 @@ function NewJob() {
     ];
     return (
       <main className="mx-auto max-w-2xl px-4 py-8">
-        <p className="text-xs font-medium uppercase tracking-wide text-primary">Pratinjau — belum dipublikasikan</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-primary">Pratinjau — belum dikirim</p>
         <h1 className="mt-1 text-2xl font-bold leading-tight">{v.title.trim()}</h1>
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           {facts.map(([k, val]) => <div key={k} className="rounded-lg bg-secondary/60 p-3"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="font-semibold">{val}</dd></div>)}
@@ -130,9 +131,10 @@ function NewJob() {
         <section className="mt-4 rounded-xl border border-border bg-card p-5"><Markdown>{v.description.trim()}</Markdown></section>
         {v.requirements.trim() && <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h2><Markdown>{v.requirements.trim()}</Markdown></section>}
         {v.jobType === "internship" && <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Lowongan magang: pastikan pelamar memenuhi batas usia dan ketentuan hukum setempat. Pastodev tidak memfasilitasi pekerjaan yang melanggar kebijakan platform.</p>}
+        <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Setelah dikirim, admin meninjau lowongan ini dulu. Lowongan baru tampil di daftar dan bisa dilamar setelah disetujui; kamu bisa melihat statusnya di dashboard.</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant="outline" disabled={busy} onClick={() => setStep("edit")}><ArrowLeft /> Ubah</Button>
-          <Button disabled={busy} onClick={publish}>{busy ? <Loader2 className="animate-spin" /> : <Send />} Publikasikan</Button>
+          <Button disabled={busy} onClick={publish}>{busy ? <Loader2 className="animate-spin" /> : <Send />} Kirim untuk ditinjau</Button>
         </div>
       </main>
     );
@@ -141,7 +143,7 @@ function NewJob() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold">Pasang lowongan</h1>
-      <p className="text-sm text-muted-foreground">Jelaskan kebutuhanmu sejelas mungkin supaya developer bisa memberi penawaran yang pas.</p>
+      <p className="text-sm text-muted-foreground">Jelaskan kebutuhanmu sejelas mungkin supaya developer bisa memberi penawaran yang pas. Lowongan ditinjau admin dulu sebelum tampil.</p>
       <form onSubmit={toPreview} className="mt-6 space-y-4 rounded-xl border border-border bg-card p-5" noValidate>
         <div><Label htmlFor="t">Judul pekerjaan</Label><Input id="t" maxLength={120} value={f.title} onChange={(e) => up({ title: e.target.value })} placeholder="Contoh: Website toko online untuk UMKM batik" /><Err m={errors.title} /></div>
         <div><Label htmlFor="d">Deskripsi lengkap</Label><Textarea id="d" rows={8} maxLength={8000} value={f.description} onChange={(e) => up({ description: e.target.value })} placeholder="Fitur yang dibutuhkan, contoh referensi, teknologi yang diinginkan… (mendukung Markdown)" /><Err m={errors.description} /></div>
@@ -157,7 +159,7 @@ function NewJob() {
           <div className="sm:col-span-2"><Label htmlFor="lc">Lokasi{f.workMode === "remote" ? " (opsional)" : ""}</Label><Input id="lc" maxLength={100} value={f.location} onChange={(e) => up({ location: e.target.value })} placeholder="Kota atau provinsi" /><Err m={errors.location} /></div>
           <div><Label htmlFor="pt">Sistem pembayaran</Label>
             <select id="pt" value={f.paymentType} onChange={(e) => up({ paymentType: e.target.value })} className={SELECT_CLS}>{PAYMENT_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select><Err m={errors.paymentType} /></div>
-          <div><Label htmlFor="ps">Jumlah freelancer</Label><Input id="ps" type="number" min={1} max={100} value={f.positions} onChange={(e) => up({ positions: e.target.value })} /><Err m={errors.positions} /></div>
+          <div><Label htmlFor="ps">Jumlah freelancer</Label><Input id="ps" type="number" min={1} max={100} value={f.positions} onChange={(e) => up({ positions: e.target.value })} /><p className="mt-1 text-xs text-muted-foreground">Lowongan tetap dibuka sampai semua posisi terisi.</p><Err m={errors.positions} /></div>
           <div><Label htmlFor="mn">{f.paymentType === "hourly" ? "Tarif minimum per jam (Rp)" : "Budget minimum (Rp)"}</Label><Input id="mn" type="number" min={0} step={1000} inputMode="numeric" value={f.min} onChange={(e) => up({ min: e.target.value })} placeholder="500000" /></div>
           <div><Label htmlFor="mx">{f.paymentType === "hourly" ? "Tarif maksimum per jam (Rp)" : "Budget maksimum (Rp)"}</Label><Input id="mx" type="number" min={0} step={1000} inputMode="numeric" value={f.max} onChange={(e) => up({ max: e.target.value })} placeholder="2000000" /></div>
           <div className="sm:col-span-2"><Err m={errors.budget} /></div>
