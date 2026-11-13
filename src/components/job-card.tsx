@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarClock, Users } from "lucide-react";
+import { BadgeCheck, CalendarClock, Users } from "lucide-react";
 import { timeAgo } from "@/lib/auth";
-import { categoryLabel } from "@/lib/market";
-import { APPLICATION_STATUS_LABEL, JOB_STATUS_LABEL, budgetLabel, type ApplicationStatus, type JobCardData, type JobStatus } from "@/lib/jobs";
+import {
+  APPLICATION_STATUS_LABEL, JOB_STATUS_LABEL, budgetLabel, jobCategoryLabel, jobTypeLabel, workModeLabel,
+  type ApplicationStatus, type JobCardData, type JobStatus,
+} from "@/lib/jobs";
 import { AvatarMini } from "@/components/avatar-mini";
 import { cn } from "@/lib/utils";
 
@@ -26,15 +28,22 @@ export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }
 }
 
 export function JobCard({ j, compact = false }: { j: JobCardData; compact?: boolean }) {
+  // Kolom GOBI WORK bersifat opsional: kartu lama (tanpa kolom itu) tampil seperti sebelumnya.
+  const meta = [j.job_type ? jobTypeLabel(j.job_type) : "", j.work_mode ? workModeLabel(j.work_mode) : "", j.location ?? ""].filter(Boolean);
   return (
     <Link to="/lowongan/$id" params={{ id: j.id }} className="group block rounded-xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-glow">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">{categoryLabel(j.category)}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">{jobCategoryLabel(j.category)}</p>
           <h3 className="mt-1 line-clamp-2 font-semibold leading-snug group-hover:text-primary">{j.title}</h3>
         </div>
         <JobStatusBadge status={j.status} />
       </div>
+      {meta.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+          {meta.map((m) => <span key={m} className="rounded-full border border-border px-2 py-0.5 text-muted-foreground">{m}</span>)}
+        </div>
+      )}
       {!compact && j.description && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{j.description}</p>}
       {j.skills.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -42,7 +51,7 @@ export function JobCard({ j, compact = false }: { j: JobCardData; compact?: bool
         </div>
       )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground">{budgetLabel(j.budget_min, j.budget_max)}</span>
+        <span className="font-semibold text-foreground">{budgetLabel(j.budget_min, j.budget_max)}{j.payment_type === "hourly" ? " /jam" : ""}</span>
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1"><Users className="size-3.5" />{j.applications_count} pelamar</span>
           {j.deadline && <span className="hidden items-center gap-1 sm:flex"><CalendarClock className="size-3.5" />{new Date(j.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>}
@@ -51,7 +60,9 @@ export function JobCard({ j, compact = false }: { j: JobCardData; compact?: bool
       {j.client && (
         <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <AvatarMini name={j.client.username} url={j.client.avatar_url} size={16} />
-          {j.client.display_name || j.client.username} · {timeAgo(j.created_at)}
+          {j.client.display_name || j.client.username}
+          {j.client.is_verified && <BadgeCheck className="size-3.5 text-link" aria-label="Terverifikasi" />}
+          {" · "}{timeAgo(j.created_at)}
         </p>
       )}
     </Link>
