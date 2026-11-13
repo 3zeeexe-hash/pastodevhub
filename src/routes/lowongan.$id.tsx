@@ -6,8 +6,8 @@ import { ArrowLeft, CalendarClock, Check, CreditCard, Loader2, MessageSquare, Se
 import { supabase } from "@/integrations/supabase/client";
 import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
-import { categoryLabel, errMsg, formatRupiah } from "@/lib/market";
-import { JOB_SELECT, budgetLabel, canApply, canRespond, type ApplicationStatus, type JobCardData } from "@/lib/jobs";
+import { errMsg, formatRupiah } from "@/lib/market";
+import { JOB_SELECT, budgetLabel, canApply, canRespond, jobCategoryLabel, type ApplicationStatus, type JobCardData } from "@/lib/jobs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/job-card";
+import { JobExtras } from "@/components/job-extras";
 import { ApplicationThread } from "@/components/application-thread";
 import { getSeoInfo } from "@/lib/seo.functions";
 import { seoHead } from "@/lib/seo";
@@ -68,7 +69,7 @@ function JobDetail() {
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
         <article className="min-w-0 space-y-5">
           <header className="rounded-xl border border-border bg-card p-5">
-            <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-medium uppercase tracking-wide text-primary">{categoryLabel(j.category)}</span><JobStatusBadge status={j.status} /></div>
+            <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-medium uppercase tracking-wide text-primary">{jobCategoryLabel(j.category)}</span><JobStatusBadge status={j.status} /></div>
             <h1 className="mt-2 text-2xl font-bold leading-tight md:text-3xl">{j.title}</h1>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <div className="rounded-lg bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Anggaran</p><p className="font-semibold">{budgetLabel(j.budget_min, j.budget_max)}</p></div>
@@ -81,6 +82,7 @@ function JobDetail() {
             <h2 className="mb-3 font-semibold">Deskripsi proyek</h2>
             {j.description ? <Markdown>{j.description}</Markdown> : <p className="text-sm text-muted-foreground">Tidak ada deskripsi.</p>}
           </section>
+          <JobExtras jobId={j.id} />
 
           {isOwner && (
             <section className="space-y-3">
