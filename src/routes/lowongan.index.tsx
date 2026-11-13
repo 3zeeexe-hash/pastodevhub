@@ -11,6 +11,8 @@ import { fetchJobs } from "@/lib/jobs-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/job-card";
+import { GobiLoader } from "@/components/gobi-loader";
+import { WorkNav } from "@/components/work-nav";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/lowongan/")({
@@ -93,6 +95,7 @@ function JobsPage() {
       <div className={cn("relative z-10 -mt-12", WRAP)}>
         {/* Kartu pencarian + filter, menimpa header seperti kotak pencarian di beranda. */}
         <div className="rounded-3xl bg-card p-3 shadow-lg ring-1 ring-border sm:p-4">
+          <WorkNav className="mb-3" />
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -180,9 +183,7 @@ function JobsPage() {
               <Button className="mt-3 rounded-full" variant="outline" onClick={() => refetch()}>Coba lagi</Button>
             </div>
           ) : isLoading ? (
-            <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3" aria-busy="true">
-              {Array.from({ length: 6 }, (_, i) => <div key={i} className="h-52 animate-pulse rounded-2xl bg-card ring-1 ring-border" />)}
-            </div>
+            <div className="rounded-2xl bg-card shadow-sm ring-1 ring-border"><GobiLoader /></div>
           ) : rows.length === 0 ? (
             <div className="rounded-2xl bg-card p-10 text-center shadow-sm ring-1 ring-border">
               <Briefcase className="mx-auto size-8 text-muted-foreground" />
