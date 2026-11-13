@@ -171,8 +171,8 @@ function RootComponent() {
           // The admin dashboard has its own full-screen shell with a sidebar.
           <div className="min-h-screen bg-background font-sans"><Outlet /></div>
         ) : (
-          // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile (lg ke atas tidak punya menu bawah).
-          <div className={cn("flex min-h-screen flex-col bg-background font-sans text-foreground", repoPage && "dark", navVisible && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
+          // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile mengambang (pil 3,5rem + jarak 0,5rem; lg ke atas tidak punya menu bawah).
+          <div className={cn("flex min-h-screen flex-col bg-background font-sans text-foreground", repoPage && "dark", navVisible && "pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0")}>
             {!homePage && <SiteHeader />}
             <AnnouncementBar />
             <div className="flex-1">
