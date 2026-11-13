@@ -50,6 +50,13 @@
       "when": 1794467866000,
       "tag": "0006_midtrans_escrow",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794541939272,
+      "tag": "0007_feed_stories",
+      "breakpoints": true
     }
   ]
 }

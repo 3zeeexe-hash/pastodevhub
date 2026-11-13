@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronRight, Code, Megaphone, Plus, Send, X } from "lucide-react";
+import { ArrowRight, ChevronRight, Code, Megaphone, Send, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
 import { SignInCta } from "@/components/sign-in-cta";
 import { Composer } from "@/components/feed/composer";
+import { CreateStoryTile, StoryBubble, StoryViewer, useStoryGroups } from "@/components/feed/stories";
+import type { StoryGroup } from "@/lib/stories";
 import type { HomeData } from "@/components/home/use-home-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -53,57 +55,46 @@ export function ComposerBar() {
 }
 
 /**
- * Baris avatar di atas linimasa. Isinya talenta (cincin oranye = siap menerima proyek), dan tile pertama membuka kotak tulis.
- * Belum ada fitur Cerita sungguhan, jadi tile pertama dinamai "Buat Post".
+ * Baris story di atas linimasa: tile "Buat Story", lalu story aktif (hilang setelah 24 jam), lalu talenta
+ * (cincin oranye = siap menerima proyek) supaya baris tidak kosong saat belum ada story.
  */
 export function StoryRow({ data }: { data: HomeData }) {
-  const { user, profile } = useAuth();
-  const [composeOpen, setComposeOpen] = useState(false);
   const scroller = useRef<HTMLUListElement>(null);
-  const devs = data.devs.data ?? [];
-  const signedIn = !!user && !!profile;
-
-  const createTile = (
-    <>
-      <span className="flex size-[66px] items-center justify-center rounded-full border border-border bg-card/70 text-foreground transition group-hover:border-primary/60">
-        <Plus className="size-6" />
-      </span>
-      <span className="w-16 truncate text-center text-xs">Buat Post</span>
-    </>
-  );
+  const stories = useStoryGroups();
+  const [viewing, setViewing] = useState<{ groups: StoryGroup[]; index: number } | null>(null);
+  const groups = stories.data ?? [];
+  const withStory = new Set(groups.map((g) => g.author.username));
+  const devs = (data.devs.data ?? []).filter((d) => !withStory.has(d.username));
 
   return (
-    <section aria-label="Talenta" className="relative">
+    <section aria-label="Story" className="relative">
       <ul ref={scroller} className="flex gap-4 overflow-x-auto px-4 py-3 pr-16 [scrollbar-width:none]">
-        <li className="shrink-0">
-          {signedIn ? (
-            <button type="button" onClick={() => setComposeOpen(true)} className="group flex w-16 flex-col items-center gap-1.5">{createTile}</button>
-          ) : (
-            <Link to="/auth" className="group flex w-16 flex-col items-center gap-1.5">{createTile}</Link>
-          )}
-        </li>
+        <li className="shrink-0"><CreateStoryTile /></li>
+        {groups.map((g, n) => (
+          <li key={g.authorId} className="shrink-0"><StoryBubble group={g} onOpen={() => setViewing({ groups, index: n })} /></li>
+        ))}
         {devs.map((d) => (
           <li key={d.username} className="shrink-0">
             <Link to="/$username" params={{ username: d.username }} className="flex w-16 flex-col items-center gap-1.5">
-              <span className={cn("rounded-full p-[3px]", d.available_for_hire ? "bg-gradient-to-tr from-primary to-amber-400" : "bg-border")}>
+              <span className={cn("rounded-full p-[3px]", d.available_for_hire ? "bg-sun opacity-70" : "bg-border")}>
                 <span className="block rounded-full bg-background p-0.5"><AvatarMini name={d.username} url={d.avatar_url} size={56} /></span>
               </span>
-              <span className="w-full truncate text-center text-xs">{d.display_name || d.username}</span>
+              <span className="w-full truncate text-center text-xs text-muted-foreground">{d.display_name || d.username}</span>
             </Link>
           </li>
         ))}
       </ul>
-      {devs.length > 3 && (
+      {groups.length + devs.length > 3 && (
         <button
           type="button"
           aria-label="Geser ke kanan"
           onClick={() => scroller.current?.scrollBy({ left: 240, behavior: "smooth" })}
-          className="absolute right-3 top-8 flex size-9 items-center justify-center rounded-full bg-card/90 text-foreground shadow ring-1 ring-border transition hover:bg-accent"
+          className="absolute right-3 top-8 hidden size-9 items-center justify-center rounded-full bg-card text-foreground shadow ring-1 ring-border transition hover:bg-accent sm:flex"
         >
           <ChevronRight className="size-5" />
         </button>
       )}
-      {signedIn && <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />}
+      {viewing && <StoryViewer groups={viewing.groups} startIndex={viewing.index} onClose={() => setViewing(null)} />}
     </section>
   );
 }

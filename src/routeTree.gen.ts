@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as GobifeedRouteImport } from './routes/gobifeed'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as KatalogRouteImport } from './routes/katalog'
 import { Route as NewRouteImport } from './routes/new'
@@ -25,6 +26,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapChar123nameChar125DotxmlRouteImport } from './routes/sitemap-{$name}[.]xml'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as VerifikasiRouteImport } from './routes/verifikasi'
 import { Route as UsernameRepoRouteImport } from './routes/$username_.$repo'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEscrowRouteImport } from './routes/admin.escrow'
@@ -117,6 +119,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GobifeedRoute = GobifeedRouteImport.update({
+  id: '/gobifeed',
+  path: '/gobifeed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImportRoute = ImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -166,6 +173,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifikasiRoute = VerifikasiRouteImport.update({
+  id: '/verifikasi',
+  path: '/verifikasi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsernameRepoRoute = UsernameRepoRouteImport.update({
@@ -482,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
+  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
@@ -492,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
+  '/verifikasi': typeof VerifikasiRoute
   '/$username/$repo': typeof UsernameRepoRouteWithChildren
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
@@ -560,6 +574,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
+  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
@@ -569,6 +584,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/verifikasi': typeof VerifikasiRoute
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
@@ -638,6 +654,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
+  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
@@ -648,6 +665,7 @@ export interface FileRoutesById {
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
+  '/verifikasi': typeof VerifikasiRoute
   '/$username_/$repo': typeof UsernameRepoRouteWithChildren
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
@@ -719,6 +737,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
+    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/new'
@@ -729,6 +748,7 @@ export interface FileRouteTypes {
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
     | '/studio'
+    | '/verifikasi'
     | '/$username/$repo'
     | '/admin/escrow'
     | '/admin/fitur'
@@ -797,6 +817,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
+    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/new'
@@ -806,6 +827,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
+    | '/verifikasi'
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
@@ -874,6 +896,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
+    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/new'
@@ -884,6 +907,7 @@ export interface FileRouteTypes {
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
     | '/studio'
+    | '/verifikasi'
     | '/$username_/$repo'
     | '/admin/escrow'
     | '/admin/fitur'
@@ -954,6 +978,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
+  GobifeedRoute: typeof GobifeedRoute
   ImportRoute: typeof ImportRoute
   KatalogRoute: typeof KatalogRoute
   NewRoute: typeof NewRoute
@@ -964,6 +989,7 @@ export interface RootRouteChildren {
   SitemapChar123nameChar125DotxmlRoute: typeof SitemapChar123nameChar125DotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StudioRoute: typeof StudioRouteWithChildren
+  VerifikasiRoute: typeof VerifikasiRoute
   UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
   DiscussIdRoute: typeof DiscussIdRoute
   DiscussNotifikasiRoute: typeof DiscussNotifikasiRoute
@@ -1029,6 +1055,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed': {
+      id: '/gobifeed'
+      path: '/gobifeed'
+      fullPath: '/gobifeed'
+      preLoaderRoute: typeof GobifeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -1099,6 +1132,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verifikasi': {
+      id: '/verifikasi'
+      path: '/verifikasi'
+      fullPath: '/verifikasi'
+      preLoaderRoute: typeof VerifikasiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$username_/$repo': {
@@ -1655,6 +1695,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
+  GobifeedRoute: GobifeedRoute,
   ImportRoute: ImportRoute,
   KatalogRoute: KatalogRoute,
   NewRoute: NewRoute,
@@ -1665,6 +1706,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapChar123nameChar125DotxmlRoute: SitemapChar123nameChar125DotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StudioRoute: StudioRouteWithChildren,
+  VerifikasiRoute: VerifikasiRoute,
   UsernameRepoRoute: UsernameRepoRouteWithChildren,
   DiscussIdRoute: DiscussIdRoute,
   DiscussNotifikasiRoute: DiscussNotifikasiRoute,

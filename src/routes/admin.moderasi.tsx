@@ -18,7 +18,7 @@ export const Route = createFileRoute("/admin/moderasi")({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+type Row = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 type Kind = {
   key: string;
