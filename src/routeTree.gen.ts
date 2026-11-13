@@ -18,6 +18,7 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as GobifeedRouteImport } from './routes/gobifeed'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as KatalogRouteImport } from './routes/katalog'
+import { Route as KerjaRouteImport } from './routes/kerja'
 import { Route as NewRouteImport } from './routes/new'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -32,6 +33,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEscrowRouteImport } from './routes/admin.escrow'
 import { Route as AdminFiturRouteImport } from './routes/admin.fitur'
 import { Route as AdminIntegrasiRouteImport } from './routes/admin.integrasi'
+import { Route as AdminKerjaRouteImport } from './routes/admin.kerja'
 import { Route as AdminLaporanRouteImport } from './routes/admin.laporan'
 import { Route as AdminMidtransRouteImport } from './routes/admin.midtrans'
 import { Route as AdminModerasiRouteImport } from './routes/admin.moderasi'
@@ -49,6 +51,11 @@ import { Route as JasaIndexRouteImport } from './routes/jasa.index'
 import { Route as JasaIdRouteImport } from './routes/jasa.$id'
 import { Route as KaryaIndexRouteImport } from './routes/karya.index'
 import { Route as KaryaIdRouteImport } from './routes/karya.$id'
+import { Route as KerjaIndexRouteImport } from './routes/kerja.index'
+import { Route as KerjaLamaranRouteImport } from './routes/kerja.lamaran'
+import { Route as KerjaPembayaranRouteImport } from './routes/kerja.pembayaran'
+import { Route as KerjaPesanRouteImport } from './routes/kerja.pesan'
+import { Route as KerjaProfilRouteImport } from './routes/kerja.profil'
 import { Route as LowonganIndexRouteImport } from './routes/lowongan.index'
 import { Route as LowonganIdRouteImport } from './routes/lowongan.$id'
 import { Route as LowonganBaruRouteImport } from './routes/lowongan.baru'
@@ -73,6 +80,9 @@ import { Route as ApiMidtransNotificationRouteImport } from './routes/api/midtra
 import { Route as DiscussPesanIdRouteImport } from './routes/discuss.pesan.$id'
 import { Route as DiscussStatusIdRouteImport } from './routes/discuss.status.$id'
 import { Route as DiscussTagTagRouteImport } from './routes/discuss.tag.$tag'
+import { Route as KerjaKontrakIndexRouteImport } from './routes/kerja.kontrak.index'
+import { Route as KerjaKontrakIdRouteImport } from './routes/kerja.kontrak.$id'
+import { Route as KerjaKontrakBaruRouteImport } from './routes/kerja.kontrak.baru'
 import { Route as StudioJasaIndexRouteImport } from './routes/studio.jasa.index'
 import { Route as StudioJasaIdRouteImport } from './routes/studio.jasa.$id'
 import { Route as StudioKaryaIndexRouteImport } from './routes/studio.karya.index'
@@ -132,6 +142,11 @@ const ImportRoute = ImportRouteImport.update({
 const KatalogRoute = KatalogRouteImport.update({
   id: '/katalog',
   path: '/katalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KerjaRoute = KerjaRouteImport.update({
+  id: '/kerja',
+  path: '/kerja',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewRoute = NewRouteImport.update({
@@ -203,6 +218,11 @@ const AdminFiturRoute = AdminFiturRouteImport.update({
 const AdminIntegrasiRoute = AdminIntegrasiRouteImport.update({
   id: '/integrasi',
   path: '/integrasi',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminKerjaRoute = AdminKerjaRouteImport.update({
+  id: '/kerja',
+  path: '/kerja',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLaporanRoute = AdminLaporanRouteImport.update({
@@ -289,6 +309,31 @@ const KaryaIdRoute = KaryaIdRouteImport.update({
   id: '/karya/$id',
   path: '/karya/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const KerjaIndexRoute = KerjaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaLamaranRoute = KerjaLamaranRouteImport.update({
+  id: '/lamaran',
+  path: '/lamaran',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaPembayaranRoute = KerjaPembayaranRouteImport.update({
+  id: '/pembayaran',
+  path: '/pembayaran',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaPesanRoute = KerjaPesanRouteImport.update({
+  id: '/pesan',
+  path: '/pesan',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaProfilRoute = KerjaProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => KerjaRoute,
 } as any)
 const LowonganIndexRoute = LowonganIndexRouteImport.update({
   id: '/lowongan/',
@@ -410,6 +455,21 @@ const DiscussTagTagRoute = DiscussTagTagRouteImport.update({
   path: '/discuss/tag/$tag',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KerjaKontrakIndexRoute = KerjaKontrakIndexRouteImport.update({
+  id: '/kontrak/',
+  path: '/kontrak/',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaKontrakIdRoute = KerjaKontrakIdRouteImport.update({
+  id: '/kontrak/$id',
+  path: '/kontrak/$id',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaKontrakBaruRoute = KerjaKontrakBaruRouteImport.update({
+  id: '/kontrak/baru',
+  path: '/kontrak/baru',
+  getParentRoute: () => KerjaRoute,
+} as any)
 const StudioJasaIndexRoute = StudioJasaIndexRouteImport.update({
   id: '/jasa/',
   path: '/jasa/',
@@ -497,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
+  '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -510,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
@@ -524,6 +586,10 @@ export interface FileRoutesByFullPath {
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
+  '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/pembayaran': typeof KerjaPembayaranRoute
+  '/kerja/pesan': typeof KerjaPesanRoute
+  '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
   '/pesanan/$id': typeof PesananIdRoute
@@ -540,6 +606,7 @@ export interface FileRoutesByFullPath {
   '/discuss/': typeof DiscussIndexRoute
   '/jasa/': typeof JasaIndexRoute
   '/karya/': typeof KaryaIndexRoute
+  '/kerja/': typeof KerjaIndexRoute
   '/lowongan/': typeof LowonganIndexRoute
   '/pesanan/': typeof PesananIndexRoute
   '/studio/': typeof StudioIndexRoute
@@ -551,9 +618,12 @@ export interface FileRoutesByFullPath {
   '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
+  '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
   '/studio/karya/$id': typeof StudioKaryaIdRoute
   '/$username/$repo/': typeof UsernameRepoIndexRoute
+  '/kerja/kontrak/': typeof KerjaKontrakIndexRoute
   '/studio/jasa/': typeof StudioJasaIndexRoute
   '/studio/karya/': typeof StudioKaryaIndexRoute
   '/$username/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
@@ -588,6 +658,7 @@ export interface FileRoutesByTo {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
@@ -602,6 +673,10 @@ export interface FileRoutesByTo {
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
+  '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/pembayaran': typeof KerjaPembayaranRoute
+  '/kerja/pesan': typeof KerjaPesanRoute
+  '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
   '/pesanan/$id': typeof PesananIdRoute
@@ -618,6 +693,7 @@ export interface FileRoutesByTo {
   '/discuss': typeof DiscussIndexRoute
   '/jasa': typeof JasaIndexRoute
   '/karya': typeof KaryaIndexRoute
+  '/kerja': typeof KerjaIndexRoute
   '/lowongan': typeof LowonganIndexRoute
   '/pesanan': typeof PesananIndexRoute
   '/studio': typeof StudioIndexRoute
@@ -629,9 +705,12 @@ export interface FileRoutesByTo {
   '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
+  '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
   '/studio/karya/$id': typeof StudioKaryaIdRoute
   '/$username/$repo': typeof UsernameRepoIndexRoute
+  '/kerja/kontrak': typeof KerjaKontrakIndexRoute
   '/studio/jasa': typeof StudioJasaIndexRoute
   '/studio/karya': typeof StudioKaryaIndexRoute
   '/$username/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
@@ -657,6 +736,7 @@ export interface FileRoutesById {
   '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
+  '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -670,6 +750,7 @@ export interface FileRoutesById {
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
   '/admin/moderasi': typeof AdminModerasiRoute
@@ -684,6 +765,10 @@ export interface FileRoutesById {
   '/f/$slug': typeof FSlugRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
+  '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/pembayaran': typeof KerjaPembayaranRoute
+  '/kerja/pesan': typeof KerjaPesanRoute
+  '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
   '/pesanan/$id': typeof PesananIdRoute
@@ -700,6 +785,7 @@ export interface FileRoutesById {
   '/discuss/': typeof DiscussIndexRoute
   '/jasa/': typeof JasaIndexRoute
   '/karya/': typeof KaryaIndexRoute
+  '/kerja/': typeof KerjaIndexRoute
   '/lowongan/': typeof LowonganIndexRoute
   '/pesanan/': typeof PesananIndexRoute
   '/studio/': typeof StudioIndexRoute
@@ -711,9 +797,12 @@ export interface FileRoutesById {
   '/discuss/pesan/$id': typeof DiscussPesanIdRoute
   '/discuss/status/$id': typeof DiscussStatusIdRoute
   '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
+  '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
   '/studio/karya/$id': typeof StudioKaryaIdRoute
   '/$username_/$repo/': typeof UsernameRepoIndexRoute
+  '/kerja/kontrak/': typeof KerjaKontrakIndexRoute
   '/studio/jasa/': typeof StudioJasaIndexRoute
   '/studio/karya/': typeof StudioKaryaIndexRoute
   '/$username_/$repo/blob/$': typeof UsernameRepoBlobSplatRoute
@@ -740,6 +829,7 @@ export interface FileRouteTypes {
     | '/gobifeed'
     | '/import'
     | '/katalog'
+    | '/kerja'
     | '/new'
     | '/reset-password'
     | '/robots.txt'
@@ -753,6 +843,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
@@ -767,6 +858,10 @@ export interface FileRouteTypes {
     | '/f/$slug'
     | '/jasa/$id'
     | '/karya/$id'
+    | '/kerja/lamaran'
+    | '/kerja/pembayaran'
+    | '/kerja/pesan'
+    | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
     | '/pesanan/$id'
@@ -783,6 +878,7 @@ export interface FileRouteTypes {
     | '/discuss/'
     | '/jasa/'
     | '/karya/'
+    | '/kerja/'
     | '/lowongan/'
     | '/pesanan/'
     | '/studio/'
@@ -794,9 +890,12 @@ export interface FileRouteTypes {
     | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
+    | '/kerja/kontrak/$id'
+    | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
     | '/studio/karya/$id'
     | '/$username/$repo/'
+    | '/kerja/kontrak/'
     | '/studio/jasa/'
     | '/studio/karya/'
     | '/$username/$repo/blob/$'
@@ -831,6 +930,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
@@ -845,6 +945,10 @@ export interface FileRouteTypes {
     | '/f/$slug'
     | '/jasa/$id'
     | '/karya/$id'
+    | '/kerja/lamaran'
+    | '/kerja/pembayaran'
+    | '/kerja/pesan'
+    | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
     | '/pesanan/$id'
@@ -861,6 +965,7 @@ export interface FileRouteTypes {
     | '/discuss'
     | '/jasa'
     | '/karya'
+    | '/kerja'
     | '/lowongan'
     | '/pesanan'
     | '/studio'
@@ -872,9 +977,12 @@ export interface FileRouteTypes {
     | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
+    | '/kerja/kontrak/$id'
+    | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
     | '/studio/karya/$id'
     | '/$username/$repo'
+    | '/kerja/kontrak'
     | '/studio/jasa'
     | '/studio/karya'
     | '/$username/$repo/blob/$'
@@ -899,6 +1007,7 @@ export interface FileRouteTypes {
     | '/gobifeed'
     | '/import'
     | '/katalog'
+    | '/kerja'
     | '/new'
     | '/reset-password'
     | '/robots.txt'
@@ -912,6 +1021,7 @@ export interface FileRouteTypes {
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
     | '/admin/moderasi'
@@ -926,6 +1036,10 @@ export interface FileRouteTypes {
     | '/f/$slug'
     | '/jasa/$id'
     | '/karya/$id'
+    | '/kerja/lamaran'
+    | '/kerja/pembayaran'
+    | '/kerja/pesan'
+    | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
     | '/pesanan/$id'
@@ -942,6 +1056,7 @@ export interface FileRouteTypes {
     | '/discuss/'
     | '/jasa/'
     | '/karya/'
+    | '/kerja/'
     | '/lowongan/'
     | '/pesanan/'
     | '/studio/'
@@ -953,9 +1068,12 @@ export interface FileRouteTypes {
     | '/discuss/pesan/$id'
     | '/discuss/status/$id'
     | '/discuss/tag/$tag'
+    | '/kerja/kontrak/$id'
+    | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
     | '/studio/karya/$id'
     | '/$username_/$repo/'
+    | '/kerja/kontrak/'
     | '/studio/jasa/'
     | '/studio/karya/'
     | '/$username_/$repo/blob/$'
@@ -981,6 +1099,7 @@ export interface RootRouteChildren {
   GobifeedRoute: typeof GobifeedRoute
   ImportRoute: typeof ImportRoute
   KatalogRoute: typeof KatalogRoute
+  KerjaRoute: typeof KerjaRouteWithChildren
   NewRoute: typeof NewRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -1076,6 +1195,13 @@ declare module '@tanstack/react-router' {
       path: '/katalog'
       fullPath: '/katalog'
       preLoaderRoute: typeof KatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kerja': {
+      id: '/kerja'
+      path: '/kerja'
+      fullPath: '/kerja'
+      preLoaderRoute: typeof KerjaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/new': {
@@ -1174,6 +1300,13 @@ declare module '@tanstack/react-router' {
       path: '/integrasi'
       fullPath: '/admin/integrasi'
       preLoaderRoute: typeof AdminIntegrasiRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/kerja': {
+      id: '/admin/kerja'
+      path: '/kerja'
+      fullPath: '/admin/kerja'
+      preLoaderRoute: typeof AdminKerjaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/laporan': {
@@ -1294,6 +1427,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/karya/$id'
       preLoaderRoute: typeof KaryaIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/kerja/': {
+      id: '/kerja/'
+      path: '/'
+      fullPath: '/kerja/'
+      preLoaderRoute: typeof KerjaIndexRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/lamaran': {
+      id: '/kerja/lamaran'
+      path: '/lamaran'
+      fullPath: '/kerja/lamaran'
+      preLoaderRoute: typeof KerjaLamaranRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/pembayaran': {
+      id: '/kerja/pembayaran'
+      path: '/pembayaran'
+      fullPath: '/kerja/pembayaran'
+      preLoaderRoute: typeof KerjaPembayaranRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/pesan': {
+      id: '/kerja/pesan'
+      path: '/pesan'
+      fullPath: '/kerja/pesan'
+      preLoaderRoute: typeof KerjaPesanRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/profil': {
+      id: '/kerja/profil'
+      path: '/profil'
+      fullPath: '/kerja/profil'
+      preLoaderRoute: typeof KerjaProfilRouteImport
+      parentRoute: typeof KerjaRoute
     }
     '/lowongan/': {
       id: '/lowongan/'
@@ -1463,6 +1631,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscussTagTagRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kerja/kontrak/': {
+      id: '/kerja/kontrak/'
+      path: '/kontrak'
+      fullPath: '/kerja/kontrak/'
+      preLoaderRoute: typeof KerjaKontrakIndexRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/kontrak/$id': {
+      id: '/kerja/kontrak/$id'
+      path: '/kontrak/$id'
+      fullPath: '/kerja/kontrak/$id'
+      preLoaderRoute: typeof KerjaKontrakIdRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/kontrak/baru': {
+      id: '/kerja/kontrak/baru'
+      path: '/kontrak/baru'
+      fullPath: '/kerja/kontrak/baru'
+      preLoaderRoute: typeof KerjaKontrakBaruRouteImport
+      parentRoute: typeof KerjaRoute
+    }
     '/studio/jasa/': {
       id: '/studio/jasa/'
       path: '/jasa'
@@ -1575,6 +1764,7 @@ interface AdminRouteChildren {
   AdminEscrowRoute: typeof AdminEscrowRoute
   AdminFiturRoute: typeof AdminFiturRoute
   AdminIntegrasiRoute: typeof AdminIntegrasiRoute
+  AdminKerjaRoute: typeof AdminKerjaRoute
   AdminLaporanRoute: typeof AdminLaporanRoute
   AdminMidtransRoute: typeof AdminMidtransRoute
   AdminModerasiRoute: typeof AdminModerasiRoute
@@ -1589,6 +1779,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEscrowRoute: AdminEscrowRoute,
   AdminFiturRoute: AdminFiturRoute,
   AdminIntegrasiRoute: AdminIntegrasiRoute,
+  AdminKerjaRoute: AdminKerjaRoute,
   AdminLaporanRoute: AdminLaporanRoute,
   AdminMidtransRoute: AdminMidtransRoute,
   AdminModerasiRoute: AdminModerasiRoute,
@@ -1600,6 +1791,30 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface KerjaRouteChildren {
+  KerjaLamaranRoute: typeof KerjaLamaranRoute
+  KerjaPembayaranRoute: typeof KerjaPembayaranRoute
+  KerjaPesanRoute: typeof KerjaPesanRoute
+  KerjaProfilRoute: typeof KerjaProfilRoute
+  KerjaIndexRoute: typeof KerjaIndexRoute
+  KerjaKontrakIdRoute: typeof KerjaKontrakIdRoute
+  KerjaKontrakBaruRoute: typeof KerjaKontrakBaruRoute
+  KerjaKontrakIndexRoute: typeof KerjaKontrakIndexRoute
+}
+
+const KerjaRouteChildren: KerjaRouteChildren = {
+  KerjaLamaranRoute: KerjaLamaranRoute,
+  KerjaPembayaranRoute: KerjaPembayaranRoute,
+  KerjaPesanRoute: KerjaPesanRoute,
+  KerjaProfilRoute: KerjaProfilRoute,
+  KerjaIndexRoute: KerjaIndexRoute,
+  KerjaKontrakIdRoute: KerjaKontrakIdRoute,
+  KerjaKontrakBaruRoute: KerjaKontrakBaruRoute,
+  KerjaKontrakIndexRoute: KerjaKontrakIndexRoute,
+}
+
+const KerjaRouteWithChildren = KerjaRoute._addFileChildren(KerjaRouteChildren)
 
 interface StudioRouteChildren {
   StudioAiRoute: typeof StudioAiRoute
@@ -1698,6 +1913,7 @@ const rootRouteChildren: RootRouteChildren = {
   GobifeedRoute: GobifeedRoute,
   ImportRoute: ImportRoute,
   KatalogRoute: KatalogRoute,
+  KerjaRoute: KerjaRouteWithChildren,
   NewRoute: NewRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
