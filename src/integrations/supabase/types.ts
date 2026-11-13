@@ -1353,6 +1353,7 @@ export type Database = {
           delivery_note: string | null
           fee_amount: number
           id: string
+          job_application_id: string | null
           kind: string
           number: number
           paid_at: string | null
@@ -1375,6 +1376,7 @@ export type Database = {
           delivery_note?: string | null
           fee_amount?: number
           id?: string
+          job_application_id?: string | null
           kind: string
           number?: never
           paid_at?: string | null
@@ -1397,6 +1399,7 @@ export type Database = {
           delivery_note?: string | null
           fee_amount?: number
           id?: string
+          job_application_id?: string | null
           kind?: string
           number?: never
           paid_at?: string | null
@@ -1415,6 +1418,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_job_application_id_fkey"
+            columns: ["job_application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
             referencedColumns: ["id"]
           },
           {
@@ -2195,6 +2205,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_role_prefs: {
+        Row: {
+          active_role: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_role?: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_role?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -2328,6 +2367,10 @@ export type Database = {
       claim_admin_role: { Args: { _code: string }; Returns: undefined }
       complete_order: { Args: { _order_id: string }; Returns: undefined }
       count_hosted_view: { Args: { _slug: string }; Returns: undefined }
+      create_order_from_application: {
+        Args: { _application_id: string }
+        Returns: string
+      }
       deliver_order: {
         Args: { _note: string; _order_id: string }
         Returns: undefined
