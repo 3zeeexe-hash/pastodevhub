@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BadgeCheck, BookMarked, Bot, Briefcase, Download, FileCode2, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
+import { BadgeCheck, BookMarked, Bot, Briefcase, Download, FileCode2, FileSignature, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench } from "lucide-react";
 import { useRole } from "@/lib/use-role";
 import { ROLE_INFO, type Role } from "@/lib/roles";
 import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
@@ -15,6 +15,7 @@ export const DEV_NAV: NavGroup[] = [
   { group: "Freelance", items: [
     { to: "/lowongan", label: "Cari lowongan", Icon: Search, feature: "jobs" },
     { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase, feature: "jobs" },
+    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
   { group: "Tools", items: [
     { to: "/studio/hosting", label: "Hosting HTML", Icon: FileCode2, feature: "hosting" },
@@ -37,6 +38,7 @@ export const CLIENT_NAV: NavGroup[] = [
   { group: "Proyek", items: [
     { to: "/lowongan/baru", label: "Pasang lowongan", Icon: Plus, feature: "jobs" },
     { to: "/lowongan", label: "Semua lowongan", Icon: Briefcase, feature: "jobs" },
+    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
   { group: "Cari", items: [
     { to: "/search", label: "Cari developer", Icon: Search, search: { q: "", type: "users" } },
@@ -77,6 +79,7 @@ const FREELANCER_NAV: NavGroup[] = [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
     { to: "/lowongan", label: "Cari lowongan", Icon: Search, feature: "jobs" },
     { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase, feature: "jobs" },
+    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
   { group: "Jasa", items: [
     { to: "/studio/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
