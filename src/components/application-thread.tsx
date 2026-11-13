@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,17 +9,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { GobiLoader } from "@/components/gobi-loader";
 import { cn } from "@/lib/utils";
 
-/** Private chat between a client and one applicant. */
-export function ApplicationThread({ applicationId }: { applicationId: string }) {
+/**
+ * Obrolan pribadi antara client dan satu pelamar.
+ * `fill`: mengisi tinggi penuh induknya (dipakai di chat mengambang), tanpa bingkai.
+ * `onRead`: dipanggil saat pesan termuat atau bertambah, supaya induk bisa menandai dibaca.
+ */
+export function ApplicationThread({ applicationId, fill = false, onRead }: { applicationId: string; fill?: boolean; onRead?: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  const readRef = useRef(onRead);
+  readRef.current = onRead;
   const { data = [], isLoading } = useQuery({
     queryKey: ["job-messages", applicationId],
     refetchInterval: 8000,
     queryFn: async () => (await supabase.from("job_messages").select("id,body,created_at,sender_id, sender:profiles!job_messages_sender_id_fkey(username)").eq("application_id", applicationId).order("created_at")).data ?? [],
   });
+  const lastId = (data[data.length - 1] as { id?: string } | undefined)?.id;
+  useEffect(() => {
+    if (!lastId) return;
+    readRef.current?.();
+    if (fill) endRef.current?.scrollIntoView({ block: "end" });
+  }, [lastId, fill]);
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const text = body.trim();
@@ -32,9 +46,9 @@ export function ApplicationThread({ applicationId }: { applicationId: string }) 
     qc.invalidateQueries({ queryKey: ["job-messages", applicationId] });
   }
   return (
-    <div className="rounded-xl border border-border bg-background/50">
-      {isLoading ? <GobiLoader compact /> : (
-        <ul className="max-h-72 space-y-2 overflow-y-auto p-3">
+    <div className={cn(fill ? "flex h-full min-h-0 flex-col" : "rounded-xl border border-border bg-background/50")}>
+      {isLoading ? <div className={cn(fill && "flex-1")}><GobiLoader compact /></div> : (
+        <ul className={cn("space-y-2 overflow-y-auto p-3", fill ? "min-h-0 flex-1" : "max-h-72")}>
           {data.length === 0 && <li className="py-4 text-center text-xs text-muted-foreground">Belum ada pesan. Mulai obrolan untuk membahas detail pekerjaan.</li>}
           {data.map((m: any) => {
             const mine = m.sender_id === user?.id;
@@ -47,6 +61,7 @@ export function ApplicationThread({ applicationId }: { applicationId: string }) 
               </li>
             );
           })}
+          <div ref={endRef} />
         </ul>
       )}
       <form onSubmit={send} className="flex items-end gap-2 border-t border-border p-2">

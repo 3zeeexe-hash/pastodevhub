@@ -2,24 +2,28 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, MessageCircle, Send, X } from "lucide-react";
+import { ArrowLeft, Briefcase, MessageCircle, Send, X } from "lucide-react";
 import { timeAgo, useAuth } from "@/lib/auth";
 import { CHAT_DOCK_EVENT, type ChatDockRequest } from "@/lib/chat-dock";
 import { fetchDmUnread, fetchInbox, fetchMessages, fetchPartner, markConversationRead, sendMessage } from "@/lib/dm";
 import { MAX_DM_LENGTH, dmBodyError } from "@/lib/feed-rules";
 import { isFeatureOn } from "@/lib/features";
 import { useSiteConfig } from "@/lib/use-site-config";
+import { fetchWorkConversations, otherPartyName, useWorkChatUnread } from "@/lib/use-work-unread";
+import { workRpc } from "@/lib/work-db";
 import { AvatarMini } from "@/components/avatar-mini";
+import { ApplicationThread } from "@/components/application-thread";
 import { OrderChat } from "@/components/order-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-type View = { kind: "inbox" } | { kind: "order" } | { kind: "dm"; id: string };
+type View = { kind: "inbox" } | { kind: "order" } | { kind: "work" } | { kind: "dm"; id: string } | { kind: "workthread"; id: string };
 
 // Halaman yang sudah punya layar chat sendiri atau bukan tempat chat.
 const HIDDEN = ["/admin", "/auth", "/reset-password", "/discuss/pesan"];
 const ORDER_PATH = /^\/pesanan\/([^/]+)\/?$/;
+const WORK_PATH = /^\/(lowongan|kerja)(\/|$)/;
 
 function Badge({ n }: { n: number }) {
   if (!n) return null;
@@ -33,7 +37,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition", active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
+      className={cn("flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition", active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
     >
       {children}
     </button>
@@ -41,15 +45,20 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 }
 
 /**
- * Tombol chat bulat mengambang. Panel chat hanya muncul setelah tombol ditekan.
- * Di halaman /pesanan/:id panel punya tab "Pesanan ini" (chat pesanan); di mana pun ada tab "Pesan" (pesan langsung).
+ * Tombol chat bulat mengambang. Semua obrolan ada di sini, dipisah tab:
+ *  - "Pesan": pesan langsung antar pengguna;
+ *  - "GOBI Work": obrolan lamaran/lowongan (client dan pelamar);
+ *  - "Pesanan ini": chat pesanan, hanya di halaman /pesanan/:id.
+ * Di halaman Lowongan dan GOBI WORK, panel langsung membuka tab GOBI Work.
  */
 export function ChatDock() {
   const { user, profile } = useAuth();
   const { pathname } = useLocation();
   const { flags } = useSiteConfig();
   const dmOn = isFeatureOn(flags, "discuss");
+  const jobsOn = isFeatureOn(flags, "jobs");
   const orderId = ORDER_PATH.exec(pathname)?.[1] ?? null;
+  const onWorkPage = WORK_PATH.test(pathname);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "inbox" });
 
@@ -60,9 +69,10 @@ export function ChatDock() {
     enabled: !!user && dmOn,
     refetchInterval: 60_000,
   });
+  const workUnread = useWorkChatUnread(jobsOn);
 
-  const fallback: View = orderId ? { kind: "order" } : { kind: "inbox" };
-  const valid = (v: View) => (v.kind === "order" ? !!orderId : dmOn);
+  const fallback: View = orderId ? { kind: "order" } : onWorkPage && jobsOn ? { kind: "work" } : dmOn ? { kind: "inbox" } : { kind: "work" };
+  const valid = (v: View) => (v.kind === "order" ? !!orderId : v.kind === "work" || v.kind === "workthread" ? jobsOn : dmOn);
   const current = valid(view) ? view : fallback;
 
   // Panel ditutup saat pindah halaman supaya tidak menutupi halaman baru.
@@ -71,14 +81,16 @@ export function ChatDock() {
   useEffect(() => {
     const onOpen = (e: Event) => {
       const d = (e as CustomEvent<ChatDockRequest>).detail ?? {};
-      if (d.conversationId && dmOn) setView({ kind: "dm", id: d.conversationId });
+      if (d.applicationId && jobsOn) setView({ kind: "workthread", id: d.applicationId });
+      else if (d.conversationId && dmOn) setView({ kind: "dm", id: d.conversationId });
+      else if (d.view === "work" && jobsOn) setView({ kind: "work" });
       else if (d.view === "inbox" && dmOn) setView({ kind: "inbox" });
-      else setView(orderId ? { kind: "order" } : { kind: "inbox" });
+      else setView(orderId ? { kind: "order" } : onWorkPage && jobsOn ? { kind: "work" } : dmOn ? { kind: "inbox" } : { kind: "work" });
       setOpen(true);
     };
     window.addEventListener(CHAT_DOCK_EVENT, onOpen);
     return () => window.removeEventListener(CHAT_DOCK_EVENT, onOpen);
-  }, [orderId, dmOn]);
+  }, [orderId, dmOn, jobsOn, onWorkPage]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,9 +100,11 @@ export function ChatDock() {
   }, [open]);
 
   const hidden = HIDDEN.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  if (!user || !profile || hidden || (!dmOn && !orderId)) return null;
+  if (!user || !profile || hidden || (!dmOn && !jobsOn && !orderId)) return null;
 
-  const badge = dmOn ? (unread.data ?? 0) : 0;
+  const dmBadge = dmOn ? (unread.data ?? 0) : 0;
+  const workBadge = jobsOn ? (workUnread.data ?? 0) : 0;
+  const badge = dmBadge + workBadge;
   const toggle = () => {
     if (!open) setView(fallback);
     setOpen((o) => !o);
@@ -106,11 +120,14 @@ export function ChatDock() {
         >
           {current.kind === "dm" ? (
             <DmThread id={current.id} userId={user.id} onBack={() => setView({ kind: "inbox" })} onClose={() => setOpen(false)} />
+          ) : current.kind === "workthread" ? (
+            <WorkThread id={current.id} userId={user.id} onBack={() => setView({ kind: "work" })} onClose={() => setOpen(false)} />
           ) : (
             <>
               <header className="flex items-center gap-1 border-b border-border p-2">
-                <div role="tablist" className="flex flex-1 items-center gap-1">
-                  {dmOn && <TabBtn active={current.kind === "inbox"} onClick={() => setView({ kind: "inbox" })}>Pesan <Badge n={badge} /></TabBtn>}
+                <div role="tablist" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {dmOn && <TabBtn active={current.kind === "inbox"} onClick={() => setView({ kind: "inbox" })}>Pesan <Badge n={dmBadge} /></TabBtn>}
+                  {jobsOn && <TabBtn active={current.kind === "work"} onClick={() => setView({ kind: "work" })}>GOBI Work <Badge n={workBadge} /></TabBtn>}
                   {orderId && <TabBtn active={current.kind === "order"} onClick={() => setView({ kind: "order" })}>Pesanan ini</TabBtn>}
                 </div>
                 <button type="button" aria-label="Tutup chat" onClick={() => setOpen(false)} className="rounded-full p-2 text-muted-foreground hover:bg-accent"><X className="size-4" /></button>
@@ -118,7 +135,9 @@ export function ChatDock() {
               <div className="min-h-0 flex-1">
                 {current.kind === "order" && orderId
                   ? <OrderChat orderId={orderId} userId={user.id} />
-                  : <Inbox userId={user.id} onOpen={(id) => setView({ kind: "dm", id })} onNavigate={() => setOpen(false)} />}
+                  : current.kind === "work"
+                    ? <WorkInbox userId={user.id} onOpen={(id) => setView({ kind: "workthread", id })} onNavigate={() => setOpen(false)} />
+                    : <Inbox userId={user.id} onOpen={(id) => setView({ kind: "dm", id })} onNavigate={() => setOpen(false)} />}
               </div>
             </>
           )}
@@ -171,6 +190,78 @@ function Inbox({ userId, onOpen, onNavigate }: { userId: string; onOpen: (id: st
       )}
       <Link to="/discuss/pesan" search={{}} onClick={onNavigate} className="border-t border-border px-4 py-2.5 text-center text-xs font-medium text-link hover:bg-accent/40">Buka halaman pesan</Link>
     </div>
+  );
+}
+
+/** Tab GOBI Work: daftar obrolan lamaran. Pemilik lowongan melihat pelamar, pelamar melihat lowongan yang dilamar. */
+function WorkInbox({ userId, onOpen, onNavigate }: { userId: string; onOpen: (id: string) => void; onNavigate: () => void }) {
+  const q = useQuery({ queryKey: ["work-convs", userId], queryFn: () => fetchWorkConversations(userId), refetchInterval: 15_000 });
+  if (q.isLoading) return <p className="p-6 text-center text-sm text-muted-foreground">Memuat…</p>;
+  if (q.isError) return <p role="alert" className="p-6 text-center text-sm text-destructive">{(q.error as Error).message}</p>;
+  const rows = q.data?.rows ?? [];
+  const unread = q.data?.unread ?? {};
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {rows.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
+          <Briefcase className="size-8 text-primary" />
+          <p>Belum ada obrolan kerja. Obrolan terbuka otomatis setelah ada lamaran pada sebuah lowongan.</p>
+          <Link to="/lowongan" onClick={onNavigate} className="font-semibold text-primary hover:underline">Cari lowongan</Link>
+        </div>
+      ) : (
+        <ul className="flex-1 divide-y divide-border overflow-y-auto">
+          {rows.map((r) => {
+            const n = unread[r.id] ?? 0;
+            const other = otherPartyName(r, userId);
+            return (
+              <li key={r.id}>
+                <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent/40">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"><Briefcase className="size-5" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className={cn("truncate text-sm", n ? "font-bold" : "font-medium")}>{r.job?.title ?? "Lowongan"}</span>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{timeAgo(r.created_at)}</span>
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">{r.developer_id === userId ? "Kamu melamar · " : "Pelamar · "}{other}</span>
+                  </span>
+                  {n > 0 && <Badge n={n} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Link to="/kerja/lamaran" onClick={onNavigate} className="border-t border-border px-4 py-2.5 text-center text-xs font-medium text-link hover:bg-accent/40">Kelola lamaran dan lowongan</Link>
+    </div>
+  );
+}
+
+function WorkThread({ id, userId, onBack, onClose }: { id: string; userId: string; onBack: () => void; onClose: () => void }) {
+  const qc = useQueryClient();
+  const convs = useQuery({ queryKey: ["work-convs", userId], queryFn: () => fetchWorkConversations(userId) });
+  const conv = convs.data?.rows.find((r) => r.id === id);
+  const markRead = () => {
+    workRpc("work_mark_thread_read", { _application_id: id })
+      .then(() => Promise.all(["work-chat-unread", "work-convs", "work-notifs", "work-unread-notifs"].map((k) => qc.invalidateQueries({ queryKey: [k] }))))
+      .catch(() => {});
+  };
+  return (
+    <>
+      <header className="flex items-center gap-2 border-b border-border p-2">
+        <button type="button" aria-label="Kembali ke daftar obrolan kerja" onClick={onBack} className="rounded-full p-2 text-muted-foreground hover:bg-accent"><ArrowLeft className="size-4" /></button>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"><Briefcase className="size-4" /></span>
+        <div className="min-w-0 flex-1">
+          {conv?.job ? (
+            <Link to="/lowongan/$id" params={{ id: conv.job.id }} onClick={onClose} className="block truncate text-sm font-semibold leading-tight hover:text-primary">{conv.job.title}</Link>
+          ) : (
+            <p className="truncate text-sm font-semibold leading-tight">{convs.isLoading ? "Memuat…" : "Obrolan kerja"}</p>
+          )}
+          {conv && <p className="truncate text-[11px] text-muted-foreground">{conv.developer_id === userId ? "Kamu melamar · " : "Pelamar · "}{otherPartyName(conv, userId)}</p>}
+        </div>
+        <button type="button" aria-label="Tutup chat" onClick={onClose} className="rounded-full p-2 text-muted-foreground hover:bg-accent"><X className="size-4" /></button>
+      </header>
+      <div className="min-h-0 flex-1"><ApplicationThread applicationId={id} fill onRead={markRead} /></div>
+    </>
   );
 }
 

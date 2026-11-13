@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { Menu } from "lucide-react";
@@ -9,7 +9,8 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { BrandMark } from "@/components/brand";
 
-export type NavItem = { to: string; label: string; Icon: LucideIcon; exact?: boolean; search?: Record<string, string>; feature?: FeatureKey };
+/** `Badge`: komponen kecil di ujung kanan baris menu (mis. lencana jumlah belum dibaca). */
+export type NavItem = { to: string; label: string; Icon: LucideIcon; exact?: boolean; search?: Record<string, string>; feature?: FeatureKey; Badge?: ComponentType };
 export type NavGroup = { group: string; items: NavItem[] };
 
 function isActive(pathname: string, item: NavItem) {
@@ -35,6 +36,7 @@ function NavList({ nav, pathname, onNavigate, navy }: { nav: NavGroup[]; pathnam
                     : active ? "bg-primary/15 font-semibold text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
                 <item.Icon className={cn("size-4 shrink-0", active && !navy && "text-primary")} />
                 <span className="truncate">{item.label}</span>
+                {item.Badge && <item.Badge />}
               </Link>
             );
           })}
