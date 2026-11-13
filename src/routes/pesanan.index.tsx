@@ -9,6 +9,7 @@ import { AccountSideNav } from "@/components/side-navs";
 import { SignInCta } from "@/components/sign-in-cta";
 import { OrderStatusBadge } from "@/components/order-status";
 import { AvatarMini } from "@/components/avatar-mini";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/pesanan/")({
   head: () => ({
@@ -36,7 +37,7 @@ function Orders() {
       .select("id,number,kind,title,amount,status,created_at, buyer:profiles!orders_buyer_id_fkey(username,avatar_url), seller:profiles!orders_seller_id_fkey(username,avatar_url)")
       .eq(effective === "buy" ? "buyer_id" : "seller_id", user!.id).order("updated_at", { ascending: false }).limit(200)).data ?? [],
   });
-  if (loading) return null;
+  if (loading) return <GobiLoader page />;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk melihat pesanan kamu." /></main>;
   return (
     <AccountSideNav>
@@ -48,6 +49,7 @@ function Orders() {
         </div>
       )}
       <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
+        {isLoading && <GobiLoader />}
         {data.map((o: any) => {
           const other = effective === "buy" ? o.seller : o.buyer;
           return (
