@@ -2,8 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowRight, Bell, Briefcase, Building2, ChevronDown, ChevronLeft, ChevronRight, Code, Flame, FolderOpen, LayoutDashboard,
-  LayoutGrid, LogOut, Menu, MessageCircle, MessageSquare, Newspaper, Receipt, Search, Settings, ShieldCheck, Star, User, Users,
+  ArrowRight, Bell, Briefcase, Building2, ChevronDown, ChevronLeft, ChevronRight, Code, FolderOpen, LayoutDashboard,
+  LayoutGrid, LogOut, Menu, MessageCircle, MessageSquare, Newspaper, Package, Receipt, Search, Settings, ShieldCheck, User, Users,
   Wallet, Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +12,11 @@ import { timeAgo, useAuth } from "@/lib/auth";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { fetchFeed, fetchUnreadCount } from "@/lib/feed";
 import { budgetLabel, type JobCardData } from "@/lib/jobs";
-import { categoryLabel } from "@/lib/market";
+import { categoryLabel, formatRupiah } from "@/lib/market";
 import { workspacePath } from "@/lib/roles";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { useHomeData } from "@/components/home/use-home-data";
+import { PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
 import banner1 from "@/assets/gobi-banner-1.png";
@@ -51,16 +52,8 @@ const NAVY = "bg-[#0a1a45]";
 const ORANGE = "bg-[#ff8a00]";
 // Lebar konten yang sama untuk header dan isi beranda, supaya tepi kiri/kanan selalu sejajar di desktop.
 const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
-
-type HomeRepo = {
-  id: string;
-  name: string;
-  description: string | null;
-  language: string | null;
-  topics: string[] | null;
-  owner: { username: string } | null;
-  stars: { count: number }[] | null;
-};
+// Gaya tautan "Lihat Semua" di kepala tiap bagian.
+const SEE_ALL = "flex shrink-0 items-center gap-1 text-sm font-bold text-[#1a73e8] hover:underline";
 
 const MENU = [
   { to: "/gobifeed", label: "Linimasa", Icon: Newspaper, feature: "discuss" },
@@ -73,13 +66,14 @@ const MENU = [
 
 /**
  * Beranda GOBI: header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
- * 4 menu cepat, lalu Proyek Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
+ * 4 menu cepat, lalu Karya Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
  * Beranda memakai header-nya sendiri, jadi SiteHeader global disembunyikan di "/" (lihat __root.tsx) agar tidak dobel.
  * Mobile: satu kolom, menu cepat berupa 4 kotak ikon.
  * Desktop (lg ke atas), grid 12 kolom yang sama di semua bagian supaya tepinya sejajar:
  *  - header: logo, menu (ikon kecil + teks, ukuran seimbang), pencarian (inline mulai xl), notifikasi, akun.
  *  - atas: banner (8/12) + menu cepat berupa 4 baris (ikon 48px + judul + keterangan) setinggi banner (4/12).
- *  - bawah: Proyek Terbaru sebagai kartu 2 kolom (8/12), Lowongan + Diskusi di kanan (4/12).
+ *  - bawah: Karya Terbaru sebagai kartu 2 kolom (8/12), Lowongan + Diskusi di kanan (4/12).
+ * Karya Terbaru hanya tampil kalau fitur karya aktif. Repositori publik tetap ada di menu Proyek (/explore).
  * Linimasa sosial yang dulu jadi beranda sekarang ada di /gobifeed.
  */
 function GobiHome() {
@@ -89,12 +83,13 @@ function GobiHome() {
   const signedIn = !!user && !!profile;
   const data = useHomeData(on);
 
-  // Ambil 6 proyek: desktop menampilkan semuanya (kartu 2 kolom), mobile hanya 4 pertama.
-  const repos = useQuery({
-    queryKey: ["gobi-home", "repos"],
+  // Ambil 6 karya terbit: desktop menampilkan semuanya (kartu 2 kolom), mobile hanya 4 pertama.
+  const karya = useQuery({
+    queryKey: ["gobi-home", "karya"],
+    enabled: on("karya"),
     staleTime: 60_000,
     queryFn: async () =>
-      ((await supabase.from("repositories").select("id,name,description,language,topics, owner:profiles!repositories_owner_id_fkey(username), stars(count)").eq("is_private", false).order("created_at", { ascending: false }).limit(6)).data ?? []) as unknown as HomeRepo[],
+      ((await supabase.from("products").select(PRODUCT_SELECT).eq("is_published", true).order("created_at", { ascending: false }).limit(6)).data ?? []) as unknown as ProductCardData[],
   });
 
   // Diskusi Hangat: post yang ramai; kalau belum ada yang ramai, pakai post terbaru.
@@ -114,7 +109,8 @@ function GobiHome() {
   });
 
   const jobs = on("jobs") ? (data.jobs.data ?? []).slice(0, 2) : [];
-  const repoList = repos.data ?? [];
+  const showKarya = on("karya");
+  const karyaList = karya.data ?? [];
   const hotList = on("discuss") ? (hot.data ?? []) : [];
   const hasSide = on("jobs") || on("discuss");
 
@@ -129,22 +125,32 @@ function GobiHome() {
         </div>
 
         <div className="grid gap-x-6 lg:grid-cols-12">
-          <div className={hasSide ? "lg:col-span-8" : "lg:col-span-12"}>
-            <Section icon={<Flame className="size-6 text-[#ff6a00]" />} title="Proyek Terbaru" to="/explore">
-              {repos.isLoading ? <Hint>Memuat…</Hint> : repoList.length === 0 ? <Hint>Belum ada proyek publik.</Hint> : (
-                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  {repoList.map((r, n) => (
-                    <div key={r.id} className={n >= 4 ? "hidden lg:block" : undefined}><RepoItem r={r} /></div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          </div>
+          {showKarya && (
+            <div className={hasSide ? "lg:col-span-8" : "lg:col-span-12"}>
+              <Section
+                icon={<Package className="size-6 text-[#ff6a00]" />}
+                title="Karya Terbaru"
+                action={<Link to="/katalog" search={{ tab: "karya" }} className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
+              >
+                {karya.isLoading ? <Hint>Memuat…</Hint> : karyaList.length === 0 ? <Hint>Belum ada karya yang dipublikasikan.</Hint> : (
+                  <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                    {karyaList.map((p, n) => (
+                      <div key={p.id} className={n >= 4 ? "hidden lg:block" : undefined}><ProductItem p={p} /></div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            </div>
+          )}
 
           {hasSide && (
-            <div className="lg:col-span-4">
+            <div className={showKarya ? "lg:col-span-4" : "lg:col-span-12"}>
               {on("jobs") && (
-                <Section icon={<Briefcase className="size-6 text-[#ff8a00]" />} title="Lowongan Freelance" to="/lowongan">
+                <Section
+                  icon={<Briefcase className="size-6 text-[#ff8a00]" />}
+                  title="Lowongan Freelance"
+                  action={<Link to="/lowongan" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
+                >
                   {data.jobs.isLoading ? <Hint>Memuat…</Hint> : jobs.length === 0 ? <Hint>Belum ada lowongan dibuka.</Hint> : (
                     <div className="space-y-3">
                       {jobs.map((j) => <JobItem key={j.id} j={j} />)}
@@ -154,7 +160,11 @@ function GobiHome() {
               )}
 
               {on("discuss") && (
-                <Section icon={<MessageCircle className="size-6 text-[#1a73e8]" fill="currentColor" />} title="Diskusi Hangat" to="/discuss">
+                <Section
+                  icon={<MessageCircle className="size-6 text-[#1a73e8]" fill="currentColor" />}
+                  title="Diskusi Hangat"
+                  action={<Link to="/discuss" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
+                >
                   {hot.isLoading ? <Hint>Memuat…</Hint> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
                     <div className="space-y-2">
                       {hotList.map((p) => (
@@ -434,12 +444,12 @@ function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
 
 // ---------- Bagian ----------
 
-function Section({ icon, title, to, children }: { icon: ReactNode; title: string; to: "/explore" | "/lowongan" | "/discuss"; children: ReactNode }) {
+function Section({ icon, title, action, children }: { icon: ReactNode; title: string; action: ReactNode; children: ReactNode }) {
   return (
     <section className="pt-6">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-xl font-extrabold sm:text-2xl">{icon}{title}</h2>
-        <Link to={to} className="flex shrink-0 items-center gap-1 text-sm font-bold text-[#1a73e8] hover:underline">Lihat Semua <ArrowRight className="size-4" /></Link>
+        {action}
       </div>
       {children}
     </section>
@@ -480,39 +490,35 @@ function JobItem({ j }: { j: JobCardData }) {
 }
 
 /**
- * Kartu proyek di beranda.
- * Mobile/tablet: baris horizontal (thumbnail gradasi di kiri, teks di tengah, panah di kanan).
- * Desktop (lg): kartu vertikal untuk grid 2 kolom: kepala (ikon 44px + nama + bintang), deskripsi, lalu label topik/bahasa.
+ * Kartu karya di beranda (karya = produk yang diterbitkan di Katalog).
+ * Mobile/tablet: baris horizontal (sampul di kiri, teks di tengah, panah di kanan).
+ * Desktop (lg): kartu vertikal untuk grid 2 kolom: sampul 16:9, judul, ringkasan, harga + kategori, lalu pembuat.
+ * Tanpa sampul, dipakai latar gradasi oranye dengan ikon paket.
  */
-function RepoItem({ r }: { r: HomeRepo }) {
-  const stars = r.stars?.[0]?.count ?? 0;
-  const chip = r.topics?.[0] ?? r.language;
-  const showLang = !!r.language && r.language !== chip;
+function ProductItem({ p }: { p: ProductCardData }) {
   const card = "flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:shadow-md lg:h-full lg:flex-col lg:items-stretch lg:gap-3 lg:p-4 lg:hover:-translate-y-0.5";
-  const body = (
-    <>
-      <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] sm:h-28 sm:w-40 lg:hidden">
-        <Code className="size-10 text-white/90 sm:size-12" strokeWidth={2.4} />
-      </div>
-      <div className="hidden items-center gap-3 lg:flex">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a56e8] to-[#0b2a8a] text-white"><Code className="size-5" strokeWidth={2.4} /></span>
-        <h3 className="min-w-0 flex-1 truncate text-base font-extrabold">{r.name}</h3>
-        <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-slate-500"><Star className="size-4" />{stars}</span>
+  return (
+    <Link to="/karya/$id" params={{ id: p.id }} className={card}>
+      <div className="flex h-24 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#ffb340] to-[#ff6a00] sm:h-28 sm:w-40 lg:aspect-video lg:h-auto lg:w-full">
+        {p.cover_url
+          ? <img src={p.cover_url} alt="" loading="lazy" draggable={false} className="size-full select-none object-cover" />
+          : <Package className="size-10 text-white/90 sm:size-12" strokeWidth={2.2} />}
       </div>
       <div className="min-w-0 flex-1 lg:flex-none">
-        <h3 className="truncate text-lg font-extrabold sm:text-xl lg:hidden">{r.name}</h3>
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600 lg:hidden"><Star className="size-4" />{stars}{r.language && <span className="ml-3 truncate">{r.language}</span>}</p>
-        <p className="mt-1 line-clamp-2 text-sm text-slate-500 lg:mt-0 lg:min-h-10 lg:leading-5">{r.description || "Repositori publik komunitas GOBI."}</p>
-        {(chip || showLang) && (
-          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 lg:mt-3">
-            {chip && <span className="inline-block max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{chip}</span>}
-            {showLang && <span className="hidden truncate text-xs font-semibold text-slate-500 lg:inline">{r.language}</span>}
-          </div>
+        <h3 className="line-clamp-2 break-words text-base font-extrabold leading-snug sm:text-lg lg:text-base">{p.title}</h3>
+        {p.summary && <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.summary}</p>}
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+          <span className={cn("rounded-full px-3 py-0.5 text-xs font-bold", p.price ? "bg-[#fff1dc] text-[#e67700]" : "bg-[#e2f6ea] text-[#12924a]")}>{formatRupiah(p.price)}</span>
+          <span className="max-w-full truncate rounded-full bg-[#e3efff] px-3 py-0.5 text-xs font-bold text-[#1a73e8]">{categoryLabel(p.category)}</span>
+        </div>
+        {p.owner && (
+          <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-slate-600">
+            <AvatarMini name={p.owner.username} url={p.owner.avatar_url} size={20} />
+            <span className="truncate">{p.owner.display_name || p.owner.username}</span>
+          </p>
         )}
       </div>
       <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e7ecf6] lg:hidden"><ArrowRight className="size-5" /></span>
-    </>
+    </Link>
   );
-  if (!r.owner?.username) return <div className={card}>{body}</div>;
-  return <Link to="/$username/$repo" params={{ username: r.owner.username, repo: r.name }} className={card}>{body}</Link>;
 }
