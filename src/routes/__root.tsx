@@ -12,6 +12,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import gobiLogo from "@/assets/gobi-logo.svg";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
@@ -97,18 +98,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { charSet: "utf-8" },
         // viewport-fit=cover supaya menu bawah dan tombol chat bisa memakai env(safe-area-inset-bottom) di iPhone.
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-        { title: "Pastodev — Komunitas Developer" },
+        { title: "GoBi — Komunitas Developer" },
         { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
-        { name: "author", content: "Pastodev" },
+        { name: "author", content: "GoBi" },
         { name: "theme-color", content: "#0d1020" },
-        { property: "og:site_name", content: "Pastodev" },
+        { property: "og:site_name", content: "GoBi" },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },
         ...seo.links,
-        { rel: "icon", type: "image/png", href: "/favicon.png" },
+        { rel: "icon", type: "image/svg+xml", href: gobiLogo },
         { rel: "apple-touch-icon", href: "/favicon.png" },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },

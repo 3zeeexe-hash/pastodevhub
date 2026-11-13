@@ -1,6 +1,6 @@
 // Pure SEO helpers: page meta + structured data for Google (safe on server and client).
 
-export const SITE_NAME = "Pastodev";
+export const SITE_NAME = "GoBi";
 export type SeoInfo = { title: string; description: string; image?: string | undefined; type: "website" | "article" | "product" | "profile"; /** Pre-serialized JSON-LD. */ jsonLd?: string | undefined; noindex?: boolean | undefined; /** The row does not exist (or is not public): keep the fallback title and ask Google not to index it. */ notFound?: boolean | undefined };
 
 /** Plain-text summary for meta descriptions: strips markdown/HTML and cuts at ~155 chars on a word. */
@@ -167,4 +167,4 @@ export function siteJsonLd(origin: string) {
       },
     ],
   }).replace(/</g, "\\u003c");
-    }
+}
