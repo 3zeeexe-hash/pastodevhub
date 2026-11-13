@@ -77,7 +77,7 @@ function GobiFeed() {
           )}
         </div>
 
-        <div className="border-b border-border"><StoryRow data={data} /></div>
+        {feedOn && <div className="border-b border-border"><StoryRow data={data} /></div>}
         <DiscoverStrip data={data} on={on} />
 
         {!feedOn ? (
