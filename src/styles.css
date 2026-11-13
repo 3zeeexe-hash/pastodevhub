@@ -8,10 +8,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Pastodev design system — "malam Jawa": deep navy night sky with a warm
- * sunset-orange glow taken from the mascot logo. All colors are oklch tokens.
- */
+/* Pemetaan token warna ke utilitas Tailwind. Nilai warna ada di blok :root (terang) dan .dark (repositori) di bawah. */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -53,6 +50,17 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  /* Palet merek GOBI: biru tua, oranye, abu-abu, putih. Dipakai langsung (bg-navy, text-orange-ink, ...) di beranda dan banner. */
+  --color-navy: #0a1a45;
+  --color-navy-deep: #071336;
+  --color-navy-mid: #0d2a6b;
+  --color-navy-soft: #1d3f9e;
+  --color-orange-ink: #b85400;
+  --color-grey-50: #f3f5f9;
+  --color-grey-100: #e9ecf3;
+  --color-grey-300: #c9cfdc;
+  --color-grey-500: #6b7691;
+  --color-grey-700: #3a4560;
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -71,68 +79,123 @@
 }
 
 /*
- * Pastodev / GOBI design system — sama dengan beranda: latar terang kebiruan, kartu putih, header biru tua,
- * aksen oranye senja dari maskot, dan tautan biru. Semua warna berupa token oklch.
+ * GOBI design system. Palet empat warna: biru tua (header, banner, teks), oranye (aksen dan tombol utama),
+ * abu-abu (latar, garis, teks sekunder) dan putih (kartu). Halaman repositori memakai varian gelap (.dark di bawah)
+ * dari palet yang sama: latar biru malam, kartu biru tua, teks putih keabu-abuan, aksen oranye.
  */
 :root {
   color-scheme: light;
   --radius: 0.75rem;
-  --background: oklch(0.975 0.007 255);
-  --foreground: oklch(0.235 0.07 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.07 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.07 265);
-  --header: oklch(0.235 0.08 266);
-  --header-foreground: oklch(0.99 0.003 255);
-  --primary: oklch(0.7 0.19 52);
-  --primary-foreground: oklch(0.995 0.003 85);
-  --primary-glow: oklch(0.8 0.16 70);
-  --secondary: oklch(0.95 0.015 255);
-  --secondary-foreground: oklch(0.28 0.07 265);
-  --muted: oklch(0.955 0.01 255);
-  --muted-foreground: oklch(0.52 0.045 257);
-  --accent: oklch(0.94 0.022 255);
-  --accent-foreground: oklch(0.24 0.07 265);
-  --link: oklch(0.55 0.19 258);
-  --star: oklch(0.75 0.16 80);
-  --success: oklch(0.56 0.14 150);
-  --success-foreground: oklch(0.99 0.004 85);
-  --warning: oklch(0.75 0.16 70);
-  --warning-foreground: oklch(0.2 0.04 265);
-  --merged: oklch(0.52 0.16 285);
-  --merged-foreground: oklch(0.99 0.004 85);
-  --diff-add: oklch(0.7 0.15 150 / 18%);
-  --diff-del: oklch(0.65 0.2 25 / 16%);
-  --destructive: oklch(0.58 0.21 25);
-  --destructive-foreground: oklch(0.99 0.004 85);
-  --border: oklch(0.91 0.014 255);
-  --input: oklch(0.89 0.016 255);
-  --ring: oklch(0.7 0.19 52);
-  --chart-1: oklch(0.7 0.19 52);
-  --chart-2: oklch(0.55 0.19 258);
-  --chart-3: oklch(0.56 0.14 150);
-  --chart-4: oklch(0.52 0.16 285);
-  --chart-5: oklch(0.58 0.21 25);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.235 0.07 265);
-  --sidebar-primary: oklch(0.7 0.19 52);
-  --sidebar-primary-foreground: oklch(0.995 0.003 85);
-  --sidebar-accent: oklch(0.94 0.022 255);
-  --sidebar-accent-foreground: oklch(0.24 0.07 265);
-  --sidebar-border: oklch(0.91 0.014 255);
-  --sidebar-ring: oklch(0.7 0.19 52);
+  --background: #f1f3f8;
+  --foreground: #0b1a3f;
+  --card: #ffffff;
+  --card-foreground: #0b1a3f;
+  --popover: #ffffff;
+  --popover-foreground: #0b1a3f;
+  --header: #0a1a45;
+  --header-foreground: #f8f9fd;
+  --primary: #ff8a00;
+  --primary-foreground: #0a1a45;
+  --primary-glow: #ffb340;
+  --secondary: #e8ebf3;
+  --secondary-foreground: #1b2b5c;
+  --muted: #eceff5;
+  --muted-foreground: #5b6784;
+  --accent: #e6eaf4;
+  --accent-foreground: #0a1a45;
+  --link: #1d3f9e;
+  --star: #ffb340;
+  --success: #12924a;
+  --success-foreground: #ffffff;
+  --warning: #ff8a00;
+  --warning-foreground: #0a1a45;
+  --merged: #3b4fa8;
+  --merged-foreground: #ffffff;
+  --diff-add: rgb(18 146 74 / 14%);
+  --diff-del: rgb(217 45 32 / 12%);
+  --destructive: #d92d20;
+  --destructive-foreground: #ffffff;
+  --border: #dde1ec;
+  --input: #cdd3e1;
+  --ring: #ff8a00;
+  --chart-1: #ff8a00;
+  --chart-2: #1d3f9e;
+  --chart-3: #6b7691;
+  --chart-4: #ffb340;
+  --chart-5: #0a1a45;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0b1a3f;
+  --sidebar-primary: #ff8a00;
+  --sidebar-primary-foreground: #0a1a45;
+  --sidebar-accent: #e6eaf4;
+  --sidebar-accent-foreground: #0a1a45;
+  --sidebar-border: #dde1ec;
+  --sidebar-ring: #ff8a00;
   --gradient-hero:
-    radial-gradient(ellipse 60% 80% at 85% 0%, oklch(0.92 0.07 65 / 70%), transparent 70%),
-    radial-gradient(ellipse 55% 60% at 5% 100%, oklch(0.92 0.05 255 / 60%), transparent 70%);
-  --gradient-sun: linear-gradient(135deg, var(--primary-glow), var(--primary));
-  --gradient-header: linear-gradient(180deg, oklch(0.2 0.075 267), oklch(0.32 0.11 264));
+    radial-gradient(ellipse 60% 80% at 85% 0%, rgb(255 138 0 / 14%), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 5% 100%, rgb(10 26 69 / 8%), transparent 70%);
+  --gradient-sun: linear-gradient(135deg, #ffb340, #ff8a00);
+  --gradient-header: linear-gradient(180deg, #071336, #0d2a6b);
   --shadow-glow: 0 10px 30px -12px color-mix(in oklab, var(--primary) 45%, transparent);
-  --story-senja: linear-gradient(160deg, oklch(0.8 0.16 70), oklch(0.62 0.21 40));
-  --story-malam: linear-gradient(160deg, oklch(0.36 0.12 264), oklch(0.18 0.07 268));
-  --story-laut: linear-gradient(160deg, oklch(0.66 0.14 220), oklch(0.42 0.17 258));
-  --story-hutan: linear-gradient(160deg, oklch(0.62 0.14 155), oklch(0.36 0.09 170));
-  --story-mawar: linear-gradient(160deg, oklch(0.7 0.18 350), oklch(0.48 0.2 10));
+  /* Latar story: semuanya dari palet (oranye, biru tua, biru, abu-abu, oranye tua). */
+  --story-senja: linear-gradient(160deg, #ffb340, #ff7a00);
+  --story-malam: linear-gradient(160deg, #0d2a6b, #071336);
+  --story-laut: linear-gradient(160deg, #2f5fd6, #0d2a6b);
+  --story-hutan: linear-gradient(160deg, #6b7691, #262f4a);
+  --story-mawar: linear-gradient(160deg, #ff6a00, #7a2600);
+}
+
+/* Varian gelap untuk halaman repositori: dipasang di __root.tsx saat rute /$username/$repo aktif. */
+.dark {
+  color-scheme: dark;
+  --background: #060e29;
+  --foreground: #e9edf8;
+  --card: #0b1840;
+  --card-foreground: #e9edf8;
+  --popover: #0b1840;
+  --popover-foreground: #e9edf8;
+  --header: #0a1a45;
+  --header-foreground: #f8f9fd;
+  --primary: #ff8a00;
+  --primary-foreground: #0a1a45;
+  --primary-glow: #ffb340;
+  --secondary: #14275f;
+  --secondary-foreground: #e9edf8;
+  --muted: #0f1f50;
+  --muted-foreground: #97a3c4;
+  --accent: #172b6a;
+  --accent-foreground: #ffffff;
+  --link: #ffb340;
+  --star: #ffb340;
+  --success: #3ccf85;
+  --success-foreground: #04210f;
+  --warning: #ffb340;
+  --warning-foreground: #0a1a45;
+  --merged: #8fa6ff;
+  --merged-foreground: #0a1a45;
+  --diff-add: rgb(60 207 133 / 16%);
+  --diff-del: rgb(255 90 77 / 16%);
+  --destructive: #ff5a4d;
+  --destructive-foreground: #ffffff;
+  --border: #1c2e66;
+  --input: #263d7d;
+  --ring: #ff8a00;
+  --chart-1: #ff8a00;
+  --chart-2: #8fa6ff;
+  --chart-3: #97a3c4;
+  --chart-4: #ffb340;
+  --chart-5: #e9edf8;
+  --sidebar: #0b1840;
+  --sidebar-foreground: #e9edf8;
+  --sidebar-primary: #ff8a00;
+  --sidebar-primary-foreground: #0a1a45;
+  --sidebar-accent: #172b6a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1c2e66;
+  --sidebar-ring: #ff8a00;
+  --gradient-hero:
+    radial-gradient(ellipse 60% 80% at 85% 0%, rgb(255 138 0 / 16%), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 5% 100%, rgb(29 63 158 / 30%), transparent 70%);
 }
 
 @layer base {
@@ -209,3 +272,13 @@
 .hljs-deletion { color: var(--destructive); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
+
+/* Syntax highlighting di tema gelap (halaman repositori). */
+.dark .hljs-keyword, .dark .hljs-selector-tag, .dark .hljs-literal, .dark .hljs-type { color: #ff9a9a; }
+.dark .hljs-string, .dark .hljs-regexp, .dark .hljs-addition, .dark .hljs-attribute, .dark .hljs-meta .hljs-string { color: #8fe0b4; }
+.dark .hljs-number, .dark .hljs-symbol, .dark .hljs-bullet, .dark .hljs-variable.constant_ { color: #ffb340; }
+.dark .hljs-title, .dark .hljs-title.function_, .dark .hljs-section { color: #8fa6ff; }
+.dark .hljs-title.class_, .dark .hljs-built_in, .dark .hljs-class .hljs-title { color: #ffd08a; }
+.dark .hljs-attr, .dark .hljs-variable, .dark .hljs-template-variable, .dark .hljs-property { color: #8fd3ff; }
+.dark .hljs-tag, .dark .hljs-name, .dark .hljs-selector-id, .dark .hljs-selector-class { color: #ff9f5a; }
+.dark .hljs-meta, .dark .hljs-doctag { color: #c3b1ff; }
