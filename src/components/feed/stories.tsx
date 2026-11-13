@@ -157,21 +157,24 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
     void markStoryViewed(story.id, user.id);
   }, [story, user]);
 
-  // Waktu putar.
-  useEffect(() => { setProgress(0); }, [gi, si]);
+  // Waktu putar. Kemajuan disimpan di ref supaya jeda/lanjut meneruskan dari posisi terakhir.
+  const progRef = useRef(0);
+  const lastKey = useRef("");
   useEffect(() => {
+    const key = `${gi}-${si}`;
+    if (lastKey.current !== key) { lastKey.current = key; progRef.current = 0; setProgress(0); }
     if (paused || !story) return;
-    const started = performance.now() - progress * STORY_DURATION_MS;
+    const started = performance.now() - progRef.current * STORY_DURATION_MS;
     let raf = 0;
     const tick = (t: number) => {
       const p = Math.min(1, (t - started) / STORY_DURATION_MS);
+      progRef.current = p;
       setProgress(p);
       if (p >= 1) next(); else raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, story?.id, next]);
+  }, [paused, gi, si, story, next]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
