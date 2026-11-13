@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   useRouter,
   useLocation,
+  useMatches,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -125,7 +126,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-// Tanpa class "dark": tema situs sekarang terang (token di styles.css), jadi varian dark: bawaan komponen ui tidak boleh aktif.
+// Tanpa class "dark" di <html> saat render server: situs terang (token di styles.css). Halaman repositori memakai tema gelap
+// lewat class "dark" di RootComponent (dan di <html> setelah hidrasi supaya dialog/menu yang tampil di luar pohon ikut gelap).
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
@@ -147,6 +149,13 @@ function RootComponent() {
   // Beranda ("/") punya header sendiri (GobiHeader di routes/index.tsx), jadi header global disembunyikan di sana agar tidak dobel.
   const homePage = pathname === "/";
   const navVisible = useMobileNavVisible();
+  // Halaman repositori (/$username/$repo/...) tetap bertema gelap; semua halaman lain memakai tema terang oranye / biru tua / abu-abu / putih.
+  const repoPage = useMatches().some((m) => m.routeId === "/$username_/$repo");
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", repoPage);
+    return () => root.classList.remove("dark");
+  }, [repoPage]);
   useEffect(() => {
     const onPreloadError = (e: Event) => {
       if (reloadOnceForStaleChunk()) e.preventDefault();
@@ -163,7 +172,7 @@ function RootComponent() {
           <div className="min-h-screen bg-background font-sans"><Outlet /></div>
         ) : (
           // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile (lg ke atas tidak punya menu bawah).
-          <div className={cn("flex min-h-screen flex-col bg-background font-sans", navVisible && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
+          <div className={cn("flex min-h-screen flex-col bg-background font-sans text-foreground", repoPage && "dark", navVisible && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0")}>
             {!homePage && <SiteHeader />}
             <AnnouncementBar />
             <div className="flex-1">
