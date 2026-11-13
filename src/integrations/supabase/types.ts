@@ -845,6 +845,77 @@ export type Database = {
           },
         ]
       }
+      feed_stories: {
+        Row: {
+          author_id: string
+          bg: string
+          body: string
+          created_at: string
+          expires_at: string
+          id: string
+          image_url: string | null
+        }
+        Insert: {
+          author_id: string
+          bg?: string
+          body?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+        }
+        Update: {
+          author_id?: string
+          bg?: string
+          body?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_stories_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_story_views: {
+        Row: {
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "feed_stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_story_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_user_blocks: {
         Row: {
           created_at: string
