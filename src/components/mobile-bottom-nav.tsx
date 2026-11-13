@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { BookMarked, Briefcase, Compass, Download, Home, LogIn, MessageSquare, Package, Pencil, Plus, Receipt, Search, Wrench } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import type { LucideIcon } from "lucide-react";
+import { BookMarked, Briefcase, Compass, Download, Home, LogIn, MessageSquare, Package, Pencil, Plus, Receipt, Search, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { fetchDmUnread } from "@/lib/dm";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { roleCan } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
 import { useSiteConfig } from "@/lib/use-site-config";
-import { AvatarMini } from "@/components/avatar-mini";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +21,29 @@ export function useMobileNavVisible() {
   return true;
 }
 
-// Menu bawah biru tua: ikon putih redup, aktif oranye. Status aktif dibaca dari data-status milik Link
-// (varian data-[status=active] lebih spesifik daripada warna dasar, jadi tidak bergantung urutan class).
-const tab = "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] text-header-foreground/70 transition-colors active:bg-white/10 data-[status=active]:text-primary";
+// Menu bawah mengambang (pil): putih dengan ikon abu-abu, aktif biru tua + garis oranye. Di halaman bertema gelap (repositori) jadi biru tua.
+// Status aktif dibaca dari data-status milik Link; varian dark: lebih spesifik daripada varian aktif terang.
+const tab = "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 pb-2 pt-1.5 text-[11px] font-medium text-grey-500 transition active:scale-95 data-[status=active]:text-navy dark:text-header-foreground/75 dark:data-[status=active]:text-white";
 const sheetItem = "flex items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-accent";
 
-/** Menu bawah ala Instagram / X untuk layar di bawah lg. Di layar lebar, menu kiri beranda dan header yang dipakai. */
+function TabInner({ active, Icon, label, fill, badge }: { active: boolean; Icon: LucideIcon; label: string; fill?: boolean; badge?: number }) {
+  return (
+    <>
+      <span className="relative">
+        <Icon className="size-6" strokeWidth={active ? 2.4 : 1.8} fill={fill && active ? "currentColor" : "none"} />
+        {!!badge && (
+          <span className="absolute -right-2.5 -top-1.5 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-card dark:ring-header">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </span>
+      <span className={cn(active && "font-semibold")}>{label}</span>
+      <span aria-hidden className={cn("absolute bottom-0.5 h-[3px] w-9 rounded-full bg-primary transition-opacity", active ? "opacity-100" : "opacity-0")} />
+    </>
+  );
+}
+
+/** Menu bawah mengambang untuk layar di bawah lg: Beranda, Cari, tombol + oranye, Pesan, Profil. Di layar lebar, menu samping dan header yang dipakai. */
 export function MobileBottomNav() {
   const visible = useMobileNavVisible();
   const { user, profile } = useAuth();
@@ -32,58 +51,65 @@ export function MobileBottomNav() {
   const { flags } = useSiteConfig();
   const [createOpen, setCreateOpen] = useState(false);
   const on = (key: FeatureKey) => isFeatureOn(flags, key);
+  const signedIn = !!user && !!profile;
+  // Kunci kuerinya sama dengan menu kiri beranda dan ChatDock, jadi cache dipakai bersama.
+  const dm = useQuery({
+    queryKey: ["dm-unread", user?.id ?? null],
+    queryFn: () => fetchDmUnread(user?.id),
+    enabled: signedIn && on("discuss"),
+    refetchInterval: 60_000,
+  });
   if (!visible) return null;
 
-  const signedIn = !!user && !!profile;
   const close = () => setCreateOpen(false);
 
   return (
     <>
-      <nav aria-label="Navigasi utama" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-header pb-[env(safe-area-inset-bottom)] text-header-foreground lg:hidden">
-        <div className="mx-auto flex h-14 max-w-xl items-stretch">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:hidden">
+        <nav
+          aria-label="Navigasi utama"
+          className="pointer-events-auto mx-auto flex h-14 max-w-xl items-stretch rounded-2xl bg-card text-foreground shadow-[0_10px_30px_-10px_rgb(10_26_69/0.45)] ring-1 ring-black/5 dark:bg-header dark:text-header-foreground dark:ring-white/10"
+        >
           <Link to="/" activeOptions={{ exact: true, includeSearch: false }} className={tab}>
-            {({ isActive }) => (<><Home className="size-6" strokeWidth={isActive ? 2.6 : 1.8} /><span className={cn(isActive && "font-semibold")}>Beranda</span></>)}
+            {({ isActive }) => <TabInner active={isActive} Icon={Home} label="Beranda" fill />}
           </Link>
 
-          {on("jasa") ? (
-            <Link to="/jasa" className={tab}>
-              {({ isActive }) => (<><Wrench className="size-6" strokeWidth={isActive ? 2.6 : 1.8} /><span className={cn(isActive && "font-semibold")}>Jasa</span></>)}
-            </Link>
-          ) : (
-            <Link to="/explore" className={tab}>
-              {({ isActive }) => (<><Compass className="size-6" strokeWidth={isActive ? 2.6 : 1.8} /><span className={cn(isActive && "font-semibold")}>Jelajahi</span></>)}
-            </Link>
-          )}
+          <Link to="/search" search={{ q: "", type: "users" }} className={tab}>
+            {({ isActive }) => <TabInner active={isActive} Icon={Search} label="Cari" />}
+          </Link>
 
           {signedIn ? (
             <>
               <button type="button" aria-label="Buat baru" onClick={() => setCreateOpen(true)} className="flex flex-1 items-center justify-center">
-                <span className="-mt-5 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-glow ring-4 ring-header"><Plus className="size-6" /></span>
+                <span className="-mt-8 flex size-14 items-center justify-center rounded-full bg-sun text-navy shadow-glow ring-4 ring-card transition active:scale-95 dark:ring-header">
+                  <Plus className="size-7" strokeWidth={3} />
+                </span>
               </button>
-              <Link to="/pesanan" className={tab}>
-                {({ isActive }) => (<><Receipt className="size-6" strokeWidth={isActive ? 2.6 : 1.8} /><span className={cn(isActive && "font-semibold")}>Pesanan</span></>)}
-              </Link>
+              {on("discuss") ? (
+                <Link to="/discuss/pesan" search={{}} className={tab}>
+                  {({ isActive }) => <TabInner active={isActive} Icon={MessageSquare} label="Pesan" fill badge={dm.data ?? 0} />}
+                </Link>
+              ) : (
+                <Link to="/pesanan" className={tab}>
+                  {({ isActive }) => <TabInner active={isActive} Icon={Receipt} label="Pesanan" />}
+                </Link>
+              )}
               <Link to="/$username" params={{ username: profile.username }} className={tab}>
-                {({ isActive }) => (
-                  <>
-                    <span className={cn("rounded-full p-0.5", isActive ? "ring-2 ring-primary" : "ring-1 ring-transparent")}><AvatarMini name={profile.username} url={profile.avatar_url} size={24} /></span>
-                    <span className={cn(isActive && "font-semibold")}>Profil</span>
-                  </>
-                )}
+                {({ isActive }) => <TabInner active={isActive} Icon={User} label="Profil" fill />}
               </Link>
             </>
           ) : (
             <>
-              <Link to="/search" search={{ q: "", type: "users" }} className={tab}>
-                {({ isActive }) => (<><Search className="size-6" strokeWidth={isActive ? 2.6 : 1.8} /><span className={cn(isActive && "font-semibold")}>Cari</span></>)}
+              <Link to="/explore" className={tab}>
+                {({ isActive }) => <TabInner active={isActive} Icon={Compass} label="Jelajahi" />}
               </Link>
               <Link to="/auth" className={tab}>
-                {() => (<><LogIn className="size-6" strokeWidth={1.8} /><span>Masuk</span></>)}
+                {() => <TabInner active={false} Icon={LogIn} label="Masuk" />}
               </Link>
             </>
           )}
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {signedIn && (
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
