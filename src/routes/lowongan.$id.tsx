@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Check, CreditCard, Loader2, MessageSquare, Send, Users, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CreditCard, FileSignature, Loader2, MessageSquare, Send, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
@@ -18,6 +18,7 @@ import { SignInCta } from "@/components/sign-in-cta";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/job-card";
 import { JobExtras } from "@/components/job-extras";
 import { ApplicationThread } from "@/components/application-thread";
+import { Pill, ReportButton } from "@/components/work-ui";
 import { getSeoInfo } from "@/lib/seo.functions";
 import { seoHead } from "@/lib/seo";
 
@@ -35,6 +36,8 @@ type App = {
 };
 const APP_SELECT = "id,job_id,developer_id,cover_letter,bid_amount,est_days,status,created_at, developer:profiles!job_applications_developer_id_fkey(username,display_name,avatar_url,headline,skills)";
 
+const STAGE_LABEL: Record<string, string> = { viewed: "Dilihat", shortlisted: "Shortlist", interview: "Interview" };
+
 function JobDetail() {
   const { id } = Route.useParams();
   const { user, profile } = useAuth();
@@ -48,7 +51,26 @@ function JobDetail() {
     enabled: !!user,
     queryFn: async () => ((await supabase.from("job_applications").select(APP_SELECT).eq("job_id", id).order("created_at")).data ?? []) as unknown as App[],
   });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["jobs"] }); };
+  const ownerId = job.data?.client_id;
+  const viewerIsOwner = !!user && !!ownerId && user.id === ownerId;
+  // Tahap lamaran (GOBI WORK, SQL 002). Diambil terpisah supaya halaman tetap jalan sebelum SQL itu dijalankan.
+  const stages = useQuery({
+    queryKey: ["job-app-stages", id, user?.id],
+    enabled: viewerIsOwner,
+    queryFn: async () => {
+      const { data, error } = await looseDb.from("job_applications").select("id,work_stage").eq("job_id", id);
+      if (error) return {} as Record<string, string | null>;
+      return Object.fromEntries(((data ?? []) as { id: string; work_stage: string | null }[]).map((r) => [r.id, r.work_stage])) as Record<string, string | null>;
+    },
+  });
+  // Saat pemilik membuka daftar pelamar, lamaran yang masih menunggu ditandai "dilihat" (sekali; diabaikan jika SQL 002 belum ada).
+  const hasPending = !!apps.data?.some((a) => a.status === "pending");
+  useEffect(() => {
+    if (viewerIsOwner && hasPending) {
+      looseDb.rpc("work_mark_applications_viewed", { _job_id: id }).then(() => qc.invalidateQueries({ queryKey: ["job-app-stages", id] }), () => undefined);
+    }
+  }, [viewerIsOwner, hasPending, id, qc]);
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["job-app-stages", id] }); qc.invalidateQueries({ queryKey: ["jobs"] }); };
 
   if (job.isLoading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
   const j = job.data;
@@ -88,7 +110,7 @@ function JobDetail() {
             <section className="space-y-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold"><Users className="size-5 text-primary" /> Pelamar ({apps.data?.length ?? 0})</h2>
               {apps.data?.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Belum ada pelamar. Bagikan link lowongan ini ke komunitas.</p>}
-              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} canAnswer={canRespond(j, a, user?.id ?? null)} onDone={refresh} />)}
+              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} stage={stages.data?.[a.id] ?? null} canAnswer={canRespond(j, a, user?.id ?? null)} onDone={refresh} />)}
             </section>
           )}
 
@@ -128,6 +150,7 @@ function JobDetail() {
               {j.status !== "closed" ? <Button variant="outline" className="w-full" onClick={() => setStatus("closed")}>Tutup lowongan</Button>
                 : <Button className="w-full" onClick={() => setStatus("open")}>Buka lagi</Button>}
               <Button asChild variant="ghost" className="w-full"><Link to="/dashboard">Ke dashboard</Link></Button>
+              <Button asChild variant="ghost" className="w-full"><Link to="/kerja/kontrak"><FileSignature /> Kontrak GOBI WORK</Link></Button>
             </div>
           ) : !user ? (
             <SignInCta text="Masuk sebagai developer untuk melamar." />
@@ -138,6 +161,7 @@ function JobDetail() {
               {j.status !== "open" ? "Lowongan ini sudah tidak menerima lamaran." : profile?.account_type !== "developer" ? "Hanya akun developer yang bisa melamar. Ganti jenis akun di Pengaturan." : "Kamu tidak bisa melamar lowongan ini."}
             </div>
           ) : null}
+          {user && !isOwner && <ReportButton targetType="job" targetId={j.id} label="Laporkan lowongan" className="w-full" />}
         </aside>
       </div>
     </main>
@@ -186,26 +210,50 @@ function useApplicationOrder(applicationId: string, enabled: boolean) {
   });
 }
 
+/** Kontrak GOBI WORK dari lamaran (butuh docs/sql/gobi-work/001); kosong jika SQL belum dijalankan. */
+function useApplicationContract(applicationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["application-contract", applicationId],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await looseDb.from("work_contracts").select("id,status").eq("application_id", applicationId).maybeSingle();
+      if (error) return null;
+      return (data as { id: string; status: string } | null) ?? null;
+    },
+  });
+}
+
 function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
   const order = useApplicationOrder(applicationId, true);
+  const contract = useApplicationContract(applicationId, true);
+  if (contract.data) {
+    return <Button asChild size="sm"><Link to="/kerja/kontrak/$id" params={{ id: contract.data.id }}><FileSignature /> Buka kontrak</Link></Button>;
+  }
   if (order.data) {
     return <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan</Link></Button>;
   }
-  return <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
+  return <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat kontrak atau pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
 }
 
-function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; onDone: () => void }) {
+function ApplicantCard({ a, stage, canAnswer, onDone }: { a: App; stage: string | null; canAnswer: boolean; onDone: () => void }) {
   const [chat, setChat] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
   const order = useApplicationOrder(a.id, a.status === "accepted");
+  const contract = useApplicationContract(a.id, a.status === "accepted");
   async function respond(accept: boolean) {
     if (accept && !confirm(`Terima @${a.developer?.username}? Pelamar lain otomatis tidak dipilih.`)) return;
     setBusy(true);
     const { error } = await supabase.rpc("respond_job_application", { _application_id: a.id, _accept: accept });
     setBusy(false);
-    if (error) toast.error(errMsg(error)); else { toast.success(accept ? "Developer diterima! Buat pesanan untuk membayar lewat escrow." : "Lamaran ditolak"); onDone(); if (accept) setChat(true); }
+    if (error) toast.error(errMsg(error)); else { toast.success(accept ? "Developer diterima! Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow." : "Lamaran ditolak"); onDone(); if (accept) setChat(true); }
+  }
+  async function setStage(next: "shortlisted" | "interview") {
+    setBusy(true);
+    const { error } = await looseDb.rpc("work_set_application_stage", { _application_id: a.id, _stage: next });
+    setBusy(false);
+    if (error) toast.error(errMsg(error)); else { toast.success(next === "shortlisted" ? "Masuk shortlist" : "Ditandai interview"); onDone(); }
   }
   async function createOrder() {
     setBusy(true);
@@ -225,20 +273,32 @@ function ApplicantCard({ a, canAnswer, onDone }: { a: App; canAnswer: boolean; o
             <span className="min-w-0"><span className="block truncate font-semibold">{a.developer.display_name || a.developer.username}</span><span className="block truncate text-xs text-muted-foreground">{a.developer.headline || `@${a.developer.username}`}</span></span>
           </Link>
         )}
-        <ApplicationStatusBadge status={a.status} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {stage && a.status === "pending" && <Pill tone="info">{STAGE_LABEL[stage] ?? stage}</Pill>}
+          <ApplicationStatusBadge status={a.status} />
+        </div>
       </div>
       <p className="mt-3 text-sm">Penawaran <b className="text-primary">{formatRupiah(a.bid_amount, "Nego")}</b> · {a.est_days} hari · {timeAgo(a.created_at)}</p>
       <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{a.cover_letter}</p>
       {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px]">{s}</span>)}</div> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {canAnswer && <><Button size="sm" disabled={busy} onClick={() => respond(true)}><Check /> Terima</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => respond(false)}><X /> Tolak</Button></>}
-        {a.status === "accepted" && (order.data
-          ? <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan &amp; bayar</Link></Button>
-          : <Button size="sm" disabled={busy} onClick={createOrder}><CreditCard /> Buat pesanan &amp; bayar</Button>)}
+        {canAnswer && stage !== "shortlisted" && <Button size="sm" variant="outline" disabled={busy} onClick={() => setStage("shortlisted")}>Shortlist</Button>}
+        {canAnswer && stage !== "interview" && <Button size="sm" variant="outline" disabled={busy} onClick={() => setStage("interview")}>Undang interview</Button>}
+        {a.status === "accepted" && (contract.data
+          ? <Button asChild size="sm"><Link to="/kerja/kontrak/$id" params={{ id: contract.data.id }}><FileSignature /> Buka kontrak</Link></Button>
+          : order.data
+            ? <Button asChild size="sm"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan &amp; bayar</Link></Button>
+            : (
+              <>
+                <Button asChild size="sm"><Link to="/kerja/kontrak/baru" search={{ application: a.id }}><FileSignature /> Buat kontrak GOBI WORK</Link></Button>
+                <Button size="sm" variant="outline" disabled={busy} onClick={createOrder}><CreditCard /> Pesanan langsung (tanpa kontrak)</Button>
+              </>
+            ))}
         {a.status !== "withdrawn" && <Button size="sm" variant="ghost" onClick={() => setChat(!chat)}><MessageSquare /> {chat ? "Tutup obrolan" : "Obrolan"}</Button>}
       </div>
-      {a.status === "accepted" && !order.data && (
-        <p className="mt-2 text-xs text-muted-foreground">Pembayaran lewat Midtrans. Dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
+      {a.status === "accepted" && !order.data && !contract.data && (
+        <p className="mt-2 text-xs text-muted-foreground">Kontrak GOBI WORK cocok untuk milestone atau per jam; pesanan langsung untuk satu pembayaran. Pembayaran lewat Midtrans, dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
       )}
       {chat && <div className="mt-3"><ApplicationThread applicationId={a.id} /></div>}
     </div>
