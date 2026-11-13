@@ -33,6 +33,13 @@ const NAV = [
 
 const WORKSPACE_SHORT: Record<Role, string> = { developer: "Studio", freelancer: "Freelance", client: "Dashboard", personal: "Ruang saya" };
 
+// Tombol ikon di atas latar biru tua: putih, sorotan putih transparan.
+const onNavy = "text-header-foreground/85 hover:bg-white/10 hover:text-white";
+
+/**
+ * Header global bergaya beranda GOBI: gradasi biru tua, teks putih, pencarian pil putih.
+ * Lebar isinya sama dengan beranda (max-w-6xl, xl: max-w-7xl) supaya tepi kiri/kanan sejajar.
+ */
 export function SiteHeader() {
   const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -52,13 +59,13 @@ export function SiteHeader() {
   const workspaceLabel = ROLE_INFO[role].workspaceLabel;
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); setOpen(false); navigate({ to: "/search", search: { q, type: "users" } }); };
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-header/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-header-gradient text-header-foreground shadow-sm">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:px-6 xl:max-w-7xl">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button size="icon" variant="ghost" className="lg:hidden" aria-label="Buka menu"><Menu /></Button>
+            <Button size="icon" variant="ghost" className={`${onNavy} lg:hidden`} aria-label="Buka menu"><Menu /></Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-header">
+          <SheetContent side="left" className="w-72 bg-card">
             <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> Go<span className="text-primary">Bi</span></SheetTitle></SheetHeader>
             <form onSubmit={doSearch} className="relative mt-4">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -87,32 +94,32 @@ export function SiteHeader() {
           <BrandMark size={32} />
           <span className="hidden text-lg font-bold tracking-tight sm:inline">Go<span className="text-primary">Bi</span></span>
         </Link>
-        <nav className="ml-3 hidden items-center gap-0.5 text-sm lg:flex">
-          <Link to="/search" search={{ q: "", type: "users" }} className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">Talenta</Link>
+        <nav className="ml-3 hidden items-center gap-0.5 text-sm font-semibold lg:flex">
+          <Link to="/search" search={{ q: "", type: "users" }} className={`rounded-full px-3 py-1.5 transition ${onNavy}`}>Talenta</Link>
           {nav.map((n) => (
             <Link key={n.to} to={n.to}
-              className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" activeProps={{ className: "text-foreground" }}>{n.label}</Link>
+              className={`rounded-full px-3 py-1.5 transition ${onNavy} data-[status=active]:bg-white/15 data-[status=active]:text-white`}>{n.label}</Link>
           ))}
         </nav>
         <form className="relative ml-auto hidden w-56 md:block xl:w-72" onSubmit={doSearch}>
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta, proyek…" className="h-8 bg-background pl-8 text-sm" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta, proyek…" aria-label="Kata kunci pencarian" className="h-9 rounded-full border-0 bg-card pl-9 text-sm text-foreground" />
         </form>
         <div className="ml-auto flex items-center gap-2 md:ml-2">
-          <Link to="/search" search={{ q: "", type: "users" }} aria-label="Cari" className="rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden"><Search className="size-4" /></Link>
+          <Link to="/search" search={{ q: "", type: "users" }} aria-label="Cari" className={`rounded-full p-2 md:hidden ${onNavy}`}><Search className="size-5" /></Link>
           {user && profile ? (
             <>
               {on("discuss") && (
-                <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
-                  <Bell className="size-4" />
-                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-center font-mono text-[10px] leading-4 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
+                <Link to="/discuss/notifikasi" aria-label="Notifikasi" className={`relative rounded-full p-2 ${onNavy}`}>
+                  <Bell className="size-5" />
+                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-500 px-1 text-center font-mono text-[10px] leading-4 text-white">{unread.data > 99 ? "99+" : unread.data}</span>}
                 </Link>
               )}
-              <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
+              <Button asChild size="sm" variant="ghost" className={`hidden rounded-full sm:inline-flex ${onNavy}`}><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
               {/* Tombol Buat baru di header hanya untuk layar lebar; di mobile ada tombol + di menu bawah. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden lg:inline-flex"><Plus /></Button>
+                  <Button size="sm" variant="outline" aria-label="Buat baru" className="hidden rounded-full border-white/30 bg-transparent text-header-foreground hover:bg-white/10 hover:text-white lg:inline-flex"><Plus /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {roleCan(role, "post_job") && on("jobs") && <DropdownMenuItem asChild><Link to="/lowongan/baru"><Briefcase /> Pasang lowongan</Link></DropdownMenuItem>}
@@ -124,7 +131,7 @@ export function SiteHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
-                <DropdownMenuTrigger aria-label="Menu akun" className="rounded-full">
+                <DropdownMenuTrigger aria-label="Menu akun" className="rounded-full ring-2 ring-white/60">
                   <AvatarMini name={profile.username} url={profile.avatar_url} size={30} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -150,7 +157,7 @@ export function SiteHeader() {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm"><Link to="/auth">Masuk</Link></Button>
+            <Button asChild size="sm" className="rounded-full"><Link to="/auth">Masuk</Link></Button>
           )}
         </div>
       </div>
