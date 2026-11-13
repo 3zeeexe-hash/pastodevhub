@@ -9,7 +9,8 @@ import { Timeline } from "@/components/feed/timeline";
 import { TrendingTags } from "@/components/feed/trending";
 import { JobCard } from "@/components/job-card";
 import { LeftRail } from "@/components/home/left-rail";
-import { DiscoverStrip, RightRail, TalentStories } from "@/components/home/right-rail";
+import { DiscoverStrip, RightRail } from "@/components/home/right-rail";
+import { StoryRow } from "@/components/feed/discuss-ui";
 import { useHomeData, type HomeData } from "@/components/home/use-home-data";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,7 @@ function GobiFeed() {
           )}
         </div>
 
-        <TalentStories data={data} />
+        <div className="border-b border-border"><StoryRow data={data} /></div>
         <DiscoverStrip data={data} on={on} />
 
         {!feedOn ? (
