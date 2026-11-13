@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ChevronLeft, ChevronRight, Eye, ImagePlus, Loader2, Pause, Play, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Eye, ImagePlus, Loader2, Pause, Play, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { timeAgo, useAuth } from "@/lib/auth";
 import { errMsg, uploadMedia } from "@/lib/market";
@@ -118,33 +118,57 @@ function CreateStoryDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   }
 
   const left = STORY_MAX_CHARS - body.length;
+  const canShare = !saving && !uploading && (!!body.trim() || !!image);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[95dvh] overflow-y-auto sm:max-w-md">
-        <DialogHeader><DialogTitle>Buat story</DialogTitle></DialogHeader>
-        <div className={cn("relative mx-auto flex aspect-[9/16] w-full max-w-[15rem] items-center justify-center overflow-hidden rounded-2xl p-5 text-center text-header-foreground shadow-md", !image && STORY_BG_CLASS[bg])}>
-          {image && <img src={image} alt="" className="absolute inset-0 size-full object-cover" />}
-          {image && body && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-header/90 to-transparent" />}
-          <p className={cn("relative whitespace-pre-wrap break-words font-bold", image ? "mt-auto self-end text-sm" : "text-lg")}>{body || (image ? "" : "Tulis sesuatu…")}</p>
-          {uploading && <div className="absolute inset-0 flex items-center justify-center bg-header/60"><Loader2 className="size-6 animate-spin" /></div>}
-        </div>
-        <Textarea value={body} onChange={(e) => setBody(e.target.value.slice(0, STORY_MAX_CHARS))} placeholder={image ? "Tambah keterangan (opsional)" : "Apa kabar hari ini?"} rows={3} autoFocus />
-        <div className="flex items-center justify-between text-xs text-muted-foreground"><span>Story hilang otomatis setelah 24 jam.</span><span className={cn(left < 20 && "text-destructive")}>{left}</span></div>
-        {!image && (
-          <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Warna latar">
-            {STORY_BGS.map((b) => (
-              <button key={b} type="button" role="radio" aria-checked={bg === b} aria-label={BG_LABEL[b]} onClick={() => setBg(b)}
-                className={cn("size-9 rounded-full ring-offset-2 ring-offset-background transition", STORY_BG_CLASS[b], bg === b ? "ring-2 ring-primary" : "hover:scale-105")} />
-            ))}
+      <DialogContent className="max-h-[95dvh] gap-0 overflow-y-auto p-0 sm:max-w-2xl sm:overflow-hidden">
+        <div className="grid sm:grid-cols-[17rem_1fr]">
+          {/* Pratinjau: panel biru tua supaya kartu story menonjol, di mobile ringkas di atas form. */}
+          <div className="relative flex items-center justify-center overflow-hidden bg-header-gradient px-6 py-5 sm:py-8">
+            <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/30 blur-3xl" />
+            <div className={cn("relative flex aspect-[9/16] w-full max-w-[8.5rem] items-center justify-center overflow-hidden rounded-2xl p-4 text-center text-header-foreground shadow-xl ring-1 ring-white/20 sm:max-w-[11.5rem]", !image && STORY_BG_CLASS[bg])}>
+              {image && <img src={image} alt="" className="absolute inset-0 size-full object-cover" />}
+              {image && body && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-navy-deep/90 to-transparent" />}
+              <p className={cn("relative line-clamp-[9] whitespace-pre-wrap break-words font-bold", image ? "mt-auto self-end text-xs" : "text-sm sm:text-base")}>{body || (image ? "" : "Tulis sesuatu…")}</p>
+              {uploading && <div className="absolute inset-0 flex items-center justify-center bg-navy-deep/60"><Loader2 className="size-6 animate-spin" /></div>}
+            </div>
           </div>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
-          <Button type="button" variant="secondary" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}><ImagePlus /> {image ? "Ganti gambar" : "Tambah gambar"}</Button>
-          {image && <Button type="button" variant="ghost" size="sm" onClick={() => setImage(null)}><X /> Hapus gambar</Button>}
-          <Button type="button" className="ml-auto" disabled={saving || uploading || (!body.trim() && !image)} onClick={submit}>
-            {saving && <Loader2 className="animate-spin" />} Bagikan
-          </Button>
+
+          <div className="flex flex-col gap-4 p-5 sm:p-6">
+            <DialogHeader className="pr-6">
+              <DialogTitle>Buat story</DialogTitle>
+              <p className="text-sm text-muted-foreground">Hilang otomatis setelah 24 jam.</p>
+            </DialogHeader>
+
+            <div>
+              <Textarea value={body} onChange={(e) => setBody(e.target.value.slice(0, STORY_MAX_CHARS))} placeholder={image ? "Tambah keterangan (opsional)" : "Apa kabar hari ini?"} rows={4} autoFocus className="resize-none" />
+              <p className={cn("mt-1 text-right text-xs text-muted-foreground", left < 20 && "text-destructive")} aria-live="polite">{left} huruf tersisa</p>
+            </div>
+
+            {!image && (
+              <div>
+                <p className="mb-2 text-sm font-semibold">Warna latar</p>
+                <div className="flex flex-wrap items-center gap-2.5" role="radiogroup" aria-label="Warna latar">
+                  {STORY_BGS.map((b) => (
+                    <button key={b} type="button" role="radio" aria-checked={bg === b} aria-label={BG_LABEL[b]} title={BG_LABEL[b]} onClick={() => setBg(b)}
+                      className={cn("flex size-10 items-center justify-center rounded-full text-white ring-offset-2 ring-offset-card transition", STORY_BG_CLASS[b], bg === b ? "ring-2 ring-primary" : "hover:scale-105")}>
+                      {bg === b && <Check className="size-5 drop-shadow" strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+              <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}><ImagePlus /> {image ? "Ganti gambar" : "Tambah gambar"}</Button>
+              {image && <Button type="button" variant="ghost" size="sm" onClick={() => setImage(null)}><X /> Hapus gambar</Button>}
+            </div>
+
+            <Button type="button" size="lg" className="mt-auto w-full font-bold" disabled={!canShare} onClick={submit}>
+              {saving && <Loader2 className="animate-spin" />} Bagikan story
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
