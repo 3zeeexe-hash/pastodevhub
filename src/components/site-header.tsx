@@ -59,7 +59,7 @@ export function SiteHeader() {
             <Button size="icon" variant="ghost" className="lg:hidden" aria-label="Buka menu"><Menu /></Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 bg-header">
-            <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> pasto<span className="-ml-2 text-primary">dev</span></SheetTitle></SheetHeader>
+            <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> Go<span className="text-primary">Bi</span></SheetTitle></SheetHeader>
             <form onSubmit={doSearch} className="relative mt-4">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta…" className="pl-8" />
@@ -85,7 +85,7 @@ export function SiteHeader() {
         </Sheet>
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandMark size={32} />
-          <span className="hidden text-lg font-bold tracking-tight sm:inline">pasto<span className="text-primary">dev</span></span>
+          <span className="hidden text-lg font-bold tracking-tight sm:inline">Go<span className="text-primary">Bi</span></span>
         </Link>
         <nav className="ml-3 hidden items-center gap-0.5 text-sm lg:flex">
           <Link to="/search" search={{ q: "", type: "users" }} className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">Talenta</Link>
