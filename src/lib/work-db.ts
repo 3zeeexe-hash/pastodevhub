@@ -12,6 +12,8 @@ export type ContractRow = {
   revision_terms: string; usage_rights: string; cancellation_terms: string; payment_terms: string;
   /** Kolom SQL 006; undefined/null sebelum dijalankan. null = tanpa batas revisi. */
   revision_limit?: number | null; revisions_used?: number;
+  /** Kolom SQL 007; true = per jam dengan jadwal (disimpan sebagai payment_type 'fixed' dengan satu milestone). */
+  schedule_mode?: boolean;
   status: ContractStatus; client_approved_at: string | null; freelancer_approved_at: string | null;
   version: number; created_at: string; updated_at: string;
   client: PartyProfile; freelancer: PartyProfile;
@@ -28,6 +30,13 @@ export type TimesheetRow = {
   id: string; contract_id: string; work_date: string; hours: number; note: string;
   status: "submitted" | "approved" | "rejected"; decision_note: string | null; billed_order_id: string | null; created_at: string;
   start_time?: string | null; end_time?: string | null;
+};
+/** Sesi kerja terjadwal (SQL 007). start_time/end_time berformat "HH:MM:SS". */
+export type ScheduleSlot = { id: string; contract_id: string; work_date: string; start_time: string; end_time: string; hours: number };
+/** Permintaan pergantian jam dari freelancer (SQL 007). */
+export type SlotChange = {
+  id: string; contract_id: string; slot_id: string; requested_by: string; new_date: string; new_start: string; new_end: string;
+  note: string; status: "pending" | "accepted" | "rejected" | "withdrawn"; decision_note: string | null; created_at: string;
 };
 export type EventRow = { id: number; actor_id: string | null; event: string; detail: Record<string, unknown>; created_at: string };
 export type DisputeRow = {
@@ -77,9 +86,25 @@ const EVENT_LABEL: Record<string, string> = {
   timesheet_rejected: "Jam kerja ditolak",
   hourly_invoice_created: "Tagihan jam kerja dibuat",
   hourly_invoice_paid: "Tagihan jam kerja dibayar",
+  schedule_slot_added: "Sesi jam kerja ditambahkan",
+  schedule_slot_removed: "Sesi jam kerja dihapus",
+  schedule_sent: "Jadwal jam kerja dikirim ke freelancer",
+  slot_change_requested: "Freelancer mengajukan pergantian jam",
+  slot_change_accepted: "Pergantian jam disetujui client",
+  slot_change_rejected: "Pergantian jam ditolak client",
+  slot_change_withdrawn: "Pengajuan pergantian jam ditarik",
   dispute_opened: "Sengketa diajukan",
   dispute_resolved: "Sengketa diputuskan admin",
 };
 export function eventLabel(e: string) {
   return EVENT_LABEL[e] ?? (e.startsWith("status_") ? `Status kontrak berubah: ${e.slice(7)}` : e.replace(/_/g, " "));
+}
+
+/** "09:30:00" -> "09.30" */
+export const fmtTime = (t: string | null | undefined) => (t ? t.slice(0, 5).replace(":", ".") : "—");
+/** Tanggal lengkap dengan nama hari, mis. "Senin, 17 Nov 2026" (tanggal "YYYY-MM-DD" dibaca sebagai tanggal lokal, bukan UTC). */
+export function fmtDay(d: string | null | undefined) {
+  if (!d) return "—";
+  const [y, m, day] = d.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, day).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
 }
