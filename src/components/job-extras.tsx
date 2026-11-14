@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { looseDb } from "@/lib/escrow-db";
 import { JOB_EXTRA_SELECT, experienceLabel, jobTypeLabel, paymentTypeLabel, workModeLabel, type JobExtra } from "@/lib/jobs";
 import { Markdown } from "@/components/markdown";
+import { JobMilestones } from "@/components/job-milestones";
 
-/** Detail lowongan GOBI WORK (jenis, metode kerja, lokasi, pengalaman, sistem bayar, persyaratan). Kosong jika SQL belum dijalankan. */
+/** Detail lowongan GOBI WORK (jenis, metode kerja, lokasi, pengalaman, sistem bayar, persyaratan, milestone). Kosong jika SQL belum dijalankan. */
 export function JobExtras({ jobId }: { jobId: string }) {
   const q = useQuery({
     queryKey: ["job-extras", jobId],
@@ -24,19 +25,22 @@ export function JobExtras({ jobId }: { jobId: string }) {
     ["Kebutuhan", `${x.positions} freelancer`],
   ];
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="mb-3 font-semibold">Rincian pekerjaan</h2>
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-        {facts.map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-secondary/60 p-3"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="font-semibold">{v}</dd></div>
-        ))}
-      </dl>
-      {x.requirements?.trim() && (
-        <div className="mt-4">
-          <h3 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h3>
-          <Markdown>{x.requirements}</Markdown>
-        </div>
-      )}
-    </section>
+    <>
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-3 font-semibold">Rincian pekerjaan</h2>
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+          {facts.map(([k, v]) => (
+            <div key={k} className="rounded-lg bg-secondary/60 p-3"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="font-semibold">{v}</dd></div>
+          ))}
+        </dl>
+        {x.requirements?.trim() && (
+          <div className="mt-4">
+            <h3 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h3>
+            <Markdown>{x.requirements}</Markdown>
+          </div>
+        )}
+      </section>
+      <JobMilestones jobId={jobId} />
+    </>
   );
 }
