@@ -11,6 +11,8 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAskAdmin } from "@/lib/admin-ask";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/pengguna")({
   head: () => ({ meta: [{ title: "Pengguna — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -25,6 +27,7 @@ const COLS = "id,username,display_name,avatar_url,account_type,created_at";
 const sb = supabase as any;
 
 function UsersPage() {
+  const ask = useAskAdmin();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -71,15 +74,17 @@ function UsersPage() {
   function toggleVerified(u: UserRow) {
     return act(u.id, u.is_verified ? "Centang biru dicabut" : "Developer diverifikasi", () => sb.rpc("admin_set_verified", { _user: u.id, _verified: !u.is_verified }));
   }
-  function toggleBan(u: UserRow, banned: boolean) {
+  async function toggleBan(u: UserRow, banned: boolean) {
     if (banned) return act(u.id, "Blokir dibuka", () => supabase.rpc("admin_set_ban", { _user: u.id, _banned: false, _reason: "" }));
-    const reason = prompt(`Alasan memblokir @${u.username}? (boleh kosong)`);
-    if (reason === null) return;
-    return act(u.id, "Akun diblokir", () => supabase.rpc("admin_set_ban", { _user: u.id, _banned: true, _reason: reason }));
+    const res = await ask({ title: `Blokir @${u.username}?`, description: "Kamu bisa membuka blokir ini lagi kapan saja.", confirmLabel: "Blokir akun", destructive: true, reason: { label: "Alasan memblokir" } });
+    if (!res) return;
+    return act(u.id, "Akun diblokir", () => supabase.rpc("admin_set_ban", { _user: u.id, _banned: true, _reason: res.reason }));
   }
-  function toggleAdmin(u: UserRow, isAdmin: boolean) {
-    const msg = isAdmin ? `Cabut role admin dari @${u.username}?` : `Jadikan @${u.username} admin? Admin bisa mengatur seluruh situs.`;
-    if (!confirm(msg)) return;
+  async function toggleAdmin(u: UserRow, isAdmin: boolean) {
+    const ok = await ask(isAdmin
+      ? { title: `Cabut role admin dari @${u.username}?`, confirmLabel: "Cabut role admin", destructive: true }
+      : { title: `Jadikan @${u.username} admin?`, description: "Admin bisa mengatur seluruh situs.", confirmLabel: "Jadikan admin" });
+    if (!ok) return;
     return act(u.id, isAdmin ? "Role admin dicabut" : "Dijadikan admin", () => supabase.rpc("admin_set_admin", { _user: u.id, _admin: !isAdmin }));
   }
   function setType(u: UserRow, type: "developer" | "client") {
@@ -92,7 +97,7 @@ function UsersPage() {
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Cari username atau nama…" className="pl-9" />
       </form>
-      {isLoading && <p className="text-muted-foreground">Memuat…</p>}
+      {isLoading && <GobiLoader />}
       <ul className="divide-y divide-border rounded-xl border border-border bg-card">
         {data?.rows.map((u) => {
           const isAdmin = data.admins.has(u.id);

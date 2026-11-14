@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAskAdmin } from "@/lib/admin-ask";
 
 export const Route = createFileRoute("/admin/pembayaran")({
   head: () => ({ meta: [{ title: "Pembayaran & pencairan — Admin Pastodev" }, { name: "description", content: "Pengaturan pembayaran, verifikasi pembayaran, dan pencairan dana developer." }, { name: "robots", content: "noindex" }] }),
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/admin/pembayaran")({
 type Settings = { bank_name: string; account_number: string; account_name: string; qris_url: string; payment_instructions: string; fee_percent: string };
 
 function PaymentsPage() {
+  const ask = useAskAdmin();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [f, setF] = useState<Settings>({ bank_name: "", account_number: "", account_name: "", qris_url: "", payment_instructions: "", fee_percent: "10" });
@@ -54,7 +56,11 @@ function PaymentsPage() {
     if (error) toast.error(error.message); else { toast.success("Pengaturan pembayaran disimpan"); qc.invalidateQueries({ queryKey: ["admin"] }); }
   }
   async function payout(id: string, approve: boolean) {
-    const note = approve ? "" : prompt("Alasan penolakan?") ?? "";
+    const res = approve
+      ? await ask({ title: "Sudah mentransfer pencairan ini?", description: "Pencairan akan ditandai selesai dan developer melihatnya sebagai sudah ditransfer.", confirmLabel: "Ya, sudah ditransfer" })
+      : await ask({ title: "Tolak pencairan ini?", description: "Saldo dikembalikan ke developer.", confirmLabel: "Tolak pencairan", destructive: true, reason: { label: "Alasan penolakan" } });
+    if (!res) return;
+    const note = approve ? "" : res.reason;
     const { error } = await supabase.rpc("process_payout", { _payout_id: id, _approve: approve, _note: note });
     if (error) toast.error(error.message); else { toast.success(approve ? "Ditandai sudah ditransfer" : "Pencairan ditolak"); qc.invalidateQueries({ queryKey: ["admin"] }); qc.invalidateQueries({ queryKey: ["admin-overview"] }); }
   }

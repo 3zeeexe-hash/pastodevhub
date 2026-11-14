@@ -9,6 +9,8 @@ import { errMsg, safeUrl } from "@/lib/market";
 import { AvatarMini } from "@/components/avatar-mini";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAskAdmin } from "@/lib/admin-ask";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/verifikasi")({
   head: () => ({ meta: [{ title: "Verifikasi developer — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -35,6 +37,7 @@ type ReqRow = {
 const sb = supabase as any;
 
 function VerificationQueuePage() {
+  const ask = useAskAdmin();
   const qc = useQueryClient();
   const [status, setStatus] = useState<Status>("pending");
   const [busy, setBusy] = useState<string | null>(null);
@@ -55,9 +58,9 @@ function VerificationQueuePage() {
   async function review(r: ReqRow, approve: boolean) {
     let note = "";
     if (!approve) {
-      const reason = prompt("Alasan penolakan? (dibaca developer)");
-      if (reason === null) return;
-      note = reason;
+      const res = await ask({ title: "Tolak pengajuan ini?", description: "Developer akan melihat alasan penolakan.", confirmLabel: "Tolak pengajuan", destructive: true, reason: { label: "Alasan penolakan (dibaca developer)" } });
+      if (!res) return;
+      note = res.reason;
     }
     setBusy(r.id);
     const { error } = await sb.rpc("admin_review_verification", { _request: r.id, _approve: approve, _note: note });
@@ -77,7 +80,7 @@ function VerificationQueuePage() {
             className={cn("border-b-2 px-3 py-2 text-sm", status === s ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground")}>{label}</button>
         ))}
       </div>
-      {isLoading && <p className="text-muted-foreground">Memuat…</p>}
+      {isLoading && <GobiLoader />}
       {isError && (
         <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
           Tabel pengajuan verifikasi belum ada di database. Terapkan perubahan database dari <code className="font-mono">docs/sql/0004_verifikasi_developer.sql</code> lewat Lovable dulu.
