@@ -9,6 +9,7 @@ import { budgetLabel, type JobStatus } from "@/lib/jobs";
 import { MODERATION_LABEL, normalizeModeration } from "@/lib/job-review";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
+import { GobiLoader } from "@/components/gobi-loader";
 import { JobStatusBadge } from "@/components/job-card";
 import { OrderStatusBadge } from "@/components/order-status";
 import { SideNavLayout } from "@/components/side-nav-layout";
@@ -52,7 +53,7 @@ function Dashboard() {
       return { jobs: (jobsRes.data ?? []) as unknown as DashJob[], orders: orders.data ?? [] };
     },
   });
-  if (loading || (user && !profile)) return <main className="mx-auto max-w-6xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (loading || (user && !profile)) return <main className="mx-auto max-w-6xl px-4"><GobiLoader page /></main>;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk membuka dashboard." /></main>;
   if (profile?.account_type === "developer") return <Navigate to="/studio" />;
 
