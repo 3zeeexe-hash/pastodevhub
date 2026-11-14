@@ -186,8 +186,8 @@ function NewJob() {
             <p className="mt-2 text-xs font-medium text-primary">{f.hourly ? "Sistem pembayaran: Per jam" : "Sistem pembayaran: Kerja langsung"}</p>
           </div>
           <div><Label htmlFor="ps">Jumlah freelancer</Label><Input id="ps" type="number" min={1} max={100} value={f.positions} onChange={(e) => up({ positions: e.target.value })} /><p className="mt-1 text-xs text-muted-foreground">Lowongan tetap dibuka sampai semua posisi terisi.</p><Err m={errors.positions} /></div>
-          <div><Label htmlFor="mn">{f.hourly ? "Tarif minimum per jam" : "Budget minimum"}</Label><Input id="mn" type="number" min={0} step={1000} inputMode="numeric" value={f.min} onChange={(e) => up({ min: e.target.value })} placeholder="500000" /></div>
-          <div><Label htmlFor="mx">{f.hourly ? "Tarif maksimum per jam" : "Budget maksimum"}</Label><Input id="mx" type="number" min={0} step={1000} inputMode="numeric" value={f.max} onChange={(e) => up({ max: e.target.value })} placeholder="2000000" /></div>
+          <div><Label htmlFor="mn">{f.hourly ? "Tarif minimum per jam" : "Budget minimum"}</Label><RupiahInput id="mn" value={f.min} onValueChange={(v) => up({ min: v })} placeholder="Rp 500.000" /></div>
+          <div><Label htmlFor="mx">{f.hourly ? "Tarif maksimum per jam" : "Budget maksimum"}</Label><RupiahInput id="mx" value={f.max} onValueChange={(v) => up({ max: v })} placeholder="Rp 2.000.000" /></div>
           <div className="sm:col-span-2"><Err m={errors.budget} /></div>
           <div><Label htmlFor="dl">Pekerjaan harus selesai sampai (opsional)</Label><Input id="dl" type="date" min={todayISO()} value={f.deadline} onChange={(e) => up({ deadline: e.target.value })} />
             <p className="mt-1 text-xs text-muted-foreground">Pelamar memilih tanggal selesai sendiri, tidak boleh melewati tanggal ini. Jika setelah freelancer mengirim hasil client tidak menyetujui atau meminta revisi sampai 1 hari setelah tanggal selesai, dana otomatis diteruskan ke freelancer.</p><Err m={errors.deadline} /></div>

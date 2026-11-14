@@ -122,6 +122,7 @@ export const ROLE_PATHS: { path: string; cap: Capability }[] = [
   { path: "/studio/ai", cap: "ai" },
   { path: "/studio/lamaran", cap: "lamaran" },
   { path: "/lowongan/baru", cap: "post_job" },
+  { path: "/lowongan/saya", cap: "post_job" },
 ];
 
 /** Kemampuan yang dibutuhkan sebuah halaman, atau null kalau halaman terbuka untuk semua peran. */
