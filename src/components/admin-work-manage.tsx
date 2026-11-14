@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState, Pill, ReasonDialog, type Ask } from "@/components/work-ui";
-import { Loading, must } from "@/components/admin-work-extra";
+import { Loading, must, SearchBox } from "@/components/admin-work-extra";
 
 /* ---------- Pengguna: lihat, blokir/buka blokir dengan alasan, centang verifikasi ---------- */
 type UserRow = { id: string; username: string; display_name: string | null; account_type: string | null; created_at: string; is_verified?: boolean | null };
@@ -148,11 +148,13 @@ function JobHistory({ job, onClose }: { job: JobRow | null; onClose: () => void 
 export function JobsTab() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("pending");
+  const [term, setTerm] = useState("");
   const [ask, setAsk] = useState<Ask | null>(null);
   const [hist, setHist] = useState<JobRow | null>(null);
   const q = useQuery({
-    queryKey: ["work-admin-jobs", filter],
+    queryKey: ["work-admin-jobs", filter, term],
     queryFn: async () => {
+      const t = term.trim().replace(/[%,()*_]/g, "");
       let query = looseDb.from("jobs").select("id,title,status,moderation_status,moderation_note,category,created_at,client:profiles(username)").order("created_at", { ascending: false }).limit(100);
       if (filter === "reported") {
         const reps = (await must<{ target_id: string }[]>(looseDb.from("work_reports").select("target_id").eq("target_type", "job").in("status", ["open", "reviewing"]))) ?? [];
@@ -162,6 +164,7 @@ export function JobsTab() {
       } else if (filter !== "all") {
         query = query.eq("moderation_status", filter);
       }
+      if (t) query = query.or(`title.ilike.%${t}%,category.ilike.%${t}%`);
       return ((await must<unknown[]>(query)) ?? []) as JobRow[];
     },
   });
@@ -171,7 +174,9 @@ export function JobsTab() {
   }
   return (
     <div className="space-y-3">
-      <div className="max-w-xs">
+      <div className="flex flex-wrap gap-2">
+        <SearchBox value={term} onChange={setTerm} label="Cari lowongan" placeholder="Cari judul atau kategori lowongan…" />
+        <div className="w-56">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger aria-label="Filter lowongan"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -182,9 +187,10 @@ export function JobsTab() {
             <SelectItem value="all">Semua</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
       <Loading q={q} />
-      {q.data?.length === 0 && <EmptyState>Tidak ada lowongan pada filter ini.</EmptyState>}
+      {q.data?.length === 0 && <EmptyState>{term.trim() ? "Tidak ada lowongan yang cocok dengan pencarian." : "Tidak ada lowongan pada filter ini."}</EmptyState>}
       <ul className="space-y-2">
         {q.data?.map((j) => (
           <li key={j.id} className="rounded-xl border border-border bg-card p-4">
