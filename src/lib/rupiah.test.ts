@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatRupiahInput, parseRupiah, rupiahDigits } from "./rupiah";
+import { validateJobForm, type JobFormInput } from "./jobs";
 
 describe("format isian rupiah", () => {
   it("memberi pemisah ribuan dan awalan Rp", () => {
@@ -23,5 +24,23 @@ describe("format isian rupiah", () => {
     expect(parseRupiah("Rp 2.000.000")).toBe(2_000_000);
     expect(parseRupiah("")).toBe(0);
     expect(parseRupiah("1.5")).toBe(15);
+  });
+});
+
+describe("validateJobForm dengan isian rupiah berformat (regresi bug budget)", () => {
+  const base: JobFormInput = {
+    title: "Website toko online", description: "Deskripsi kebutuhan proyek yang cukup panjang untuk lolos validasi.", category: "web-development",
+    skills: ["React"], jobType: "freelance", workMode: "remote", location: "", experience: "mid", paymentType: "fixed",
+    min: 0, max: 0, deadline: "", positions: 1, requirements: "",
+  };
+  it("budget \"1.000.000\" sampai \"Rp 3.000.000\" valid", () => {
+    const e = validateJobForm({ ...base, min: parseRupiah("1.000.000"), max: parseRupiah("Rp 3.000.000") });
+    expect(e.budget).toBeUndefined();
+  });
+  it("budget kosong tetap ditolak", () => {
+    expect(validateJobForm({ ...base, min: parseRupiah(""), max: parseRupiah("") }).budget).toBeDefined();
+  });
+  it("maksimum di bawah minimum ditolak", () => {
+    expect(validateJobForm({ ...base, min: parseRupiah("3.000.000"), max: parseRupiah("1.000.000") }).budget).toMatch(/di bawah/);
   });
 });
