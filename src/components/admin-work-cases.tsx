@@ -1,10 +1,11 @@
 // GOBI WORK — admin: kasus lengkap (kontrak + lowongan + profil kedua pihak + pembayaran + sengketa + laporan + riwayat),
 // daftar laporan, dan daftar sengketa. Semua MEMBACA lewat RLS admin yang sudah ada; yang mengubah data hanya fungsi work_admin_*.
+// Aksi admin: putuskan sengketa (dana bergerak otomatis, opsional sekaligus tutup kontrak) dan tutup kontrak manual dari sengketa, laporan, atau kasus (SQL 011).
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Flag, Loader2, Scale, Search, Wallet } from "lucide-react";
+import { Ban, ExternalLink, Flag, Loader2, Scale, Search, Wallet } from "lucide-react";
 import { timeAgo } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
 import { looseDb } from "@/lib/escrow-db";
@@ -19,11 +20,15 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContractPill, EmptyState, MilestonePill, Pill, ReasonDialog, reportReasonLabel, type Ask } from "@/components/work-ui";
 import { DisputeDetail, Loading, must } from "@/components/admin-work-extra";
+import { CloseContractDialog } from "@/components/admin-work-close";
 import type { ContractStatus, MilestoneStatus } from "@/lib/work";
 import { cn } from "@/lib/utils";
 
 const CARD = "rounded-2xl bg-card shadow-sm ring-1 ring-border";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Pesan PostgREST bila fungsi belum ada di database (SQL 011 belum dijalankan). */
+const MISSING_FN = /could not find|schema cache/i;
+const isOpenContract = (s?: string | null) => !!s && s !== "completed" && s !== "cancelled";
 
 /* ---------- Data bersama ---------- */
 export type Prof = { id: string; username: string; display_name: string | null; avatar_url: string | null; headline: string | null; is_verified: boolean | null; account_type: string | null; created_at: string };
@@ -45,7 +50,7 @@ async function profilesByNames(names: string[]): Promise<Record<string, Prof>> {
 
 type Esc = { fee: number | null; net: number | null; status: string; held_until: string | null; released_at: string | null; note: string | null };
 const escOf = (v: unknown): Esc | null => (Array.isArray(v) ? ((v[0] as Esc) ?? null) : ((v as Esc | null) ?? null));
-const ESCROW_LABEL: Record<string, string> = { held: "ditahan", frozen: "dibekukan", released: "diteruskan", refunded: "direfund" };
+const ESCROW_LABEL: Record<string, string> = { held: "ditahan", frozen: "dibekukan", released: "diteruskan", refunded: "dikembalikan ke client" };
 
 /** Profil singkat (avatar, nama, @username, centang biru); `full` menambah headline dan tanggal bergabung. */
 export function PersonChip({ p, label, full }: { p?: Prof | null; label?: string; full?: boolean }) {
@@ -114,6 +119,7 @@ function Section({ title, children, aside }: { title: string; children: React.Re
 
 export function CaseDialog({ contractId, onClose }: { contractId: string | null; onClose: () => void }) {
   const [dispute, setDispute] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
   const q = useQuery({ enabled: !!contractId, queryKey: ["work-admin-case", contractId], queryFn: () => loadCase(contractId!) });
   const d = q.data;
   const money = useMemo(() => {
@@ -140,6 +146,7 @@ export function CaseDialog({ contractId, onClose }: { contractId: string | null;
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="secondary" className="rounded-full"><Link to="/kerja/kontrak/$id" params={{ id: d.c.id }}><ExternalLink /> Buka kontrak</Link></Button>
                   {d.job && <Button asChild size="sm" variant="secondary" className="rounded-full"><Link to="/lowongan/$id" params={{ id: d.job.id }}><ExternalLink /> Buka lowongan</Link></Button>}
+                  {isOpenContract(d.c.status) && <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setClosing(true)}><Ban /> Tutup kontrak</Button>}
                 </div>
               </div>
 
@@ -161,7 +168,7 @@ export function CaseDialog({ contractId, onClose }: { contractId: string | null;
 
               <Section title="Pembayaran & dana" aside={<Button asChild size="sm" variant="outline" className="rounded-full"><Link to="/admin/escrow"><Wallet /> Escrow & saldo</Link></Button>}>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  {[["Dibayar client", money.paid], ["Ditahan", money.held], ["Dibekukan", money.frozen], ["Diteruskan", money.released], ["Direfund", money.refunded]].map(([l, v]) => (
+                  {[["Dibayar client", money.paid], ["Ditahan", money.held], ["Dibekukan", money.frozen], ["Diteruskan", money.released], ["Dikembalikan", money.refunded]].map(([l, v]) => (
                     <div key={l as string} className="rounded-xl bg-secondary/60 p-2.5"><p className="text-[11px] text-muted-foreground">{l}</p><p className="font-bold">{rp(v as number)}</p></div>
                   ))}
                 </div>
@@ -245,6 +252,7 @@ export function CaseDialog({ contractId, onClose }: { contractId: string | null;
         </DialogContent>
       </Dialog>
       <DisputeDetail disputeId={dispute} onClose={() => setDispute(null)} />
+      <CloseContractDialog contractId={closing ? contractId : null} onClose={() => setClosing(false)} />
     </>
   );
 }
@@ -321,6 +329,7 @@ export function ReportsTab2() {
   const [status, setStatus] = useState("open");
   const [ask, setAsk] = useState<Ask | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [closing, setClosing] = useState<{ contractId: string; reportId: string | null } | null>(null);
   const q = useQuery({
     queryKey: ["work-admin-reports"],
     queryFn: async () => {
@@ -381,7 +390,7 @@ export function ReportsTab2() {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">Laporan dari client dan freelancer: pekerjaan tidak diselesaikan, dana tertahan, tidak merespons, penipuan, dan lainnya. Setiap laporan menampilkan pelapor, target, dan profil pihak terkait.</p>
+      <p className="text-sm text-muted-foreground">Laporan dari client dan freelancer: pekerjaan tidak diselesaikan, dana tertahan, tidak merespons, penipuan, dan lainnya. Setiap laporan menampilkan pelapor, target, dan profil pihak terkait. Untuk laporan kontrak, admin bisa menutup kontrak langsung dari sini.</p>
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Status laporan">
         {([["open", "Terbuka"], ["reviewing", "Diperiksa"], ["resolved", "Selesai"], ["dismissed", "Ditolak"], ["all", "Semua"]] as const).map(([k, l]) => (
           <button key={k} type="button" role="tab" aria-selected={status === k} onClick={() => setStatus(k)}
@@ -395,6 +404,8 @@ export function ReportsTab2() {
       <ul className="space-y-3">
         {q.data && shown.map((r) => {
           const contractId = r.target_type === "contract" ? r.target_id : null;
+          const reportOpen = r.status === "open" || r.status === "reviewing";
+          const closable = !!contractId && isOpenContract(q.data.contracts[contractId]?.status);
           return (
             <li key={r.id} className={cn(CARD, "space-y-3 p-4 text-sm")}>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -410,7 +421,8 @@ export function ReportsTab2() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">{timeAgo(r.created_at)}</span>
                 {contractId && <Button size="sm" variant="outline" className="rounded-full" onClick={() => setOpen(contractId)}>Kasus lengkap</Button>}
-                {(r.status === "open" || r.status === "reviewing") && (
+                {closable && <Button size="sm" variant="outline" className="rounded-full" onClick={() => setClosing({ contractId: contractId!, reportId: reportOpen ? r.id : null })}><Ban /> Tutup kontrak</Button>}
+                {reportOpen && (
                   <>
                     {r.status === "open" && <Button size="sm" variant="outline" className="rounded-full" onClick={() => setReport(r.id, "reviewing")}>Tandai diperiksa</Button>}
                     <Button size="sm" className="rounded-full" onClick={() => setAsk({ title: "Selesaikan laporan", label: "Catatan penyelesaian (tindakan yang diambil)", min: 3, confirm: "Selesai", onSubmit: async (t) => { await setReport(r.id, "resolved", t); } })}>Selesaikan</Button>
@@ -424,18 +436,26 @@ export function ReportsTab2() {
       </ul>
       <ReasonDialog ask={ask} onClose={() => setAsk(null)} />
       <CaseDialog contractId={open} onClose={() => setOpen(null)} />
+      <CloseContractDialog contractId={closing?.contractId ?? null} reportId={closing?.reportId} onClose={() => setClosing(null)} />
     </div>
   );
 }
 
 /* ---------- Tab: Sengketa ---------- */
-type DisputeRow2 = DisputeRaw & { contract: { title: string; job_id: string; client_id: string; freelancer_id: string } | null; milestone: { title: string; amount: number; status: MilestoneStatus } | null };
+type DisputeRow2 = DisputeRaw & { contract: { title: string; job_id: string; client_id: string; freelancer_id: string; status: ContractStatus } | null; milestone: { title: string; amount: number; status: MilestoneStatus } | null };
+/** Akibat tiap keputusan, ditampilkan di dialog sebelum admin menyimpan. */
+const OUTCOME: Record<string, string> = {
+  favor_freelancer: "Milestone disetujui dan dana langsung masuk ke saldo freelancer. Tidak ada langkah admin lain.",
+  favor_client: "Dana langsung masuk ke saldo client (bisa ditarik), milestone dan pesanan dibatalkan.",
+  split: "Dana tetap dibekukan. Bagi dana secara manual di Escrow & saldo, lalu catat di sini.",
+  dismissed: "Sengketa ditolak: dana kembali ditahan dan pekerjaan berlanjut.",
+};
 export function DisputesTab2() {
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["work-admin-disputes"],
     queryFn: async () => {
-      const rows = (await must<DisputeRow2[]>(looseDb.from("work_disputes").select("*, contract:work_contracts(title,job_id,client_id,freelancer_id), milestone:contract_milestones(title,amount,status)").order("created_at", { ascending: false }).limit(100))) ?? [];
+      const rows = (await must<DisputeRow2[]>(looseDb.from("work_disputes").select("*, contract:work_contracts(title,job_id,client_id,freelancer_id,status), milestone:contract_milestones(title,amount,status)").order("created_at", { ascending: false }).limit(100))) ?? [];
       const jobIds = [...new Set(rows.map((r) => r.contract?.job_id).filter((x): x is string => !!x))];
       const msIds = rows.map((r) => r.milestone_id).filter((x): x is string => !!x);
       const [jobs, ods, profs] = await Promise.all([
@@ -453,23 +473,39 @@ export function DisputesTab2() {
   const [target, setTarget] = useState<DisputeRow2 | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
   const [kase, setKase] = useState<string | null>(null);
+  const [closing, setClosing] = useState<string | null>(null);
   const [decision, setDecision] = useState("favor_freelancer");
+  const [closeToo, setCloseToo] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const canClose = decision === "favor_client" || decision === "favor_freelancer";
+  function openDecide(d: DisputeRow2) { setTarget(d); setCloseToo(false); setNote(""); }
   async function decide() {
     if (!target) return;
     if (note.trim().length < 10) { toast.error("Catatan keputusan minimal 10 karakter."); return; }
+    const wantClose = closeToo && canClose;
+    const base = { _dispute_id: target.id, _decision: decision, _note: note.trim() };
     setBusy(true);
     try {
-      await workRpc("work_admin_decide_dispute", { _dispute_id: target.id, _decision: decision, _note: note.trim() });
-      toast.success("Keputusan dicatat");
-      setTarget(null); setNote("");
-      qc.invalidateQueries({ queryKey: ["work-admin-disputes"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] }); qc.invalidateQueries({ queryKey: ["work-admin-case"] });
+      let msg = decision === "favor_client" ? "Keputusan dicatat. Dana dikembalikan ke saldo client." : decision === "favor_freelancer" ? "Keputusan dicatat. Dana diteruskan ke saldo freelancer." : "Keputusan dicatat";
+      try {
+        await workRpc("work_admin_decide_dispute", { ...base, _close_contract: wantClose });
+        if (wantClose) msg += " Kontrak ditutup.";
+      } catch (e) {
+        if (!MISSING_FN.test(errMsg(e))) throw e;
+        // SQL 011 belum dijalankan: pakai alur lama (dana tidak bergerak otomatis).
+        if (wantClose) throw new Error("Tutup kontrak butuh SQL 011 (docs/sql/gobi-work/011) dijalankan di database.");
+        await workRpc("work_admin_decide_dispute", base);
+        msg = "Keputusan dicatat (SQL 011 belum dijalankan, jadi dana belum bergerak otomatis).";
+      }
+      toast.success(msg);
+      setTarget(null); setNote(""); setCloseToo(false);
+      for (const k of ["work-admin-disputes", "work-admin-stats", "work-admin-case", "work-admin-cases", "work-admin-reports"]) qc.invalidateQueries({ queryKey: [k] });
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   }
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">Sengketa kontrak: dana milestone dibekukan sampai admin memutuskan. Periksa bukti, hasil kerja, obrolan, dan status dana sebelum memutuskan.</p>
+      <p className="text-sm text-muted-foreground">Sengketa kontrak: dana milestone dibekukan sampai admin memutuskan. Periksa bukti, hasil kerja, obrolan, dan status dana sebelum memutuskan. Keputusan langsung memindahkan dana: freelancer menang ke saldo freelancer, client menang ke saldo client.</p>
       <Loading q={q} />
       {q.data?.rows.length === 0 && <EmptyState>Belum ada sengketa.</EmptyState>}
       <ul className="space-y-3">
@@ -493,12 +529,14 @@ export function DisputesTab2() {
                 Diajukan oleh @{q.data.profs[d.opened_by]?.username ?? "?"} · {timeAgo(d.created_at)}
                 {d.milestone ? ` · milestone "${d.milestone.title}" ${rp(d.milestone.amount)}` : " · seluruh kontrak"}
                 {esc ? ` · escrow ${ESCROW_LABEL[esc.status] ?? esc.status}` : o ? (o.paid_at ? " · dibayar" : " · belum dibayar") : ""}
+                {d.contract ? ` · kontrak ${d.contract.status === "cancelled" ? "ditutup" : d.contract.status === "completed" ? "selesai" : "berjalan"}` : ""}
               </p>
               {d.decision && <p className="rounded-xl bg-primary/10 p-2.5"><b>{d.decision}</b>: {d.decision_note}</p>}
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" className="rounded-full" onClick={() => setKase(d.contract_id)}>Kasus lengkap</Button>
                 <Button size="sm" variant="outline" className="rounded-full" onClick={() => setDetail(d.id)}>Bukti & riwayat</Button>
-                {d.status !== "resolved" && <Button size="sm" className="rounded-full" onClick={() => setTarget(d)}>Putuskan</Button>}
+                {d.status !== "resolved" && <Button size="sm" className="rounded-full" onClick={() => openDecide(d)}>Putuskan</Button>}
+                {isOpenContract(d.contract?.status) && <Button size="sm" variant="outline" className="rounded-full" onClick={() => setClosing(d.contract_id)}><Ban /> Tutup kontrak</Button>}
               </div>
             </li>
           );
@@ -506,6 +544,7 @@ export function DisputesTab2() {
       </ul>
       <DisputeDetail disputeId={detail} onClose={() => setDetail(null)} />
       <CaseDialog contractId={kase} onClose={() => setKase(null)} />
+      <CloseContractDialog contractId={closing} onClose={() => setClosing(null)} />
       <Dialog open={!!target} onOpenChange={(o) => !busy && !o && setTarget(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Putuskan sengketa</DialogTitle></DialogHeader>
@@ -515,15 +554,20 @@ export function DisputesTab2() {
               <Select value={decision} onValueChange={setDecision}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="favor_freelancer">Menangkan freelancer (milestone disetujui, dana kembali ditahan untuk diteruskan)</SelectItem>
-                  <SelectItem value="favor_client">Menangkan client (dana dikembalikan, pesanan dibatalkan)</SelectItem>
-                  <SelectItem value="split">Bagi dana (diselesaikan manual admin)</SelectItem>
+                  <SelectItem value="favor_freelancer">Menangkan freelancer</SelectItem>
+                  <SelectItem value="favor_client">Menangkan client</SelectItem>
+                  <SelectItem value="split">Bagi dana (manual admin)</SelectItem>
                   <SelectItem value="dismissed">Tolak sengketa (pekerjaan berlanjut)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="rounded-xl bg-muted p-2.5 text-xs">{OUTCOME[decision]}</p>
             </div>
             <div className="space-y-1.5"><Label htmlFor="dn">Catatan penyelesaian (tercatat di audit)</Label><Textarea id="dn" rows={4} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} /></div>
-            <p className="text-xs text-muted-foreground">Pengembalian uang ke client tetap dilakukan manual di dashboard Midtrans; pembayaran akan ditandai "perlu refund". Teruskan atau bekukan dana di <Link to="/admin/escrow" className="text-primary underline">Escrow & saldo</Link>.</p>
+            <label className={cn("flex items-start gap-2 text-sm", !canClose && "opacity-50")}>
+              <input type="checkbox" className="mt-0.5 size-4 accent-primary" disabled={!canClose} checked={closeToo && canClose} onChange={(e) => setCloseToo(e.target.checked)} />
+              <span>Tutup kontrak sekaligus<span className="block text-xs text-muted-foreground">{canClose ? "Milestone lain yang belum dibayar dibatalkan. Bila masih ada milestone berdana yang berjalan, penutupan ditolak dan keputusan tidak disimpan." : "Hanya tersedia untuk keputusan menangkan freelancer atau client."}</span></span>
+            </label>
+            <p className="text-xs text-muted-foreground">Mau menutup tanpa memutuskan, atau mengembalikan dana yang masih tertahan? Pakai tombol Tutup kontrak di kartu sengketa. Lihat dana di <Link to="/admin/escrow" className="text-primary underline">Escrow & saldo</Link>.</p>
           </div>
           <DialogFooter className="gap-2"><Button variant="outline" disabled={busy} onClick={() => setTarget(null)}>Batal</Button><Button disabled={busy} onClick={decide}>{busy && <Loader2 className="animate-spin" />} Simpan keputusan</Button></DialogFooter>
         </DialogContent>
