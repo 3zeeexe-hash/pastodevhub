@@ -215,6 +215,63 @@ export type Database = {
           },
         ]
       }
+      contract_milestones: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          order_id: string | null
+          position: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          order_id?: string | null
+          position: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          order_id?: string | null
+          position?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_milestones_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_milestones_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dm_conversations: {
         Row: {
           created_at: string
@@ -1233,6 +1290,7 @@ export type Database = {
           job_id: string
           status: string
           updated_at: string
+          work_stage: string | null
         }
         Insert: {
           bid_amount?: number
@@ -1244,6 +1302,7 @@ export type Database = {
           job_id: string
           status?: string
           updated_at?: string
+          work_stage?: string | null
         }
         Update: {
           bid_amount?: number
@@ -1255,6 +1314,7 @@ export type Database = {
           job_id?: string
           status?: string
           updated_at?: string
+          work_stage?: string | null
         }
         Relationships: [
           {
@@ -1273,12 +1333,37 @@ export type Database = {
           },
         ]
       }
+      job_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       job_messages: {
         Row: {
           application_id: string
           body: string
           created_at: string
           id: string
+          read_at: string | null
           sender_id: string
         }
         Insert: {
@@ -1286,6 +1371,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          read_at?: string | null
           sender_id: string
         }
         Update: {
@@ -1293,6 +1379,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          read_at?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -1322,12 +1409,21 @@ export type Database = {
           created_at: string
           deadline: string | null
           description: string
+          experience_level: string | null
           hired_application_id: string | null
           id: string
+          job_type: string
+          location: string | null
+          moderation_note: string | null
+          moderation_status: string
+          payment_type: string
+          positions: number
+          requirements: string | null
           skills: string[]
           status: string
           title: string
           updated_at: string
+          work_mode: string
         }
         Insert: {
           applications_count?: number
@@ -1338,12 +1434,21 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string
+          experience_level?: string | null
           hired_application_id?: string | null
           id?: string
+          job_type?: string
+          location?: string | null
+          moderation_note?: string | null
+          moderation_status?: string
+          payment_type?: string
+          positions?: number
+          requirements?: string | null
           skills?: string[]
           status?: string
           title: string
           updated_at?: string
+          work_mode?: string
         }
         Update: {
           applications_count?: number
@@ -1354,12 +1459,21 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string
+          experience_level?: string | null
           hired_application_id?: string | null
           id?: string
+          job_type?: string
+          location?: string | null
+          moderation_note?: string | null
+          moderation_status?: string
+          payment_type?: string
+          positions?: number
+          requirements?: string | null
           skills?: string[]
           status?: string
           title?: string
           updated_at?: string
+          work_mode?: string
         }
         Relationships: [
           {
@@ -1436,6 +1550,8 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          work_contract_id: string | null
+          work_milestone_id: string | null
         }
         Insert: {
           admin_note?: string | null
@@ -1459,6 +1575,8 @@ export type Database = {
           status: string
           title: string
           updated_at?: string
+          work_contract_id?: string | null
+          work_milestone_id?: string | null
         }
         Update: {
           admin_note?: string | null
@@ -1482,6 +1600,8 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          work_contract_id?: string | null
+          work_milestone_id?: string | null
         }
         Relationships: [
           {
@@ -1517,6 +1637,20 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_work_contract_id_fkey"
+            columns: ["work_contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_work_milestone_id_fkey"
+            columns: ["work_milestone_id"]
+            isOneToOne: false
+            referencedRelation: "contract_milestones"
             referencedColumns: ["id"]
           },
         ]
@@ -2367,6 +2501,585 @@ export type Database = {
           },
         ]
       }
+      work_contract_events: {
+        Row: {
+          actor_id: string | null
+          contract_id: string
+          created_at: string
+          detail: Json
+          event: string
+          id: number
+        }
+        Insert: {
+          actor_id?: string | null
+          contract_id: string
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: never
+        }
+        Update: {
+          actor_id?: string | null
+          contract_id?: string
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_contract_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_contracts: {
+        Row: {
+          application_id: string
+          cancellation_terms: string
+          client_approved_at: string | null
+          client_id: string
+          created_at: string
+          deadline: string | null
+          description: string
+          freelancer_approved_at: string | null
+          freelancer_id: string
+          hourly_rate: number
+          id: string
+          job_id: string
+          payment_terms: string
+          payment_type: string
+          revision_terms: string
+          scope: string
+          status: string
+          title: string
+          total_amount: number
+          updated_at: string
+          usage_rights: string
+          version: number
+        }
+        Insert: {
+          application_id: string
+          cancellation_terms?: string
+          client_approved_at?: string | null
+          client_id: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          freelancer_approved_at?: string | null
+          freelancer_id: string
+          hourly_rate?: number
+          id?: string
+          job_id: string
+          payment_terms?: string
+          payment_type: string
+          revision_terms?: string
+          scope: string
+          status?: string
+          title: string
+          total_amount?: number
+          updated_at?: string
+          usage_rights?: string
+          version?: number
+        }
+        Update: {
+          application_id?: string
+          cancellation_terms?: string
+          client_approved_at?: string | null
+          client_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          freelancer_approved_at?: string | null
+          freelancer_id?: string
+          hourly_rate?: number
+          id?: string
+          job_id?: string
+          payment_terms?: string
+          payment_type?: string
+          revision_terms?: string
+          scope?: string
+          status?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          usage_rights?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_contracts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_contracts_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_disputes: {
+        Row: {
+          contract_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_note: string | null
+          evidence: Json
+          id: string
+          milestone_id: string | null
+          opened_by: string
+          prev_milestone_status: string | null
+          reason: string
+          status: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_note?: string | null
+          evidence?: Json
+          id?: string
+          milestone_id?: string | null
+          opened_by: string
+          prev_milestone_status?: string | null
+          reason: string
+          status?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_note?: string | null
+          evidence?: Json
+          id?: string
+          milestone_id?: string | null
+          opened_by?: string
+          prev_milestone_status?: string | null
+          reason?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_disputes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_disputes_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "contract_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_notifications: {
+        Row: {
+          created_at: string
+          id: number
+          kind: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_profiles: {
+        Row: {
+          about: string | null
+          availability: string
+          created_at: string
+          experience_level: string | null
+          hourly_rate: number | null
+          languages: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          about?: string | null
+          availability?: string
+          created_at?: string
+          experience_level?: string | null
+          hourly_rate?: number | null
+          languages?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          about?: string | null
+          availability?: string
+          created_at?: string
+          experience_level?: string | null
+          hourly_rate?: number | null
+          languages?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          detail: string
+          id: string
+          reason: string
+          reporter_id: string
+          resolved_by: string | null
+          status: string
+          target_id: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          resolved_by?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_by?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_reviews: {
+        Row: {
+          comment: string
+          contract_id: string
+          created_at: string
+          id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          comment?: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Update: {
+          comment?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_revisions: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          milestone_id: string
+          note: string
+          submission_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          milestone_id: string
+          note: string
+          submission_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          note?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_revisions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_revisions_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "contract_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_revisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "work_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      work_submissions: {
+        Row: {
+          attachments: Json
+          contract_id: string
+          created_at: string
+          freelancer_id: string
+          id: string
+          links: string[]
+          milestone_id: string
+          note: string
+        }
+        Insert: {
+          attachments?: Json
+          contract_id: string
+          created_at?: string
+          freelancer_id: string
+          id?: string
+          links?: string[]
+          milestone_id: string
+          note: string
+        }
+        Update: {
+          attachments?: Json
+          contract_id?: string
+          created_at?: string
+          freelancer_id?: string
+          id?: string
+          links?: string[]
+          milestone_id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_submissions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_submissions_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_submissions_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "contract_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_timesheets: {
+        Row: {
+          billed_order_id: string | null
+          contract_id: string
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          freelancer_id: string
+          hours: number
+          id: string
+          note: string
+          status: string
+          work_date: string
+        }
+        Insert: {
+          billed_order_id?: string | null
+          contract_id: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          freelancer_id: string
+          hours: number
+          id?: string
+          note?: string
+          status?: string
+          work_date: string
+        }
+        Update: {
+          billed_order_id?: string | null
+          contract_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          freelancer_id?: string
+          hours?: number
+          id?: string
+          note?: string
+          status?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_timesheets_billed_order_id_fkey"
+            columns: ["billed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_timesheets_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_timesheets_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2382,7 +3095,25 @@ export type Database = {
         Returns: undefined
       }
       _is_admin: { Args: never; Returns: boolean }
+      _job_visible: {
+        Args: { _client: string; _moderation: string }
+        Returns: boolean
+      }
       _require_server_proof: { Args: never; Returns: undefined }
+      _work_event: {
+        Args: { _contract: string; _detail?: Json; _event: string }
+        Returns: undefined
+      }
+      _work_fund_milestone: {
+        Args: { _milestone_id: string; _order_id: string }
+        Returns: boolean
+      }
+      _work_guard: { Args: never; Returns: undefined }
+      _work_notify: {
+        Args: { _kind: string; _link?: string; _title: string; _user: string }
+        Returns: undefined
+      }
+      _work_refresh_contract: { Args: { _cid: string }; Returns: undefined }
       admin_clear_refund_flag: {
         Args: { _note?: string; _payment_id: string }
         Returns: undefined
@@ -2425,6 +3156,7 @@ export type Database = {
         Returns: undefined
       }
       buy_product: { Args: { _product_id: string }; Returns: string }
+      can_access_contract: { Args: { _contract_id: string }; Returns: boolean }
       can_access_order: { Args: { _order_id: string }; Returns: boolean }
       can_download_product: { Args: { _product_id: string }; Returns: boolean }
       can_download_product_path: { Args: { _path: string }; Returns: boolean }
@@ -2632,6 +3364,175 @@ export type Database = {
       withdraw_job_application: {
         Args: { _application_id: string }
         Returns: undefined
+      }
+      work_add_milestone: {
+        Args: {
+          _amount: number
+          _contract_id: string
+          _deadline?: string
+          _description: string
+          _title: string
+        }
+        Returns: string
+      }
+      work_admin_analytics: { Args: never; Returns: Json }
+      work_admin_clear_commission: {
+        Args: { _note?: string }
+        Returns: undefined
+      }
+      work_admin_decide_dispute: {
+        Args: { _decision: string; _dispute_id: string; _note: string }
+        Returns: undefined
+      }
+      work_admin_moderate_job: {
+        Args: { _job_id: string; _note?: string; _status: string }
+        Returns: undefined
+      }
+      work_admin_reconcile: {
+        Args: { _apply?: boolean }
+        Returns: {
+          detail: string
+          kind: string
+          ref_id: string
+        }[]
+      }
+      work_admin_set_category: {
+        Args: {
+          _active: boolean
+          _label: string
+          _slug: string
+          _sort?: number
+        }
+        Returns: undefined
+      }
+      work_admin_set_commission: {
+        Args: { _note?: string; _percent: number }
+        Returns: undefined
+      }
+      work_admin_set_report: {
+        Args: { _note?: string; _report_id: string; _status: string }
+        Returns: undefined
+      }
+      work_admin_stats: { Args: never; Returns: Json }
+      work_approve_milestone: {
+        Args: { _milestone_id: string }
+        Returns: undefined
+      }
+      work_cancel_contract: {
+        Args: { _contract_id: string; _reason: string }
+        Returns: undefined
+      }
+      work_complete_hourly_contract: {
+        Args: { _contract_id: string }
+        Returns: undefined
+      }
+      work_create_contract: {
+        Args: {
+          _application_id: string
+          _cancellation_terms?: string
+          _deadline?: string
+          _payment_terms?: string
+          _revision_terms?: string
+          _scope: string
+          _usage_rights?: string
+        }
+        Returns: string
+      }
+      work_create_order_from_milestone: {
+        Args: { _milestone_id: string }
+        Returns: string
+      }
+      work_create_order_from_timesheets: {
+        Args: { _contract_id: string }
+        Returns: string
+      }
+      work_dashboard_stats: { Args: never; Returns: Json }
+      work_decide_timesheet: {
+        Args: { _approve: boolean; _note?: string; _timesheet_id: string }
+        Returns: undefined
+      }
+      work_file_report: {
+        Args: {
+          _detail?: string
+          _reason: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: string
+      }
+      work_leave_review: {
+        Args: { _comment?: string; _contract_id: string; _rating: number }
+        Returns: undefined
+      }
+      work_mark_applications_viewed: {
+        Args: { _job_id: string }
+        Returns: undefined
+      }
+      work_mark_milestone_funded: {
+        Args: { _milestone_id: string; _order_id: string }
+        Returns: undefined
+      }
+      work_mark_notification_read: { Args: { _id: number }; Returns: undefined }
+      work_mark_notifications_read: { Args: never; Returns: undefined }
+      work_mark_thread_read: {
+        Args: { _application_id: string }
+        Returns: undefined
+      }
+      work_open_dispute: {
+        Args: {
+          _contract_id: string
+          _evidence?: Json
+          _milestone_id: string
+          _reason: string
+        }
+        Returns: string
+      }
+      work_remove_milestone: {
+        Args: { _milestone_id: string }
+        Returns: undefined
+      }
+      work_request_revision: {
+        Args: { _milestone_id: string; _note: string }
+        Returns: undefined
+      }
+      work_respond_application: {
+        Args: { _accept: boolean; _application_id: string }
+        Returns: Json
+      }
+      work_respond_contract: {
+        Args: { _accept: boolean; _contract_id: string; _note?: string }
+        Returns: undefined
+      }
+      work_send_contract: { Args: { _contract_id: string }; Returns: undefined }
+      work_set_application_stage: {
+        Args: { _application_id: string; _stage: string }
+        Returns: undefined
+      }
+      work_set_contract_amount: {
+        Args: { _amount: number; _contract_id: string }
+        Returns: undefined
+      }
+      work_start_milestone: {
+        Args: { _milestone_id: string }
+        Returns: undefined
+      }
+      work_submit_milestone: {
+        Args: {
+          _attachments?: Json
+          _links?: string[]
+          _milestone_id: string
+          _note: string
+        }
+        Returns: string
+      }
+      work_submit_timesheet: {
+        Args: {
+          _contract_id: string
+          _hours: number
+          _note: string
+          _work_date: string
+        }
+        Returns: string
       }
     }
     Enums: {
