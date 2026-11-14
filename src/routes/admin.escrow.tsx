@@ -7,6 +7,8 @@ import { errMsg, formatRupiah } from "@/lib/market";
 import { ESCROW_STATUS_LABEL, escrowStage, methodLabel } from "@/lib/midtrans-shared";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAskAdmin } from "@/lib/admin-ask";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/escrow")({
   head: () => ({ meta: [{ title: "Escrow — Admin Pastodev" }, { name: "description", content: "Dana escrow, pelepasan manual saldo ke developer, pembekuan, dan refund ke saldo client." }, { name: "robots", content: "noindex" }] }),
@@ -21,6 +23,7 @@ type Row = {
 type RefundRow = { id: string; midtrans_order_id: string; gross_amount: number; method: string; paid_at: string | null; order: { id: string; number: number; title: string } | null };
 
 function EscrowPage() {
+  const ask = useAskAdmin();
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
@@ -69,13 +72,13 @@ function EscrowPage() {
   }
 
   const release = (r: Row) => (
-    <Button size="sm" onClick={() => { if (confirm(`Teruskan ${formatRupiah(r.net)} ke @${r.developer?.username}? Tindakan manual ini tercatat.`)) act("admin_release_escrow", { _order_id: r.order_id, _note: "" }, "Saldo diteruskan ke developer"); }}>Teruskan saldo</Button>
+    <Button size="sm" onClick={async () => { if (await ask({ title: "Teruskan saldo ke developer?", description: `${formatRupiah(r.net)} akan diteruskan ke @${r.developer?.username}. Tindakan manual ini tercatat di log admin.`, confirmLabel: "Teruskan saldo" })) act("admin_release_escrow", { _order_id: r.order_id, _note: "" }, "Saldo diteruskan ke developer"); }}>Teruskan saldo</Button>
   );
   const freeze = (r: Row) => (
-    <Button size="sm" variant="outline" onClick={() => { const n = prompt("Alasan membekukan dana?"); if (n) act("admin_set_escrow", { _order_id: r.order_id, _action: "freeze", _note: n }, "Dana dibekukan"); }}>Bekukan</Button>
+    <Button size="sm" variant="outline" onClick={async () => { const res = await ask({ title: "Bekukan dana ini?", description: "Dana tidak akan diteruskan sampai kamu membukanya lagi.", confirmLabel: "Bekukan", reason: { label: "Alasan membekukan dana", required: true } }); if (res) act("admin_set_escrow", { _order_id: r.order_id, _action: "freeze", _note: res.reason }, "Dana dibekukan"); }}>Bekukan</Button>
   );
   const refund = (r: Row) => (
-    <Button size="sm" variant="ghost" onClick={() => { const n = prompt("Alasan refund? Dana masuk ke saldo client di platform dan pesanan dibatalkan."); if (n) act("admin_set_escrow", { _order_id: r.order_id, _action: "refund", _note: n }, "Dana dikembalikan ke saldo client"); }}>Refund ke saldo client</Button>
+    <Button size="sm" variant="ghost" onClick={async () => { const res = await ask({ title: "Refund ke saldo client?", description: "Dana masuk ke saldo client di platform dan pesanan dibatalkan. Tidak bisa dibatalkan.", confirmLabel: "Refund ke saldo client", destructive: true, reason: { label: "Alasan refund", required: true } }); if (res) act("admin_set_escrow", { _order_id: r.order_id, _action: "refund", _note: res.reason }, "Dana dikembalikan ke saldo client"); }}>Refund ke saldo client</Button>
   );
 
   return (
@@ -87,7 +90,7 @@ function EscrowPage() {
         <Stat label="Perlu refund" v={(data?.refunds ?? []).reduce((a, p) => a + Number(p.gross_amount), 0)} n={data?.refunds.length ?? 0} />
       </div>
       {error && <p role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">{errMsg(error)} — pastikan SQL di docs/sql/midtrans-escrow sudah dijalankan.</p>}
-      {isLoading && <p className="text-muted-foreground">Memuat…</p>}
+      {isLoading && <GobiLoader />}
 
       <Tabs defaultValue="ready">
         <TabsList className="flex h-auto flex-wrap justify-start">
@@ -123,7 +126,7 @@ function EscrowPage() {
             {(data?.refunds ?? []).map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                 <span>{p.order ? <Link to="/pesanan/$id" params={{ id: p.order.id }} className="font-medium hover:underline">#{p.order.number} · {p.order.title}</Link> : p.midtrans_order_id} · {formatRupiah(p.gross_amount)} · {methodLabel(p.method)}{p.paid_at ? ` · ${timeAgo(p.paid_at)}` : ""}</span>
-                <Button size="sm" variant="outline" onClick={() => { const n = prompt("Catatan (mis. sudah direfund di Midtrans)") ?? ""; act("admin_clear_refund_flag", { _payment_id: p.id, _note: n }, "Ditandai sudah ditangani"); }}>Sudah ditangani</Button>
+                <Button size="sm" variant="outline" onClick={async () => { const res = await ask({ title: "Tandai sudah ditangani?", description: "Pastikan uangnya sudah dikembalikan lewat dashboard Midtrans.", confirmLabel: "Sudah ditangani", reason: { label: "Catatan", placeholder: "mis. sudah direfund di Midtrans" } }); if (res) act("admin_clear_refund_flag", { _payment_id: p.id, _note: res.reason }, "Ditandai sudah ditangani"); }}>Sudah ditangani</Button>
               </li>
             ))}
             {(data?.refunds.length ?? 0) === 0 && <li className="py-3 text-sm text-muted-foreground">Tidak ada.</li>}

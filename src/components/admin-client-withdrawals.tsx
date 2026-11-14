@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Pill, ReasonDialog, type Ask } from "@/components/work-ui";
 import { Loading, must } from "@/components/admin-work-extra";
+import { useAskAdmin } from "@/lib/admin-ask";
 
 type Row = { id: string; client_id: string; amount: number; bank_name: string; account_number: string; account_name: string; status: string; admin_note: string | null; created_at: string; processed_at: string | null };
 type Prof = { id: string; username: string; display_name: string | null };
@@ -18,6 +19,7 @@ const LABEL: Record<string, string> = { requested: "Menunggu transfer", paid: "S
 const TONE: Record<string, "warn" | "ok" | "bad"> = { requested: "warn", paid: "ok", rejected: "bad" };
 
 export function ClientWithdrawalsTab() {
+  const askAdmin = useAskAdmin();
   const qc = useQueryClient();
   const [status, setStatus] = useState("requested");
   const [ask, setAsk] = useState<Ask | null>(null);
@@ -71,7 +73,7 @@ export function ClientWithdrawalsTab() {
               {r.admin_note && <p className="rounded-xl bg-muted p-2 text-xs">Catatan: {r.admin_note}</p>}
               {r.status === "requested" && (
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" className="rounded-full" onClick={() => { if (confirm(`Sudah mentransfer ${formatRupiah(r.amount)} ke ${r.bank_name} ${r.account_number}?`)) void act(r.id, "paid"); }}>Tandai sudah ditransfer</Button>
+                  <Button size="sm" className="rounded-full" onClick={async () => { if (await askAdmin({ title: "Sudah mentransfer?", description: `${formatRupiah(r.amount)} ke ${r.bank_name} ${r.account_number} a.n. ${r.account_name}. Client akan melihat penarikan ini selesai.`, confirmLabel: "Ya, sudah ditransfer" })) void act(r.id, "paid"); }}>Tandai sudah ditransfer</Button>
                   <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setAsk({ title: "Tolak penarikan", label: "Alasan (dilihat client)", min: 3, confirm: "Tolak penarikan", onSubmit: async (t) => { await act(r.id, "rejected", t); } })}>Tolak</Button>
                 </div>
               )}
