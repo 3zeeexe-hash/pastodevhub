@@ -30,6 +30,7 @@ export const WORK_NAV: NavGroup = {
 export const DEV_NAV: NavGroup[] = [
   { group: "Jualan", items: [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
+    { to: "/studio/saldo", label: "Saldo & penarikan", Icon: Wallet },
     { to: "/studio/karya", label: "Karya", Icon: Package, feature: "karya" },
     { to: "/studio/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
     { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban, feature: "jasa" },
@@ -95,6 +96,7 @@ const PERSONAL_NAV: NavGroup[] = [
 const FREELANCER_NAV: NavGroup[] = [
   { group: "Ruang freelance", items: [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
+    { to: "/studio/saldo", label: "Saldo & penarikan", Icon: Wallet },
   ] },
   WORK_NAV,
   { group: "Jasa", items: [
