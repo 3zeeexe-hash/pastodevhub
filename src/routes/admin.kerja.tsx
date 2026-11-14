@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
 import { ApplicationsTab, AuditTab, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
 import { CasesTab, DisputesTab2, ReportsTab2 } from "@/components/admin-work-cases";
+import { ClientWithdrawalsTab } from "@/components/admin-client-withdrawals";
 import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
 
 export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
@@ -29,7 +30,7 @@ function AdminWork() {
           <h2 className="mt-1 text-2xl font-extrabold">Pusat kendali GOBI WORK</h2>
           <p className="mt-1 max-w-3xl text-sm text-white/80">
             Pengguna, moderasi lowongan, lamaran, kasus kontrak lengkap (lowongan, profil kedua pihak, pembayaran, riwayat), transaksi, sengketa, laporan, rekonsiliasi, kategori, komisi, dan audit log.
-            Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran, transaksi, dan pencairan hanya untuk melihat.
+            Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran dan transaksi hanya untuk melihat. Penarikan saldo client diproses di tab Pencairan.
           </p>
         </div>
       </header>
@@ -54,7 +55,7 @@ function AdminWork() {
         <TabsContent value="sengketa" className="mt-4"><DisputesTab2 /></TabsContent>
         <TabsContent value="kasus" className="mt-4"><CasesTab /></TabsContent>
         <TabsContent value="transaksi" className="mt-4"><TransactionsTab /></TabsContent>
-        <TabsContent value="pencairan" className="mt-4"><PayoutsTab /></TabsContent>
+        <TabsContent value="pencairan" className="mt-4 space-y-8"><PayoutsTab /><ClientWithdrawalsTab /></TabsContent>
         <TabsContent value="pengguna" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="lowongan" className="mt-4"><JobsTab /></TabsContent>
         <TabsContent value="lamaran" className="mt-4"><ApplicationsTab /></TabsContent>
