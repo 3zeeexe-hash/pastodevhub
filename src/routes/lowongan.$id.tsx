@@ -66,8 +66,10 @@ async function respondToApplication(applicationId: string, accept: boolean) {
 }
 
 /**
- * Menerima lamaran + membuat kesepakatan kerja (kontrak) otomatis lewat work_accept_application (SQL 006).
- * Persetujuan client tercatat saat menerima; kontrak aktif setelah freelancer setuju, baru client membayar.
+ * Menerima lamaran + membuat kesepakatan kerja (kontrak) otomatis lewat work_accept_application (SQL 006, diperbarui SQL 007).
+ * Kerja langsung: persetujuan client tercatat saat menerima; kontrak aktif setelah freelancer setuju, baru client membayar.
+ * Per jam (SQL 007): kontrak berstatus draft; client menentukan hari dan jam kerja di halaman kontrak, freelancer boleh mengajukan
+ * pergantian jam, setelah sepakat client membayar total semua jam di muka.
  * Jika SQL 006 belum dijalankan, dipakai alur lama (terima saja, kontrak dibuat manual).
  */
 async function acceptApplication(applicationId: string) {
@@ -240,6 +242,12 @@ function JobDetail() {
               )}
               {mine.status === "accepted" && <MyAcceptedOrder applicationId={mine.id} />}
               {mine.status !== "withdrawn" && (<><h3 className="flex items-center gap-2 pt-2 text-sm font-semibold"><MessageSquare className="size-4" /> Obrolan dengan client</h3><ApplicationThread applicationId={mine.id} /></>)}
+              {mine.status === "accepted" && j.client?.username && (
+                <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  <p className="text-xs text-muted-foreground">Pekerjaan tidak dibayar atau dana tertahan?</p>
+                  <ReportButton targetType="profile" targetId={j.client.username} label="Laporkan pembuat lowongan" defaultReason="funds_held" className="rounded-full" />
+                </div>
+              )}
             </section>
           )}
         </article>
@@ -305,16 +313,26 @@ function ApplyForm({ jobId, userId, terms, onDone }: { jobId: string; userId: st
     if (error && f.finish && isMissingColumn(error)) ({ error } = await supabase.from("job_applications").insert(base));
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? "Kamu sudah melamar lowongan ini." : /tanggal selesai/i.test(error.message ?? "") ? error.message : "Gagal mengirim lamaran."); return; }
-    toast.success("Lamaran terkirim! Jika client menerima, kamu akan diminta menyetujui kesepakatan kerja.");
+    toast.success(hourly ? "Lamaran terkirim! Jika client menerima, client menentukan hari dan jam kerja, lalu kamu menyetujui atau mengajukan pergantian jam." : "Lamaran terkirim! Jika client menerima, kamu akan diminta menyetujui kesepakatan kerja.");
     onDone();
   }
   return (
     <form onSubmit={submit} className="space-y-3 rounded-2xl bg-card p-4 shadow-glow ring-2 ring-primary/40" noValidate>
       <p className="font-extrabold">Lamar proyek ini</p>
       <ol className="space-y-1 rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
-        <li><b className="text-foreground">1.</b> Kirim penawaran{hourly ? "" : " dan tanggal selesai"}.</li>
-        <li><b className="text-foreground">2.</b> Client menerima, kamu menyetujui kesepakatan.</li>
-        <li><b className="text-foreground">3.</b> Client membayar (escrow), kamu mulai bekerja.</li>
+        {hourly ? (
+          <>
+            <li><b className="text-foreground">1.</b> Kirim tarif per jam.</li>
+            <li><b className="text-foreground">2.</b> Client menerima, lalu menentukan hari dan jam kerja. Kamu boleh mengajukan pergantian jam.</li>
+            <li><b className="text-foreground">3.</b> Setelah sepakat, client membayar total semua jam di muka (escrow), lalu kamu mulai bekerja.</li>
+          </>
+        ) : (
+          <>
+            <li><b className="text-foreground">1.</b> Kirim penawaran dan tanggal selesai.</li>
+            <li><b className="text-foreground">2.</b> Client menerima, kamu menyetujui kesepakatan.</li>
+            <li><b className="text-foreground">3.</b> Client membayar (escrow), kamu mulai bekerja.</li>
+          </>
+        )}
       </ol>
       <div><Label htmlFor="cl">Surat lamaran</Label><Textarea id="cl" rows={6} value={f.letter} onChange={(e) => setF({ ...f, letter: e.target.value })} placeholder="Kenapa kamu cocok? Sertakan link portofolio atau proyek serupa." /></div>
       <div>
@@ -386,7 +404,9 @@ function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone 
     if (accept) {
       const name = `@${a.developer?.username}`;
       const deal = `${bidText(a.bid_amount)}${hourly ? " per jam" : ""}${finishDate ? `, selesai ${fmtDay(finishDate)}` : ""}`;
-      const next = "Kesepakatan kerja dibuat otomatis; setelah freelancer setuju, kamu membayar lewat escrow.";
+      const next = hourly
+        ? "Setelah ini kamu menentukan hari dan jam kerja; freelancer boleh mengajukan pergantian jam. Setelah sepakat, kamu membayar total semua jam di muka lewat escrow."
+        : "Kesepakatan kerja dibuat otomatis; setelah freelancer setuju, kamu membayar lewat escrow.";
       const ask = slots > 1
         ? `Terima ${name} (${deal})? ${next} Lowongan tetap dibuka untuk ${slots - 1} posisi lainnya.`
         : `Terima ${name} (${deal})? ${next} Ini posisi terakhir: pelamar lain yang masih menunggu otomatis tidak dipilih dan lowongan ditutup untuk lamaran baru.`;
@@ -399,7 +419,10 @@ function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone 
     onDone();
     if (!accept) { toast.success("Lamaran ditolak"); return; }
     if (contractId) {
-      toast.success(`${summary ? acceptedMessage(Math.max(0, summary.positions - summary.accepted)) : "Developer diterima."} Kesepakatan kerja sudah dibuat; menunggu freelancer menyetujui, lalu kamu membayar.`);
+      const head = summary ? acceptedMessage(Math.max(0, summary.positions - summary.accepted)) : "Developer diterima.";
+      toast.success(hourly
+        ? `${head} Atur hari dan jam kerja di halaman kontrak, lalu kirim ke freelancer.`
+        : `${head} Kesepakatan kerja sudah dibuat; menunggu freelancer menyetujui, lalu kamu membayar.`);
       navigate({ to: "/kerja/kontrak/$id", params: { id: contractId } });
       return;
     }
@@ -454,6 +477,7 @@ function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone 
               </>
             ))}
         {a.status !== "withdrawn" && <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setChat(!chat)}><MessageSquare /> {chat ? "Tutup obrolan" : "Obrolan"}</Button>}
+        <ReportButton targetType="application" targetId={a.id} label="Laporkan pelamar" defaultReason={a.status === "accepted" ? "not_completed" : "policy"} className="rounded-full" />
       </div>
       {a.status === "accepted" && !order.data && !contract.data && (
         <p className="mt-2 text-xs text-muted-foreground">Kontrak GOBI WORK cocok untuk milestone atau per jam; pesanan langsung untuk satu pembayaran. Pembayaran lewat Midtrans, dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
