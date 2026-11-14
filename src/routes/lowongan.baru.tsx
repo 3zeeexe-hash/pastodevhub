@@ -10,6 +10,7 @@ import {
   budgetLabel, canPostJob, experienceLabel, jobCategoryLabel, jobTypeLabel, parseSkills, paymentTypeLabel,
   todayISO, validateJobForm, workModeLabel, type JobFormInput,
 } from "@/lib/jobs";
+import { formatRupiahInput, parseRupiah } from "@/lib/rupiah";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,11 +44,12 @@ const INITIAL: FormState = {
 };
 const SELECT_CLS = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
 
+// Budget tampil berformat rupiah (5.000.000) di kolom teks, lalu dibaca kembali menjadi bilangan bulat.
 function toInput(f: FormState): JobFormInput {
   return {
     title: f.title, description: f.description, category: f.category, skills: parseSkills(f.skills), jobType: f.jobType,
     workMode: f.workMode, location: f.location, experience: f.experience, paymentType: f.paymentType,
-    min: Number(f.min || 0), max: Number(f.max || 0), deadline: f.deadline, positions: Number(f.positions || 0), requirements: f.requirements,
+    min: parseRupiah(f.min), max: parseRupiah(f.max), deadline: f.deadline, positions: Number(f.positions || 0), requirements: f.requirements,
   };
 }
 
@@ -138,6 +140,7 @@ function NewJob() {
     );
   }
 
+  const budgetErr = errors.budget;
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold">Pasang lowongan</h1>
@@ -158,9 +161,15 @@ function NewJob() {
           <div><Label htmlFor="pt">Sistem pembayaran</Label>
             <select id="pt" value={f.paymentType} onChange={(e) => up({ paymentType: e.target.value })} className={SELECT_CLS}>{PAYMENT_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select><Err m={errors.paymentType} /></div>
           <div><Label htmlFor="ps">Jumlah freelancer</Label><Input id="ps" type="number" min={1} max={100} value={f.positions} onChange={(e) => up({ positions: e.target.value })} /><Err m={errors.positions} /></div>
-          <div><Label htmlFor="mn">{f.paymentType === "hourly" ? "Tarif minimum per jam (Rp)" : "Budget minimum (Rp)"}</Label><Input id="mn" type="number" min={0} step={1000} inputMode="numeric" value={f.min} onChange={(e) => up({ min: e.target.value })} placeholder="500000" /></div>
-          <div><Label htmlFor="mx">{f.paymentType === "hourly" ? "Tarif maksimum per jam (Rp)" : "Budget maksimum (Rp)"}</Label><Input id="mx" type="number" min={0} step={1000} inputMode="numeric" value={f.max} onChange={(e) => up({ max: e.target.value })} placeholder="2000000" /></div>
-          <div className="sm:col-span-2"><Err m={errors.budget} /></div>
+          <div>
+            <Label htmlFor="mn">{f.paymentType === "hourly" ? "Tarif minimum per jam (Rp)" : "Budget minimum (Rp)"}</Label>
+            <Input id="mn" type="text" inputMode="numeric" autoComplete="off" aria-invalid={!!budgetErr} value={f.min} onChange={(e) => up({ min: formatRupiahInput(e.target.value) })} placeholder="500.000" />
+          </div>
+          <div>
+            <Label htmlFor="mx">{f.paymentType === "hourly" ? "Tarif maksimum per jam (Rp)" : "Budget maksimum (Rp)"}</Label>
+            <Input id="mx" type="text" inputMode="numeric" autoComplete="off" aria-invalid={!!budgetErr} value={f.max} onChange={(e) => up({ max: formatRupiahInput(e.target.value) })} placeholder="2.000.000" />
+          </div>
+          <div className="sm:col-span-2"><Err m={budgetErr} /></div>
           <div><Label htmlFor="dl">Deadline (opsional)</Label><Input id="dl" type="date" min={todayISO()} value={f.deadline} onChange={(e) => up({ deadline: e.target.value })} /><Err m={errors.deadline} /></div>
         </div>
         <div><Label htmlFor="s">Keahlian yang dibutuhkan</Label><Input id="s" value={f.skills} onChange={(e) => up({ skills: e.target.value })} placeholder="React, Laravel, Figma" /><p className="mt-1 text-xs text-muted-foreground">Pisahkan dengan koma, maksimal 12.</p><Err m={errors.skills} /></div>
