@@ -6,6 +6,7 @@ import { errMsg } from "@/lib/market";
 import { rp, workRpc } from "@/lib/work-db";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ClientWalletPanel } from "@/components/client-wallet";
 import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
 
 export const Route = createFileRoute("/kerja/pembayaran")({ component: Payments });
@@ -14,7 +15,7 @@ type Ord = { id: string; title: string; amount: number; status: string; paid_at:
 type Esc = { order_id: string; fee: number; net: number; status: string };
 type Stats = { client: Record<string, number>; freelancer: Record<string, number | null> };
 
-const ESC_LABEL: Record<string, string> = { held: "Ditahan escrow", frozen: "Dibekukan (sengketa)", released: "Dana diteruskan", refunded: "Dikembalikan" };
+const ESC_LABEL: Record<string, string> = { held: "Ditahan escrow", frozen: "Dibekukan (sengketa)", released: "Dana diteruskan ke freelancer", refunded: "Dikembalikan ke saldo client" };
 
 function Payments() {
   const { user } = useAuth();
@@ -40,7 +41,7 @@ function Payments() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Pembayaran</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Semua pembayaran proyek, milestone, dan jam kerja lewat Midtrans. Dana ditahan escrow dan diteruskan admin setelah hasil disetujui.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Semua pembayaran proyek, milestone, dan jam kerja lewat Midtrans. Dana ditahan escrow. Begitu client menyetujui hasil milestone, dana otomatis diteruskan ke saldo freelancer tanpa persetujuan admin.</p>
       </header>
       {s && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -51,8 +52,9 @@ function Payments() {
         </div>
       )}
       {stats.error && <ErrorState error={stats.error} onRetry={() => stats.refetch()} />}
+      <ClientWalletPanel />
       <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-        Pencairan ke rekening dilakukan dari saldo di <Link to="/studio" className="text-primary underline">Studio</Link> dan hanya bisa diajukan untuk dana yang sudah diteruskan admin. Komisi platform dan biaya Midtrans ditampilkan per pesanan.
+        Pencairan freelancer ke rekening dilakukan dari saldo di <Link to="/studio/saldo" className="text-primary underline">Studio &rsaquo; Saldo &amp; penarikan</Link>. Saldo client (dana yang dikembalikan) ditarik dari kotak Saldo client di atas. Komisi platform dan biaya Midtrans ditampilkan per pesanan.
       </p>
       {q.isLoading && <Skeleton className="h-32 rounded-xl" />}
       {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}

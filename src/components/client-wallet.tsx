@@ -1,6 +1,6 @@
 // GOBI WORK — saldo client: dana yang dikembalikan (sengketa dimenangkan client, refund admin, kontrak ditutup) masuk ke sini dan bisa ditarik.
 // Membutuhkan docs/sql/gobi-work/011_saldo_client_sengketa_otomatis.sql; sebelum diterapkan, panel ini tidak ditampilkan.
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDownLeft, ArrowUpRight, Landmark, Loader2, Plus, Wallet } from "lucide-react";
@@ -113,7 +113,7 @@ export function ClientWalletPanel() {
       {history.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-bold">Riwayat saldo</h2>
-          <ul className="space-y-2">{history.map((h) => <span key={h.key} className="contents">{h.node}</span>)}</ul>
+          <ul className="space-y-2">{history.map((h) => <Fragment key={h.key}>{h.node}</Fragment>)}</ul>
         </div>
       )}
 
