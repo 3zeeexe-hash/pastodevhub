@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Briefcase, Loader2, Send } from "lucide-react";
+import { ArrowLeft, Briefcase, Loader2, Plus, Send, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg } from "@/lib/market";
@@ -19,6 +19,7 @@ import { RupiahInput } from "@/components/rupiah-input";
 import { parseRupiah } from "@/lib/rupiah";
 import { MAX_REVISION_LIMIT } from "@/lib/jobs";
 import { LEGAL_TERMS_MAX, LEGAL_TERMS_MIN, validateLegalTerms } from "@/lib/job-legal-terms";
+import { MAX_PLAN_MILESTONES, MIN_PLAN_MILESTONES, emptyPlan, planPercentTotal, planToJson, validatePlan, type PlanDraft } from "@/lib/job-milestones";
 import { isMissingColumn } from "@/lib/job-terms";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
@@ -50,12 +51,15 @@ type FormState = {
   hourly: boolean;
   /** Tombol "Batasi revisi"; angkanya di revisionLimit. */
   limitRevisions: boolean; revisionLimit: string;
+  /** Tombol "Pakai milestone" (hanya kerja langsung); daftar tahapnya di milestones. Per jam: milestone dibuat setelah kontrak. */
+  useMilestones: boolean; milestones: PlanDraft[];
 };
 const INITIAL: FormState = {
   title: "", description: "", category: "web-development", skills: "", jobType: "freelance", workMode: "remote",
   location: "", experience: "mid", min: "", max: "", deadline: "", positions: "1", requirements: "",
   usageRights: "", cancellationTerms: "",
   hourly: false, limitRevisions: false, revisionLimit: "2",
+  useMilestones: false, milestones: emptyPlan(),
 };
 const SELECT_CLS = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
 
@@ -68,9 +72,12 @@ function toInput(f: FormState): JobFormInput {
   };
 }
 
-/** Semua pemeriksaan form: isian lowongan ditambah hak penggunaan hasil dan ketentuan pembatalan (keduanya wajib). */
+/** Milestone hanya untuk kerja langsung (harga tetap). Per jam: milestone baru dibuat setelah kontrak. */
+const planOn = (f: FormState) => !f.hourly && f.useMilestones;
+
+/** Semua pemeriksaan form: isian lowongan, hak penggunaan hasil dan ketentuan pembatalan (keduanya wajib), serta rencana milestone bila diaktifkan. */
 function validateAll(f: FormState) {
-  return { ...validateJobForm(toInput(f)), ...validateLegalTerms(f) };
+  return { ...validateJobForm(toInput(f)), ...validateLegalTerms(f), ...(planOn(f) ? validatePlan(f.milestones) : {}) };
 }
 
 function Err({ m }: { m?: string }) {
@@ -85,6 +92,7 @@ function NewJob() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const up = (patch: Partial<FormState>) => setF((p) => ({ ...p, ...patch }));
+  const setRow = (i: number, patch: Partial<PlanDraft>) => setF((p) => ({ ...p, milestones: p.milestones.map((r, k) => (k === i ? { ...r, ...patch } : r)) }));
   if (loading) return null;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk sebagai client untuk memasang lowongan." /></main>;
   if (!canPostJob({ id: user.id, accountType: profile?.account_type ?? null })) {
@@ -115,6 +123,7 @@ function NewJob() {
     const v = toInput(f);
     const errs = validateAll(f);
     if (Object.keys(errs).length > 0) { setErrors(errs); setStep("edit"); return; }
+    const plan = planOn(f) ? planToJson(f.milestones) : null;
     setBusy(true);
     // Lowongan baru selalu ditinjau admin dulu. Database (SQL 005) memaksa 'pending' untuk akun biasa, jadi nilai ini bukan penentu.
     const { data, error } = await looseDb.from("jobs").insert({
@@ -126,10 +135,14 @@ function NewJob() {
       usage_rights: f.usageRights.trim(), cancellation_terms: f.cancellationTerms.trim(),
       // Hanya dikirim jika client mengaktifkannya, supaya lowongan biasa tetap jalan sebelum SQL 006 dijalankan.
       ...(v.revisionLimit ? { revision_limit: v.revisionLimit } : {}),
+      // Hanya dikirim jika client mengaktifkan milestone, supaya lowongan biasa tetap jalan sebelum SQL 010 dijalankan.
+      ...(plan ? { use_milestones: true, milestone_plan: plan } : {}),
     }).select("id").single();
     setBusy(false);
     if (error || !data) {
       if (isMissingColumn(error) && /usage_rights|cancellation_terms/i.test(error?.message ?? "")) toast.error("Kolom hak penggunaan dan ketentuan pembatalan belum ada di database. Jalankan docs/sql/gobi-work/008_hak_hasil_dan_pembatalan.sql di SQL editor.");
+      else if (plan && /use_milestones|milestone_plan/i.test(error?.message ?? "") && (isMissingColumn(error) || error?.code === "42703")) toast.error("Milestone belum aktif di database. Jalankan docs/sql/gobi-work/010_milestone_di_lowongan.sql di SQL editor, atau matikan milestone.");
+      else if (error?.code === "23514" && /milestone_plan/i.test(error.message ?? "")) toast.error("Rencana milestone ditolak database: minimal 2 milestone dan total bobot harus tepat 100%.");
       else if (error?.code === "42703" && v.revisionLimit) toast.error("Batas revisi belum aktif di database. Jalankan docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql, atau matikan batas revisi.");
       else if (error?.code === "42703") toast.error("Skema GOBI WORK belum aktif di database. Jalankan docs/sql/gobi-work/001_gobi_work_core.sql lewat Lovable.");
       else toast.error(error ? errMsg(error) : "Gagal mengirim lowongan.");
@@ -147,6 +160,7 @@ function NewJob() {
       ["Pembayaran", paymentTypeLabel(v.paymentType)], ["Budget", `${budgetLabel(v.min, v.max)}${v.paymentType === "hourly" ? " /jam" : ""}`],
       ["Selesai paling lambat", v.deadline ? new Date(v.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "Fleksibel"],
       ...(v.paymentType === "fixed" ? [["Batas revisi", v.revisionLimit ? `${v.revisionLimit} kali` : "Tanpa batas"] as [string, string]] : []),
+      ["Milestone", v.paymentType === "hourly" ? "Dibuat setelah kontrak" : planOn(f) ? `${f.milestones.length} tahap` : "Tidak dipakai"],
       ["Kebutuhan", `${v.positions} freelancer`],
     ];
     return (
@@ -158,6 +172,19 @@ function NewJob() {
         </dl>
         <div className="mt-3 flex flex-wrap gap-1.5">{v.skills.map((s) => <span key={s} className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs">{s}</span>)}</div>
         <section className="mt-4 rounded-xl border border-border bg-card p-5"><Markdown>{v.description.trim()}</Markdown></section>
+        {planOn(f) && (
+          <section className="mt-3 rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-2 text-sm font-semibold">Milestone pekerjaan</h2>
+            <ol className="space-y-2 text-sm">
+              {planToJson(f.milestones).map((m, i) => (
+                <li key={i} className="flex items-start justify-between gap-3 rounded-lg bg-secondary/60 p-3">
+                  <span className="min-w-0"><b>{i + 1}. {m.title}</b>{m.description && <span className="block whitespace-pre-wrap break-words text-xs text-muted-foreground">{m.description}</span>}</span>
+                  <b className="shrink-0 text-primary">{m.percent}%</b>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {v.requirements.trim() && <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h2><Markdown>{v.requirements.trim()}</Markdown></section>}
         <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Hak penggunaan hasil pekerjaan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.usageRights.trim()}</p></section>
         <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Ketentuan pembatalan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.cancellationTerms.trim()}</p></section>
@@ -170,6 +197,8 @@ function NewJob() {
       </main>
     );
   }
+
+  const percentTotal = planPercentTotal(f.milestones);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -198,7 +227,7 @@ function NewJob() {
                     : "Mati (bawaan): kerja langsung dengan harga tetap. Client membayar, freelancer mengerjakan sampai tanggal selesai."}
                 </p>
               </div>
-              <Switch id="hr" checked={f.hourly} onCheckedChange={(v) => up({ hourly: v, limitRevisions: v ? false : f.limitRevisions })} aria-label="Bayar per jam" />
+              <Switch id="hr" checked={f.hourly} onCheckedChange={(v) => up({ hourly: v, limitRevisions: v ? false : f.limitRevisions, useMilestones: v ? false : f.useMilestones })} aria-label="Bayar per jam" />
             </div>
             <p className="mt-2 text-xs font-medium text-primary">{f.hourly ? "Sistem pembayaran: Per jam" : "Sistem pembayaran: Kerja langsung"}</p>
           </div>
@@ -219,6 +248,56 @@ function NewJob() {
                   <select id="rl" value={f.revisionLimit} onChange={(e) => up({ revisionLimit: e.target.value })} className={SELECT_CLS}>
                     {Array.from({ length: MAX_REVISION_LIMIT }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} kali</option>)}
                   </select><Err m={errors["revisionLimit"]} /></div>
+              )}
+            </div>
+          )}
+          {f.hourly ? (
+            <div className="sm:col-span-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+              <b className="text-foreground">Milestone:</b> untuk pekerjaan per jam, milestone tidak diisi di sini. Milestone dibuat setelah freelancer diterima dan kontrak dibuat; progresnya tampil di halaman kontrak.
+            </div>
+          ) : (
+            <div className="sm:col-span-2 rounded-xl border border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="ms" className="text-sm font-semibold">Pakai milestone</Label>
+                  <p className="text-xs text-muted-foreground">{f.useMilestones
+                    ? "Aktif: pekerjaan dibagi per tahap. Tiap tahap dibayar lewat escrow dan disetujui sendiri; progresnya tampil di lowongan dan kontrak."
+                    : "Mati (bawaan): satu pembayaran untuk seluruh pekerjaan. Milestone tetap bisa ditambah saat menyiapkan kontrak."}</p>
+                </div>
+                <Switch id="ms" checked={f.useMilestones} onCheckedChange={(v) => up({ useMilestones: v })} aria-label="Pakai milestone" />
+              </div>
+              {f.useMilestones && (
+                <div className="mt-3 space-y-3">
+                  {f.milestones.map((r, i) => (
+                    <div key={i} className="grid gap-2 rounded-lg bg-secondary/40 p-3 sm:grid-cols-[1fr_7rem_auto]">
+                      <div>
+                        <Label htmlFor={`ms-t-${i}`}>Milestone {i + 1}</Label>
+                        <Input id={`ms-t-${i}`} maxLength={120} value={r.title} onChange={(e) => setRow(i, { title: e.target.value })} placeholder="Contoh: Desain dan prototipe" aria-invalid={!!errors[`milestone-${i}-title`]} />
+                        <Err m={errors[`milestone-${i}-title`]} />
+                      </div>
+                      <div>
+                        <Label htmlFor={`ms-p-${i}`}>Bobot (%)</Label>
+                        <Input id={`ms-p-${i}`} type="number" min={1} max={100} step={1} value={r.percent} onChange={(e) => setRow(i, { percent: e.target.value })} aria-invalid={!!errors[`milestone-${i}-percent`]} />
+                        <Err m={errors[`milestone-${i}-percent`]} />
+                      </div>
+                      <div className="flex items-end">
+                        {f.milestones.length > MIN_PLAN_MILESTONES && (
+                          <Button type="button" size="icon" variant="ghost" aria-label={`Hapus milestone ${i + 1}`} onClick={() => up({ milestones: f.milestones.filter((_, k) => k !== i) })}><Trash2 /></Button>
+                        )}
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Input aria-label={`Deskripsi milestone ${i + 1}`} maxLength={1000} value={r.description} onChange={(e) => setRow(i, { description: e.target.value })} placeholder="Hasil yang diharapkan di tahap ini (opsional)" />
+                        <Err m={errors[`milestone-${i}-description`]} />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Button type="button" size="sm" variant="outline" disabled={f.milestones.length >= MAX_PLAN_MILESTONES} onClick={() => up({ milestones: [...f.milestones, { title: "", description: "", percent: "" }] })}><Plus /> Tambah milestone</Button>
+                    <p className={`text-xs font-medium ${percentTotal === 100 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>Total bobot {percentTotal}% {percentTotal === 100 ? "— cocok." : "— harus tepat 100%."}</p>
+                  </div>
+                  <Err m={errors.milestones} />
+                  <p className="text-xs text-muted-foreground">Bobot dihitung dari harga yang disepakati dengan freelancer, lalu menjadi milestone di draft kontrak. Kamu masih bisa mengubahnya sebelum kontrak dikirim.</p>
+                </div>
               )}
             </div>
           )}
