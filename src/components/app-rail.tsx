@@ -10,7 +10,7 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { useRole } from "@/lib/use-role";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { navForRole } from "@/components/nav-data";
-import { NavList, type NavGroup, type NavItem } from "@/components/nav-list";
+import { NavList, canSeeNavItem, type NavGroup, type NavItem } from "@/components/nav-list";
 import { BrandMark } from "@/components/brand";
 
 function CountBadge({ n }: { n?: number }) {
@@ -37,6 +37,8 @@ function NotifBadge() {
  *  2. Menu halaman (`pageNav`, mis. GOBI WORK) lalu menu dashboard sesuai peran aktif, hanya setelah login.
  *  3. "Jelajah": tautan publik (Lowongan, Jasa, Katalog, Forum, Tersimpan) yang belum ada di grup di atas.
  * Satu tujuan (`to`) hanya muncul sekali; yang lebih atas menang. Menu yang fiturnya dimatikan admin disembunyikan.
+ * Menu juga disaring menurut peran aktif: menu yang butuh kemampuan yang tidak dimiliki peran itu (mis. Repositori untuk Client,
+ * Buat Lowongan untuk Developer, Lamaran Saya untuk Client) tidak ditampilkan. Aturannya ada di `canSeeNavItem` dan ROLE_CAPS.
  */
 export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
   const { user, profile } = useAuth();
@@ -51,7 +53,7 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
     const main: NavItem[] = [
       { to: "/", label: "Beranda", Icon: Home, exact: true },
       { to: "/search", search: { q: "", type: "users" }, label: "Cari", Icon: Search },
-      { to: "/explore", label: "Repositori", Icon: BookMarked },
+      { to: "/explore", label: "Repositori", Icon: BookMarked, caps: ["repos"] },
       ...(signedIn && on("discuss")
         ? [
             { to: "/discuss/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge },
@@ -62,7 +64,7 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
     ];
 
     const more: NavItem[] = [
-      ...(on("jobs") ? [{ to: "/lowongan", label: "Lowongan", Icon: Briefcase }] : []),
+      ...(on("jobs") ? [{ to: "/lowongan", label: "Lowongan", Icon: Briefcase, caps: ["lamaran", "post_job"] as const }] : []),
       ...(on("jasa") ? [{ to: "/jasa", label: "Jasa", Icon: Wrench }] : []),
       ...(on("karya") ? [{ to: "/katalog", label: "Katalog", Icon: Package }] : []),
       ...(on("discuss") ? [{ to: "/discuss", search: { tab: "forum" }, label: "Forum", Icon: MessageSquare, exact: true }] : []),
@@ -71,7 +73,7 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
 
     const seen = new Set<string>();
     const take = (items: NavItem[]) => items.filter((i) => {
-      if ((i.feature && !on(i.feature)) || seen.has(i.to)) return false;
+      if ((i.feature && !on(i.feature)) || !canSeeNavItem(role, i) || seen.has(i.to)) return false;
       seen.add(i.to);
       return true;
     });
