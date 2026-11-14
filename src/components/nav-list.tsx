@@ -3,10 +3,13 @@ import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FeatureKey } from "@/lib/features";
+import { capabilityForPath, roleCan, type Capability, type Role } from "@/lib/roles";
 
 /**
  * `Badge`: komponen kecil di ujung kanan baris menu (mis. lencana jumlah belum dibaca).
  * `params`: parameter rute dinamis (mis. `/$username`). `match`: jalur asli untuk menandai menu aktif kalau `to` berisi parameter.
+ * `caps`: menu hanya tampil untuk peran yang punya salah satu kemampuan ini (lihat ROLE_CAPS di lib/roles). Tanpa `caps`, kemampuan
+ * dibaca dari jalurnya (ROLE_PATHS, mis. /studio/karya butuh "karya"); kalau jalurnya juga tidak dibatasi, menu terbuka untuk semua peran.
  */
 export type NavItem = {
   to: string;
@@ -17,6 +20,7 @@ export type NavItem = {
   params?: Record<string, string>;
   match?: string;
   feature?: FeatureKey;
+  caps?: readonly Capability[];
   Badge?: ComponentType;
 };
 export type NavGroup = { group: string; items: NavItem[] };
@@ -25,6 +29,24 @@ export function isActive(pathname: string, item: NavItem) {
   const base = item.match ?? item.to;
   if (item.exact) return pathname === base || pathname === `${base}/`;
   return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+/** Apakah peran ini boleh melihat menu tersebut (hanya soal tampilan; hak akses sebenarnya tetap di database). */
+export function canSeeNavItem(role: Role, item: NavItem): boolean {
+  const caps = item.caps ?? (() => { const c = capabilityForPath(item.to); return c ? [c] : null; })();
+  return !caps || caps.some((c) => roleCan(role, c));
+}
+
+/**
+ * Menyaring menu berdasarkan kata kunci (nama menu atau nama grup, tidak peka huruf besar/kecil).
+ * Hanya menyaring menu yang sudah ada; tidak mencari ke halaman lain.
+ */
+export function filterNavGroups(nav: NavGroup[], query: string): NavGroup[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return nav;
+  return nav
+    .map((g) => (g.group.toLowerCase().includes(q) ? g : { ...g, items: g.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+    .filter((g) => g.items.length > 0);
 }
 
 /** navy = kartu biru tua di layar lebar (aktif: gradasi oranye); tanpa navy = tampilan terang untuk laci di ponsel. */
