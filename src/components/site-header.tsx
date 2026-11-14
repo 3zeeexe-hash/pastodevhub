@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Plus, Search, BookMarked, LogOut, Settings, User, Download, MessageSquare, Star, LayoutDashboard, Receipt, ShieldCheck, Store,
-  Menu, Briefcase, LayoutGrid, Users, Package, Bell, Wrench, BadgeCheck, ChevronDown,
+  Menu, Briefcase, LayoutGrid, Package, Bell, Wrench, BadgeCheck, ChevronDown,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,11 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
 import { BrandMark } from "@/components/brand";
+import { MainMenuDrawer } from "@/components/main-menu-drawer";
 import { VerifiedBadge } from "@/components/verified-badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 // Jasa sebelumnya tidak ada di menu header sama sekali (hanya di menu kiri beranda layar lebar), jadi di mobile tidak terjangkau.
 const NAV = [
@@ -41,12 +41,12 @@ const ctl = "text-white/80 hover:bg-white/10 hover:text-white";
  * tautan menu, lonceng notifikasi, dan avatar dengan panah menu akun. Warnanya biru tua di semua halaman.
  * Tinggi total tetap 3,5rem supaya elemen lengket lain (top-14) tidak bergeser.
  * Lebar isinya sama dengan beranda (max-w-6xl, xl: max-w-7xl) supaya tepi kiri/kanan sejajar.
+ * Tombol menu di kiri (di bawah lg) membuka laci menu utama (`MainMenuDrawer`) yang sudah berisi menu studio/dashboard sesuai peran dan GOBI WORK.
  */
 export function SiteHeader() {
   const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const { role } = useRole();
   const { flags } = useSiteConfig();
@@ -60,7 +60,7 @@ export function SiteHeader() {
   });
   const dashTo = workspacePath(profile?.account_type);
   const workspaceLabel = ROLE_INFO[role].workspaceLabel;
-  const doSearch = (e: React.FormEvent) => { e.preventDefault(); setOpen(false); navigate({ to: "/search", search: { q, type: "users" } }); };
+  const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q, type: "users" } }); };
 
   // Ctrl + K (Cmd + K di Mac) memfokuskan kolom pencarian.
   useEffect(() => {
@@ -80,35 +80,15 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 px-3 py-1 sm:px-4">
       <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2 rounded-2xl bg-gradient-to-r from-navy-deep via-navy to-navy-mid px-2.5 text-header-foreground shadow-[0_10px_28px_-12px_rgb(7_19_54/0.7)] ring-1 ring-white/10 sm:px-3 xl:max-w-7xl">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button size="icon" variant="ghost" className={`${ctl} size-9 lg:hidden`} aria-label="Buka menu"><Menu /></Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-card">
-            <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> Go<span className="text-primary">Bi</span></SheetTitle></SheetHeader>
-            <form onSubmit={doSearch} className="relative mt-4">
+        <MainMenuDrawer
+          trigger={<Button size="icon" variant="ghost" className={`${ctl} size-9 lg:hidden`} aria-label="Buka menu"><Menu /></Button>}
+          top={(close) => (
+            <form onSubmit={(e) => { close(); doSearch(e); }} className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta…" className="pl-8" />
             </form>
-            <nav className="mt-4 flex flex-col gap-1">
-              <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent">
-                <Users className="size-4 text-primary" />Talenta
-              </Link>
-              {nav.map((n) => (
-                <Link key={n.to} to={n.to} onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent" activeProps={{ className: "bg-accent font-semibold" }}>
-                  <n.Icon className="size-4 text-primary" />{n.label}
-                </Link>
-              ))}
-              {user && profile && (
-                <Link to={dashTo} onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-accent">
-                  <LayoutDashboard className="size-4 text-primary" />{workspaceLabel}
-                </Link>
-              )}
-              {!user && <Button asChild className="mt-3" onClick={() => setOpen(false)}><Link to="/auth">Masuk / Daftar</Link></Button>}
-            </nav>
-          </SheetContent>
-        </Sheet>
+          )}
+        />
 
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <BrandMark size={32} />
