@@ -9,6 +9,8 @@ import { errMsg } from "@/lib/market";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useAskAdmin } from "@/lib/admin-ask";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/moderasi")({
   head: () => ({ meta: [{ title: "Moderasi konten — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -74,6 +76,7 @@ const KINDS: Kind[] = [
 ];
 
 function ModerationPage() {
+  const ask = useAskAdmin();
   const qc = useQueryClient();
   const [kindKey, setKindKey] = useState(KINDS[0]!.key);
   const [text, setText] = useState("");
@@ -98,7 +101,7 @@ function ModerationPage() {
   };
 
   async function remove(r: Row) {
-    if (!confirm(`Hapus “${kind.title(r)}”? Ini tidak bisa dibatalkan.`)) return;
+    if (!(await ask({ title: `Hapus “${kind.title(r)}”?`, description: "Ini tidak bisa dibatalkan.", confirmLabel: "Hapus", destructive: true }))) return;
     setBusy(r.id);
     const { data, error } = await sb.from(kind.table).delete().eq("id", r.id).select("id");
     setBusy(null);
@@ -132,7 +135,7 @@ function ModerationPage() {
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Cari ${kind.label.toLowerCase()}…`} className="pl-9" />
       </form>
-      {isLoading && <p className="text-muted-foreground">Memuat…</p>}
+      {isLoading && <GobiLoader />}
       {error && <p className="text-sm text-destructive">{errMsg(error)}</p>}
       <ul className="divide-y divide-border rounded-xl border border-border bg-card">
         {data?.map((r) => (
