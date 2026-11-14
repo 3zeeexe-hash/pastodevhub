@@ -1,11 +1,28 @@
-import { BadgeCheck, Bot, Briefcase, ClipboardList, Download, FileCode2, FileSignature, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, Receipt, Search, Settings, Share2, Store, Wrench, BookMarked } from "lucide-react";
+import { BadgeCheck, Bot, Briefcase, ClipboardList, Download, FileCode2, FileSignature, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, PlusCircle, Receipt, Search, Settings, Share2, Store, UserCog, Wallet, Wrench, BookMarked } from "lucide-react";
 import type { Role } from "@/lib/roles";
 import type { NavGroup } from "@/components/nav-list";
 
 /**
- * Data menu per peran. Dipisah dari komponen tampilan supaya sidebar gabungan (app-rail) dan
- * layout halaman (side-nav-layout) sama-sama bisa memakainya tanpa saling impor.
+ * Data menu per peran. Dipisah dari komponen tampilan supaya sidebar gabungan (app-rail), menu utama (laci GOBI di header)
+ * dan layout halaman (side-nav-layout) sama-sama bisa memakainya tanpa saling impor.
+ * Menu studio/dashboard tiap peran tidak punya laci sendiri lagi: semuanya digabung ke menu utama lewat `useRailGroups`.
  */
+
+/** Menu GOBI WORK (lowongan, lamaran, kontrak, pesan kerja, pembayaran, profil kerja), dipakai semua peran yang melihat fitur lowongan. */
+export const WORK_NAV: NavGroup = {
+  group: "GOBI WORK",
+  items: [
+    { to: "/kerja", label: "Ringkasan kerja", Icon: LayoutDashboard, exact: true, feature: "jobs" },
+    { to: "/lowongan", label: "Explore Jobs", Icon: Search, exact: true, feature: "jobs" },
+    { to: "/lowongan/baru", label: "Buat Lowongan", Icon: PlusCircle, feature: "jobs" },
+    { to: "/kerja/lamaran", label: "Lamaran Saya", Icon: Briefcase, feature: "jobs" },
+    { to: "/kerja/kontrak", label: "Proyek & Kontrak", Icon: FileSignature, feature: "jobs" },
+    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare, feature: "jobs" },
+    { to: "/kerja/pembayaran", label: "Pembayaran", Icon: Wallet, feature: "jobs" },
+    { to: "/kerja/profil", label: "Profil Kerja", Icon: UserCog, feature: "jobs" },
+  ],
+};
+
 export const DEV_NAV: NavGroup[] = [
   { group: "Jualan", items: [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
@@ -13,11 +30,6 @@ export const DEV_NAV: NavGroup[] = [
     { to: "/studio/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
     { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban, feature: "jasa" },
     { to: "/pesanan", label: "Pesanan", Icon: Receipt },
-  ] },
-  { group: "Freelance", items: [
-    { to: "/lowongan", label: "Cari lowongan", Icon: Search, feature: "jobs" },
-    { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase, feature: "jobs" },
-    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
   { group: "Tools", items: [
     { to: "/studio/hosting", label: "Hosting HTML", Icon: FileCode2, feature: "hosting" },
@@ -41,7 +53,6 @@ export const CLIENT_NAV: NavGroup[] = [
     { to: "/lowongan/saya", label: "Lowongan saya", Icon: ClipboardList, feature: "jobs" },
     { to: "/lowongan/baru", label: "Pasang lowongan", Icon: Plus, feature: "jobs" },
     { to: "/lowongan", label: "Semua lowongan", Icon: Briefcase, exact: true, feature: "jobs" },
-    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
   { group: "Cari", items: [
     { to: "/search", label: "Cari developer", Icon: Search, search: { q: "", type: "users" } },
@@ -78,12 +89,10 @@ const PERSONAL_NAV: NavGroup[] = [
 
 /** Freelancer: cari proyek, jasa dan portofolio, tanpa repositori, karya, toko, atau AI repo. */
 const FREELANCER_NAV: NavGroup[] = [
-  { group: "Freelance", items: [
+  { group: "Ruang freelance", items: [
     { to: "/studio", label: "Ringkasan & saldo", Icon: LayoutDashboard, exact: true },
-    { to: "/lowongan", label: "Cari lowongan", Icon: Search, feature: "jobs" },
-    { to: "/studio/lamaran", label: "Lamaran saya", Icon: Briefcase, feature: "jobs" },
-    { to: "/kerja", label: "GOBI WORK (kontrak)", Icon: FileSignature, feature: "jobs" },
   ] },
+  WORK_NAV,
   { group: "Jasa", items: [
     { to: "/studio/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
     { to: "/studio/portofolio", label: "Portofolio", Icon: FolderKanban, feature: "jasa" },
@@ -93,12 +102,12 @@ const FREELANCER_NAV: NavGroup[] = [
   devGroup("Akun"),
 ];
 
-/** Menu samping sesuai peran: urutan dan isi grup mengikuti kebutuhan tiap peran. */
+/** Menu per peran: urutan dan isi grup mengikuti kebutuhan tiap peran. GOBI WORK ikut ke developer, freelancer, dan client. */
 export function navForRole(role: Role): NavGroup[] {
   switch (role) {
-    case "client": return CLIENT_NAV;
+    case "client": return [CLIENT_NAV[0], CLIENT_NAV[1], WORK_NAV, ...CLIENT_NAV.slice(2)];
     case "freelancer": return FREELANCER_NAV;
     case "personal": return PERSONAL_NAV;
-    default: return DEV_NAV;
+    default: return [DEV_NAV[0], WORK_NAV, ...DEV_NAV.slice(1)];
   }
 }
