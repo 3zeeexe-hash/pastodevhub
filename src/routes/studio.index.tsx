@@ -1,136 +1,222 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Wallet } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, Bot, BookMarked, Briefcase, Download, FileCode2, FileSignature, FolderKanban, Images, ListChecks, Package, Receipt, Search, Share2, Sparkles, Star, Store, Wallet, Wrench } from "lucide-react";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
-import { errMsg, formatRupiah } from "@/lib/market";
+import { formatRupiah, type OrderStatus } from "@/lib/market";
+import { isFeatureOn, type FeatureKey } from "@/lib/features";
+import { ROLE_INFO, roleCan, type Capability } from "@/lib/roles";
+import { useRole } from "@/lib/use-role";
+import { useSiteConfig } from "@/lib/use-site-config";
+import { workRpc } from "@/lib/work-db";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { OrderStatusBadge } from "@/components/order-status";
+import { ActionList, EmptyHint, SectionCard, ShortcutGrid, StatGrid, StatTile, StepsCard, SummaryHero, heroOutline, type ActionItem, type Shortcut, type Step } from "@/components/summary-ui";
 
 export const Route = createFileRoute("/studio/")({ component: StudioHome });
 
-const PAYOUT_LABEL: Record<string, string> = { requested: "Diproses", paid: "Sudah ditransfer", rejected: "Ditolak" };
 const MIN_PAYOUT = 10000;
 
 /** Saldo berbasis escrow (docs/sql/midtrans-escrow/001). */
 type WalletRow = { on_hold: number; awaiting_admin: number; available: number; frozen: number; requested: number; paid_out: number };
 /** Saldo lama, hanya dipakai selama SQL escrow belum dijalankan. */
 type LegacyBalance = { earned: number; on_hold: number; paid_out: number; pending: number; available: number };
+type WorkStats = { freelancer: Record<string, number | null> };
+type OrderRow = { id: string; number: number | string; title: string; amount: number | null; status: string; updated_at: string };
 
 const num = (v: unknown) => Number(v ?? 0) || 0;
+const rupiah = (v: number | undefined) => formatRupiah(v ?? 0, "Rp0");
+
+type Sc = Shortcut & { cap?: Capability; feature?: FeatureKey };
+
+const SHORTCUTS: Sc[] = [
+  { to: "/new", label: "Repositori baru", desc: "Mulai proyek kode", Icon: BookMarked, cap: "repos", feature: "repos" },
+  { to: "/import", label: "Impor dari GitHub", desc: "Bawa repositori yang sudah ada", Icon: Download, cap: "github", feature: "github" },
+  { to: "/studio/karya", label: "Kelola karya", desc: "Jual template, kode, dan aset", Icon: Package, cap: "karya", feature: "karya" },
+  { to: "/studio/jasa", label: "Kelola jasa", desc: "Atur layanan yang kamu tawarkan", Icon: Wrench, cap: "jasa", feature: "jasa" },
+  { to: "/studio/portofolio", label: "Portofolio", desc: "Tampilkan hasil kerjamu", Icon: FolderKanban, cap: "portfolio", feature: "jasa" },
+  { to: "/lowongan", label: "Cari proyek", desc: "Jelajahi lowongan terbuka", Icon: Search, cap: "lamaran", feature: "jobs" },
+  { to: "/kerja/lamaran", label: "Lamaran saya", desc: "Pantau status lamaran", Icon: Briefcase, cap: "lamaran", feature: "jobs" },
+  { to: "/studio/hosting", label: "Hosting HTML", desc: "Terbitkan halaman statis", Icon: FileCode2, cap: "hosting", feature: "hosting" },
+  { to: "/studio/files", label: "Berbagi file", desc: "Bagikan berkas lewat tautan", Icon: Share2, cap: "hosting", feature: "hosting" },
+  { to: "/studio/images", label: "Cloud gambar", desc: "Simpan dan pakai gambar", Icon: Images, cap: "hosting", feature: "hosting" },
+  { to: "/studio/toko", label: "Toko saya", desc: "Etalase publik karya dan jasa", Icon: Store, cap: "toko", feature: "toko" },
+  { to: "/studio/ai", label: "AI untuk repo", desc: "Bantu edit kode dengan AI", Icon: Bot, cap: "ai", feature: "ai_editor" },
+];
+
+const HERO_TOS: Record<string, string[]> = {
+  developer: ["/new", "/studio/karya"],
+  freelancer: ["/lowongan", "/studio/jasa"],
+  client: [],
+  personal: ["/new", "/studio/hosting"],
+};
 
 function StudioHome() {
   const { user, profile } = useAuth();
-  const qc = useQueryClient();
-  const [f, setF] = useState({ amount: "", bank: "", number: "", name: "" });
+  const { role } = useRole();
+  const { flags } = useSiteConfig();
+  const uid = user?.id;
+
   const { data } = useQuery({
-    queryKey: ["studio-home", user?.id],
-    enabled: !!user,
+    queryKey: ["studio-home", uid],
+    enabled: !!uid,
     queryFn: async () => {
-      const [walletRes, payouts, counts] = await Promise.all([
-        looseDb.rpc("developer_wallet", { _user_id: user!.id }),
-        supabase.from("payouts").select("*").eq("developer_id", user!.id).order("created_at", { ascending: false }).limit(20),
-        Promise.all([
-          supabase.from("products").select("id", { count: "exact", head: true }).eq("owner_id", user!.id),
-          supabase.from("services").select("id", { count: "exact", head: true }).eq("owner_id", user!.id),
-          supabase.from("orders").select("id", { count: "exact", head: true }).eq("seller_id", user!.id).in("status", ["requested", "in_progress"]),
-        ]),
+      const id = uid!;
+      const [walletRes, products, services, repos, active, recent, apps, work] = await Promise.all([
+        looseDb.rpc("developer_wallet", { _user_id: id }),
+        looseDb.from("products").select("id", { count: "exact", head: true }).eq("owner_id", id),
+        looseDb.from("services").select("id", { count: "exact", head: true }).eq("owner_id", id),
+        looseDb.from("repositories").select("id", { count: "exact", head: true }).eq("owner_id", id),
+        looseDb.from("orders").select("id", { count: "exact", head: true }).eq("seller_id", id).in("status", ["requested", "in_progress"]),
+        looseDb.from("orders").select("id,number,title,amount,status,updated_at").eq("seller_id", id).order("updated_at", { ascending: false }).limit(5),
+        looseDb.from("job_applications").select("id", { count: "exact", head: true }).eq("developer_id", id).eq("status", "pending"),
+        workRpc<WorkStats>("work_dashboard_stats").catch(() => null),
       ]);
 
       let wallet: WalletRow | null = null;
-      let legacy: LegacyBalance | undefined;
+      let legacy: LegacyBalance | null = null;
       if (!walletRes.error) {
         const r = (walletRes.data as Record<string, unknown>[] | null)?.[0] ?? {};
         wallet = { on_hold: num(r["on_hold"]), awaiting_admin: num(r["awaiting_admin"]), available: num(r["available"]), frozen: num(r["frozen"]), requested: num(r["requested"]), paid_out: num(r["paid_out"]) };
       } else {
         // SQL escrow belum dijalankan owner: pakai saldo lama supaya halaman tetap berfungsi.
-        const bal = await supabase.rpc("developer_balance", { _user_id: user!.id });
-        legacy = (bal.data as LegacyBalance[] | null)?.[0];
+        const bal = await looseDb.rpc("developer_balance", { _user_id: id });
+        legacy = ((bal.data as LegacyBalance[] | null)?.[0]) ?? null;
       }
-      return { wallet, legacy, payouts: payouts.data ?? [], products: counts[0].count ?? 0, services: counts[1].count ?? 0, active: counts[2].count ?? 0 };
+      return {
+        wallet, legacy,
+        products: products.count ?? 0, services: services.count ?? 0, repos: repos.count ?? 0, active: active.count ?? 0, apps: apps.count ?? 0,
+        recent: (recent.data ?? []) as OrderRow[],
+        work: work?.freelancer ?? null,
+      };
     },
   });
 
-  const wallet = data?.wallet ?? null;
-  const available = wallet ? wallet.available : (data?.legacy?.available ?? 0);
+  const allowed = (s: Sc) => (!s.cap || roleCan(role, s.cap)) && (!s.feature || isFeatureOn(flags, s.feature));
+  const shortcuts = SHORTCUTS.filter(allowed);
+  const heroLinks = shortcuts.filter((s) => HERO_TOS[role]?.includes(s.to));
+  const name = profile?.display_name || profile?.username || "";
+  const info = ROLE_INFO[role];
+  const canApply = roleCan(role, "lamaran") && isFeatureOn(flags, "jobs");
+  const showWallet = role === "developer" || role === "freelancer";
 
-  async function payout(e: React.FormEvent) {
-    e.preventDefault();
-    const amount = Number(f.amount);
-    if (!amount || amount > available) { toast.error("Jumlah melebihi saldo tersedia."); return; }
-    if (wallet && amount < MIN_PAYOUT) { toast.error(`Pencairan minimal ${formatRupiah(MIN_PAYOUT)}.`); return; }
-    const args = { _amount: amount, _bank_name: f.bank, _account_number: f.number, _account_name: f.name };
-    const { error } = wallet
-      ? await looseDb.rpc("request_wallet_payout", args)
-      : await supabase.rpc("request_payout", args);
-    if (error) toast.error(errMsg(error));
-    else { toast.success("Pengajuan pencairan dikirim ke admin"); setF({ ...f, amount: "" }); qc.invalidateQueries({ queryKey: ["studio-home"] }); }
-  }
-  const legacy = data?.legacy;
+  const wallet = data?.wallet ?? null;
+  const legacy = data?.legacy ?? null;
+  const available = wallet ? wallet.available : num(legacy?.available);
+  const minis: [string, number][] = wallet
+    ? [["Ditahan", wallet.on_hold], ["Menunggu admin", wallet.awaiting_admin], ["Sedang dicairkan", wallet.requested], ["Sudah dicairkan", wallet.paid_out]]
+    : legacy ? [["Ditahan", num(legacy.on_hold)], ["Sedang dicairkan", num(legacy.pending)], ["Sudah dicairkan", num(legacy.paid_out)]] : [];
+
+  const actions: ActionItem[] = [
+    { key: "orders", to: "/pesanan", label: "Pesanan perlu kamu proses", Icon: Receipt, count: data?.active },
+    ...(canApply ? [{ key: "apps", to: "/studio/lamaran", label: "Lamaranmu menunggu jawaban", Icon: Briefcase, count: data?.apps }] : []),
+    ...(showWallet ? [{ key: "payout", to: "/studio/saldo", label: "Saldo siap ditarik", Icon: Wallet, count: available >= MIN_PAYOUT ? 1 : 0, valueLabel: rupiah(available) }] : []),
+  ];
+
+  const steps: Step[] = !data ? [] : role === "developer"
+    ? [
+        { key: "repo", label: "Buat repositori pertama", to: "/new", done: data.repos > 0 },
+        { key: "karya", label: "Terbitkan karya untuk dijual", to: "/studio/karya", done: data.products > 0 },
+        { key: "jasa", label: "Buka jasa pertamamu", to: "/studio/jasa", done: data.services > 0 },
+      ]
+    : role === "freelancer"
+      ? [
+          { key: "jasa", label: "Buka jasa pertamamu", to: "/studio/jasa", done: data.services > 0 },
+          { key: "lamar", label: "Kirim lamaran pertama", to: "/lowongan", done: num(data.work?.["applications_sent"]) > 0 },
+        ]
+      : role === "personal"
+        ? [{ key: "repo", label: "Buat repositori pertama", to: "/new", done: data.repos > 0 }]
+        : [];
+
+  const rating = data?.work?.["rating"];
+  const tiles = role === "freelancer"
+    ? [
+        <StatTile key="jasa" label="Jasa" value={data?.services ?? "—"} Icon={Wrench} to="/studio/jasa" />,
+        <StatTile key="apps" label="Lamaran menunggu" value={data?.apps ?? "—"} Icon={Briefcase} to="/studio/lamaran" />,
+        <StatTile key="proj" label="Proyek aktif" value={data?.work ? num(data.work["projects_active"]) : "—"} Icon={FileSignature} to="/kerja/kontrak" />,
+        <StatTile key="rate" label="Rating" value={rating ? `${rating}` : "Belum ada"} Icon={Star} to="/kerja/profil" />,
+      ]
+    : role === "personal"
+      ? [
+          <StatTile key="repo" label="Repositori" value={data?.repos ?? "—"} Icon={BookMarked} to="/$username" params={{ username: profile?.username ?? "" }} />,
+          <StatTile key="ord" label="Pesanan perlu aksi" value={data?.active ?? "—"} Icon={Receipt} to="/pesanan" accent={(data?.active ?? 0) > 0} />,
+        ]
+      : [
+          <StatTile key="repo" label="Repositori" value={data?.repos ?? "—"} Icon={BookMarked} to="/$username" params={{ username: profile?.username ?? "" }} />,
+          <StatTile key="karya" label="Karya" value={data?.products ?? "—"} Icon={Package} to="/studio/karya" />,
+          <StatTile key="jasa" label="Jasa" value={data?.services ?? "—"} Icon={Wrench} to="/studio/jasa" />,
+          <StatTile key="ord" label="Pesanan perlu aksi" value={data?.active ?? "—"} Icon={Receipt} to="/pesanan" accent={(data?.active ?? 0) > 0} />,
+        ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Halo, {profile?.display_name || profile?.username}</h1>
-        <p className="text-muted-foreground">Kelola karya, jasa, dan penghasilanmu.</p>
+    <div className="space-y-5">
+      <SummaryHero
+        eyebrow={info.workspaceLabel.toLowerCase()}
+        title={`Halo, ${name}`}
+        subtitle={info.tagline}
+        avatar={profile ? { name: profile.username, url: profile.avatar_url ?? null } : undefined}
+      >
+        {heroLinks.map((s, i) => (
+          <Button key={s.to} asChild variant={i === 0 ? "default" : "outline"} className={i === 0 ? "shadow-glow" : heroOutline}>
+            <Link to={s.to}><s.Icon /> {s.label}</Link>
+          </Button>
+        ))}
+      </SummaryHero>
+
+      <StatGrid cols={tiles.length === 2 ? 2 : 4}>{tiles}</StatGrid>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
+          <SectionCard title="Perlu tindakan" Icon={Sparkles}>
+            <ActionList items={actions} />
+          </SectionCard>
+
+          <SectionCard title="Pesanan terbaru" Icon={Receipt} more={<Link to="/pesanan">Semua</Link>}>
+            {(data?.recent.length ?? 0) === 0 ? <EmptyHint>Belum ada pesanan masuk.</EmptyHint> : (
+              <ul className="mt-1 pb-1">
+                {data!.recent.map((o) => (
+                  <li key={o.id}>
+                    <Link to="/pesanan/$id" params={{ id: o.id }} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{o.title}</span>
+                        <span className="block text-xs text-muted-foreground">#{o.number} · {o.amount ? formatRupiah(o.amount) : "—"} · {timeAgo(o.updated_at)}</span>
+                      </span>
+                      <OrderStatusBadge status={o.status as OrderStatus} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Pintasan" Icon={ListChecks}>
+            <ShortcutGrid items={shortcuts.slice(0, 8)} />
+          </SectionCard>
+        </div>
+
+        <div className="order-first min-w-0 space-y-5 xl:order-none">
+          {showWallet && (
+            <SectionCard title="Saldo" Icon={Wallet} more={<Link to="/studio/saldo">Kelola</Link>}>
+              <div className="px-4 pb-4 pt-3">
+                <p className="text-xs text-muted-foreground">Tersedia</p>
+                <p className="text-3xl font-bold tracking-tight text-primary">{rupiah(available)}</p>
+                {minis.length > 0 && (
+                  <dl className="mt-3 grid grid-cols-2 gap-2">
+                    {minis.map(([label, v]) => (
+                      <div key={label} className="rounded-xl bg-muted/60 p-2.5">
+                        <dt className="text-xs text-muted-foreground">{label}</dt>
+                        <dd className="text-sm font-semibold">{rupiah(v)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                <Button asChild className="mt-4 w-full"><Link to="/studio/saldo"><ArrowUpRight /> Saldo &amp; penarikan</Link></Button>
+              </div>
+            </SectionCard>
+          )}
+          <StepsCard steps={steps} Icon={ListChecks} />
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Karya" value={data?.products ?? 0} to="/studio/karya" />
-        <Stat label="Jasa" value={data?.services ?? 0} to="/studio/jasa" />
-        <Stat label="Pesanan perlu aksi" value={data?.active ?? 0} to="/pesanan" />
-      </div>
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="flex items-center gap-2 font-semibold"><Wallet className="size-5 text-primary" /> Saldo</h2>
-        {wallet ? (
-          <>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <Money label="Tersedia" v={wallet.available} big />
-              <Money label="Ditahan (masa tahan 1 hari / pekerjaan berjalan)" v={wallet.on_hold} />
-              <Money label="Menunggu konfirmasi admin" v={wallet.awaiting_admin} />
-              <Money label="Sedang dicairkan" v={wallet.requested} />
-              <Money label="Sudah dicairkan" v={wallet.paid_out} />
-              {wallet.frozen > 0 && <Money label="Dibekukan admin" v={wallet.frozen} />}
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Semua pembayaran ditahan admin 1 hari. Saldo karya otomatis tersedia setelah itu. Saldo jasa baru tersedia setelah hasil diterima client dan admin meneruskannya secara manual.
-            </p>
-          </>
-        ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-4">
-            <Money label="Tersedia" v={legacy?.available} big />
-            <Money label="Ditahan (pesanan berjalan)" v={legacy?.on_hold} />
-            <Money label="Sedang dicairkan" v={legacy?.pending} />
-            <Money label="Sudah dicairkan" v={legacy?.paid_out} />
-          </div>
-        )}
-        <form onSubmit={payout} className="mt-5 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-          <div><Label htmlFor="amt">Jumlah (Rp)</Label><Input id="amt" inputMode="numeric" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value.replace(/\D/g, "") })} /></div>
-          <div><Label htmlFor="bank">Bank / e-wallet</Label><Input id="bank" value={f.bank} maxLength={60} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder="BCA, Mandiri, DANA…" /></div>
-          <div><Label htmlFor="num">Nomor rekening</Label><Input id="num" value={f.number} maxLength={40} onChange={(e) => setF({ ...f, number: e.target.value })} /></div>
-          <div><Label htmlFor="nm">Atas nama</Label><Input id="nm" value={f.name} maxLength={100} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
-          <Button className="sm:col-span-2 sm:w-fit" disabled={!available}>Ajukan pencairan</Button>
-        </form>
-        {(data?.payouts.length ?? 0) > 0 && (
-          <ul className="mt-5 divide-y divide-border border-t border-border text-sm">
-            {data!.payouts.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>{formatRupiah(p.amount)} → {p.bank_name} {p.account_number}</span>
-                <span className="text-muted-foreground">{PAYOUT_LABEL[p.status]} · {timeAgo(p.created_at)}{p.admin_note ? ` · ${p.admin_note}` : ""}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
-}
-
-function Stat({ label, value, to }: { label: string; value: number; to: "/studio/karya" | "/studio/jasa" | "/pesanan" }) {
-  return <Link to={to} className="rounded-xl border border-border bg-card p-4 hover:border-primary/60"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-bold">{value}</p></Link>;
-}
-function Money({ label, v, big }: { label: string; v: number | undefined; big?: boolean }) {
-  return <div><p className="text-xs text-muted-foreground">{label}</p><p className={big ? "text-2xl font-bold text-primary" : "text-lg font-semibold"}>{formatRupiah(v ?? 0, "Rp0")}</p></div>;
 }

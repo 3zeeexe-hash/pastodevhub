@@ -3,6 +3,7 @@ import { Briefcase } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
+import { GobiLoader } from "@/components/gobi-loader";
 import { SideNavLayout } from "@/components/side-nav-layout";
 import { navForRole } from "@/components/side-navs";
 import { ROLE_INFO } from "@/lib/roles";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/studio")({
 function StudioLayout() {
   const { user, profile, loading } = useAuth();
   const { role } = useRole();
-  if (loading || (user && !profile)) return <main className="mx-auto max-w-6xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (loading || (user && !profile)) return <main className="mx-auto max-w-6xl px-4"><GobiLoader page /></main>;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk membuka Studio developer." /></main>;
   if (profile?.account_type !== "developer") {
     return (

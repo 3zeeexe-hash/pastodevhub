@@ -82,7 +82,7 @@ export function categoryFilterValues(slug: string) {
 export const JOB_TYPES = [["freelance", "Freelance"], ["full_time", "Full-time"], ["part_time", "Part-time"], ["contract", "Contract"], ["internship", "Magang"]] as const;
 export const WORK_MODES = [["remote", "Remote"], ["hybrid", "Hybrid"], ["onsite", "Onsite"]] as const;
 export const EXPERIENCE_LEVELS = [["entry", "Pemula"], ["junior", "Junior"], ["mid", "Menengah"], ["senior", "Senior"], ["expert", "Ahli"]] as const;
-export const PAYMENT_TYPES = [["fixed", "Harga tetap"], ["hourly", "Per jam"]] as const;
+export const PAYMENT_TYPES = [["fixed", "Kerja langsung"], ["hourly", "Per jam"]] as const;
 export type JobType = (typeof JOB_TYPES)[number][0];
 export type WorkMode = (typeof WORK_MODES)[number][0];
 export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number][0];
@@ -154,7 +154,11 @@ export type JobFormInput = {
   title: string; description: string; category: string; skills: string[]; jobType: string; workMode: string;
   location: string; experience: string; paymentType: string; min: number; max: number; deadline: string;
   positions: number; requirements: string;
+  /** Batas jumlah revisi (1–20); null/kosong = tanpa batas. Hanya berlaku untuk kerja langsung. */
+  revisionLimit?: number | null;
 };
+
+export const MAX_REVISION_LIMIT = 20;
 
 export function parseSkills(raw: string) {
   const seen = new Set<string>();
@@ -193,7 +197,11 @@ export function validateJobForm(f: JobFormInput, today: string = todayISO()) {
   else if (f.max > 10_000_000_000) e.budget = "Budget terlalu besar.";
   if (f.deadline) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(f.deadline)) e.deadline = "Format tanggal tidak valid.";
-    else if (f.deadline < today) e.deadline = "Deadline tidak boleh di masa lalu.";
+    else if (f.deadline < today) e.deadline = "Tanggal selesai tidak boleh di masa lalu.";
+  }
+  if (f.revisionLimit !== null && f.revisionLimit !== undefined) {
+    if (f.paymentType === "hourly") e["revisionLimit"] = "Batas revisi hanya untuk kerja langsung, bukan per jam.";
+    else if (!Number.isInteger(f.revisionLimit) || f.revisionLimit < 1 || f.revisionLimit > MAX_REVISION_LIMIT) e["revisionLimit"] = `Batas revisi 1–${MAX_REVISION_LIMIT} kali.`;
   }
   if (!Number.isInteger(f.positions) || f.positions < 1 || f.positions > 100) e.positions = "Jumlah freelancer 1–100.";
   if (f.requirements.length > 4000) e.requirements = "Persyaratan tambahan maksimal 4000 karakter.";

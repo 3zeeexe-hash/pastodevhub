@@ -9,6 +9,7 @@ import { openChatDock } from "@/lib/chat-dock";
 import { errMsg, formatRupiah, orderActions, type OrderStatus } from "@/lib/market";
 import { downloadProduct } from "@/lib/downloads";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -143,7 +144,7 @@ function AcceptBox({ defaultAmount, onAccept, onDecline }: { defaultAmount: numb
       <h2 className="font-semibold">Jawab permintaan ini</h2>
       <p className="text-sm text-muted-foreground">Tentukan harga final. Client akan diminta membayar setelah kamu menerima.</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
-        <div><Label htmlFor="amt">Harga final (Rp)</Label><Input id="amt" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} className="w-44" /></div>
+        <div><Label htmlFor="amt">Harga final</Label><RupiahInput id="amt" value={amount} onValueChange={setAmount} className="w-48" /></div>
         <Button onClick={() => { const a = Number(amount); if (a < 1000) toast.error("Harga minimal Rp1.000"); else onAccept(a); }}><Check /> Terima</Button>
         <Button variant="outline" onClick={onDecline}><X /> Tolak</Button>
       </div>

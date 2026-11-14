@@ -37,25 +37,25 @@ export const MilestonePill = ({ status }: { status: MilestoneStatus }) => <Pill 
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-bold">{value}</p>
+      <p className="mt-1 text-xl font-extrabold">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{children}</p>;
+  return <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{children}</p>;
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   return (
-    <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-5 text-sm">
+    <div role="alert" className="rounded-2xl bg-card p-5 text-sm shadow-sm ring-1 ring-destructive/40">
       <p className="font-semibold text-destructive">Gagal memuat data</p>
       <p className="mt-1 text-muted-foreground">{errMsg(error)}</p>
-      <p className="mt-2 text-xs text-muted-foreground">Jika pesan menyebut tabel atau fungsi tidak ditemukan, jalankan SQL di docs/sql/gobi-work/ (001, 002, 003) di SQL editor database.</p>
-      {onRetry && <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>Coba lagi</Button>}
+      <p className="mt-2 text-xs text-muted-foreground">Jika pesan menyebut tabel atau fungsi tidak ditemukan, jalankan SQL di docs/sql/gobi-work/ (001 sampai 007) di SQL editor database.</p>
+      {onRetry && <Button size="sm" variant="outline" className="mt-3 rounded-full" onClick={onRetry}>Coba lagi</Button>}
     </div>
   );
 }
@@ -114,28 +114,51 @@ export function ReasonDialog({ ask, onClose }: { ask: Ask | null; onClose: () =>
 
 export type ReportTarget = "profile" | "job" | "application" | "contract" | "conversation" | "project";
 
+/** Alasan laporan + penjelasan singkat. Tiga alasan pertama butuh SQL 007; sebelum itu dikirim sebagai "Lainnya" dengan label di keterangan. */
+export const REPORT_REASONS: { value: string; label: string; hint: string; needsDetail?: boolean }[] = [
+  { value: "not_completed", label: "Pekerjaan tidak diselesaikan", hint: "Tugas atau hasil tidak diselesaikan sesuai kesepakatan.", needsDetail: true },
+  { value: "funds_held", label: "Dana tertahan", hint: "Dana belum diteruskan, atau pihak lain menahan persetujuan tanpa alasan jelas.", needsDetail: true },
+  { value: "non_response", label: "Tidak merespons", hint: "Pihak lain tidak membalas pesan atau tidak menanggapi sampai lewat batas waktu.", needsDetail: true },
+  { value: "fraud", label: "Penipuan", hint: "Dugaan penipuan atau identitas palsu." },
+  { value: "abuse", label: "Pelecehan / kasar", hint: "Bahasa kasar, ancaman, atau pelecehan." },
+  { value: "spam", label: "Spam", hint: "Promosi atau pesan berulang yang tidak relevan." },
+  { value: "policy", label: "Melanggar kebijakan", hint: "Konten atau perilaku yang melanggar aturan GOBI." },
+  { value: "other", label: "Lainnya", hint: "Masalah lain yang tidak ada di daftar." },
+];
+export const reportReasonLabel = (v: string) => REPORT_REASONS.find((r) => r.value === v)?.label ?? v;
+
 /** Tombol laporan ke admin (work_file_report: dibatasi 10 laporan per hari di database). */
-export function ReportButton({ targetType, targetId, label = "Laporkan", className }: { targetType: ReportTarget; targetId: string; label?: string; className?: string }) {
+export function ReportButton({ targetType, targetId, label = "Laporkan", className, defaultReason = "policy" }: {
+  targetType: ReportTarget; targetId: string; label?: string; className?: string; defaultReason?: string;
+}) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("policy");
+  const [reason, setReason] = useState(defaultReason);
   const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
+  const info = REPORT_REASONS.find((r) => r.value === reason);
   async function send() {
+    if (info?.needsDetail && detail.trim().length < 10) { toast.error("Ceritakan kejadiannya (minimal 10 karakter) agar admin bisa menindaklanjuti."); return; }
     setBusy(true);
     try {
-      await workRpc("work_file_report", { _target_type: targetType, _target_id: targetId, _reason: reason, _detail: detail.trim() });
+      try {
+        await workRpc("work_file_report", { _target_type: targetType, _target_id: targetId, _reason: reason, _detail: detail.trim() });
+      } catch (e) {
+        // SQL 007 belum dijalankan: alasan baru ditolak database, kirim sebagai "Lainnya" dengan label di keterangan.
+        if (!/check constraint|reason_check|violates/i.test(errMsg(e))) throw e;
+        await workRpc("work_file_report", { _target_type: targetType, _target_id: targetId, _reason: "other", _detail: `[${info?.label ?? reason}] ${detail.trim()}` });
+      }
       toast.success("Laporan terkirim ke admin");
       setOpen(false); setDetail("");
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   }
   return (
     <>
-      <Button type="button" variant="ghost" size="sm" className={className} onClick={() => setOpen(true)}><Flag /> {label}</Button>
+      <Button type="button" variant="ghost" size="sm" className={className} onClick={() => { setReason(defaultReason); setOpen(true); }}><Flag /> {label}</Button>
       <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Kirim laporan</DialogTitle>
-            <DialogDescription>Admin akan memeriksa laporanmu. Laporan palsu berulang bisa membatasi akunmu.</DialogDescription>
+            <DialogDescription>Admin memeriksa laporanmu bersama riwayat kontrak, pembayaran, dan obrolan. Laporan palsu berulang bisa membatasi akunmu.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -143,17 +166,14 @@ export function ReportButton({ targetType, targetId, label = "Laporkan", classNa
               <Select value={reason} onValueChange={setReason}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fraud">Penipuan</SelectItem>
-                  <SelectItem value="spam">Spam</SelectItem>
-                  <SelectItem value="abuse">Pelecehan / kasar</SelectItem>
-                  <SelectItem value="policy">Melanggar kebijakan</SelectItem>
-                  <SelectItem value="other">Lainnya</SelectItem>
+                  {REPORT_REASONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {info && <p className="text-xs text-muted-foreground">{info.hint}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="report-detail">Keterangan</Label>
-              <Textarea id="report-detail" rows={4} value={detail} onChange={(e) => setDetail(e.target.value)} maxLength={2000} placeholder="Ceritakan apa yang terjadi." />
+              <Label htmlFor="report-detail">Keterangan{info?.needsDetail ? " (wajib)" : ""}</Label>
+              <Textarea id="report-detail" rows={4} value={detail} onChange={(e) => setDetail(e.target.value)} maxLength={2000} placeholder="Ceritakan apa yang terjadi, kapan, dan apa yang sudah disepakati." />
             </div>
           </div>
           <DialogFooter className="gap-2">

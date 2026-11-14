@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { Briefcase, FileSignature, LayoutDashboard, MessageSquare, PlusCircle, Search, UserCog, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
 import { SignInCta } from "@/components/sign-in-cta";
+import { GobiLoader } from "@/components/gobi-loader";
+import { WORK_NAV } from "@/components/nav-data";
 
 export const Route = createFileRoute("/kerja")({
   head: () => ({
@@ -15,22 +16,12 @@ export const Route = createFileRoute("/kerja")({
   component: KerjaLayout,
 });
 
-export const KERJA_NAV: NavGroup[] = [
-  { group: "GOBI WORK", items: [
-    { to: "/kerja", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
-    { to: "/lowongan", label: "Explore Jobs", Icon: Search, exact: true, feature: "jobs" },
-    { to: "/lowongan/baru", label: "Buat Lowongan", Icon: PlusCircle, feature: "jobs" },
-    { to: "/kerja/lamaran", label: "Lamaran Saya", Icon: Briefcase },
-    { to: "/kerja/kontrak", label: "Proyek & Kontrak", Icon: FileSignature },
-    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare },
-    { to: "/kerja/pembayaran", label: "Pembayaran", Icon: Wallet },
-    { to: "/kerja/profil", label: "Profil Kerja", Icon: UserCog },
-  ] },
-];
+// Menu GOBI WORK sekarang didefinisikan di nav-data.ts dan ikut di menu utama (laci GOBI); ekspor ini dipertahankan untuk kode lama.
+export const KERJA_NAV: NavGroup[] = [WORK_NAV];
 
 function KerjaLayout() {
   const { user, loading } = useAuth();
-  if (loading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (loading) return <main className="mx-auto max-w-5xl px-4"><GobiLoader page /></main>;
   if (!user) {
     return (
       <main className="mx-auto max-w-md px-4 py-16">

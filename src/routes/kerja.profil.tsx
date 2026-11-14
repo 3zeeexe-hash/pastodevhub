@@ -7,6 +7,8 @@ import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
+import { parseRupiah } from "@/lib/rupiah";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +43,7 @@ function WorkProfile() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const rate = f.rate.trim() === "" ? null : Math.round(Number(f.rate));
+    const rate = f.rate.trim() === "" ? null : parseRupiah(f.rate);
     if (rate !== null && (!Number.isFinite(rate) || rate < 0)) { toast.error("Tarif per jam tidak valid."); return; }
     setBusy(true);
     const { error } = await looseDb.from("work_profiles").upsert({
@@ -65,7 +67,7 @@ function WorkProfile() {
       </header>
       <form onSubmit={save} className="space-y-4 rounded-xl border border-border bg-card p-5">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-1.5"><Label htmlFor="rate">Tarif per jam (Rp)</Label><Input id="rate" type="number" min={0} step={1000} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="rate">Tarif per jam</Label><RupiahInput id="rate" value={f.rate} onValueChange={(v) => setF({ ...f, rate: v })} placeholder="Rp 75.000" /></div>
           <div className="space-y-1.5">
             <Label>Ketersediaan</Label>
             <Select value={f.availability} onValueChange={(v) => setF({ ...f, availability: v })}>

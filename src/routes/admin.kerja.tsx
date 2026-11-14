@@ -4,20 +4,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { looseDb } from "@/lib/escrow-db";
-import { timeAgo } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
-import { CONTRACT_SELECT, fmtDate, personName, rp, workRpc, type ContractRow } from "@/lib/work-db";
+import { rp, workRpc } from "@/lib/work-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ContractPill, EmptyState, ErrorState, Pill, ReasonDialog, Stat, type Ask } from "@/components/work-ui";
-import { ApplicationsTab, AuditTab, DisputeDetail, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
+import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
+import { ApplicationsTab, AuditTab, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
+import { CasesTab, DisputesTab2, ReportsTab2 } from "@/components/admin-work-cases";
 import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
 
 export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
@@ -25,35 +22,42 @@ export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
 function AdminWork() {
   return (
     <div className="space-y-4">
-      <header>
-        <h2 className="text-xl font-bold">GOBI WORK</h2>
-        <p className="text-sm text-muted-foreground">Pengguna, moderasi lowongan, lamaran, kontrak, transaksi, sengketa, laporan, rekonsiliasi, kategori, pengaturan komisi, dan audit log. Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran, transaksi, dan pencairan hanya untuk melihat.</p>
+      <header className="relative overflow-hidden rounded-3xl bg-header-gradient p-5 text-white shadow-md sm:p-6">
+        <div className="pointer-events-none absolute -left-12 bottom-0 size-40 rounded-full bg-primary/30 blur-2xl" />
+        <div className="relative">
+          <p className="font-mono text-sm font-semibold text-primary">admin · GOBI WORK</p>
+          <h2 className="mt-1 text-2xl font-extrabold">Pusat kendali GOBI WORK</h2>
+          <p className="mt-1 max-w-3xl text-sm text-white/80">
+            Pengguna, moderasi lowongan, lamaran, kasus kontrak lengkap (lowongan, profil kedua pihak, pembayaran, riwayat), transaksi, sengketa, laporan, rekonsiliasi, kategori, komisi, dan audit log.
+            Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran, transaksi, dan pencairan hanya untuk melihat.
+          </p>
+        </div>
       </header>
       <Tabs defaultValue="ringkasan">
-        <TabsList className="h-auto flex-wrap justify-start">
+        <TabsList className="h-auto flex-wrap justify-start gap-1 rounded-2xl bg-secondary/60 p-1.5">
           <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+          <TabsTrigger value="laporan">Laporan</TabsTrigger>
+          <TabsTrigger value="sengketa">Sengketa</TabsTrigger>
+          <TabsTrigger value="kasus">Kasus & riwayat</TabsTrigger>
+          <TabsTrigger value="transaksi">Transaksi</TabsTrigger>
+          <TabsTrigger value="pencairan">Pencairan</TabsTrigger>
           <TabsTrigger value="pengguna">Pengguna</TabsTrigger>
           <TabsTrigger value="lowongan">Lowongan</TabsTrigger>
           <TabsTrigger value="lamaran">Lamaran</TabsTrigger>
-          <TabsTrigger value="kontrak">Kontrak</TabsTrigger>
-          <TabsTrigger value="transaksi">Transaksi</TabsTrigger>
-          <TabsTrigger value="pencairan">Pencairan</TabsTrigger>
-          <TabsTrigger value="sengketa">Sengketa</TabsTrigger>
-          <TabsTrigger value="laporan">Laporan</TabsTrigger>
           <TabsTrigger value="rekonsiliasi">Rekonsiliasi</TabsTrigger>
           <TabsTrigger value="kategori">Kategori</TabsTrigger>
           <TabsTrigger value="pengaturan">Pengaturan</TabsTrigger>
           <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
         <TabsContent value="ringkasan" className="mt-4"><Overview /></TabsContent>
+        <TabsContent value="laporan" className="mt-4"><ReportsTab2 /></TabsContent>
+        <TabsContent value="sengketa" className="mt-4"><DisputesTab2 /></TabsContent>
+        <TabsContent value="kasus" className="mt-4"><CasesTab /></TabsContent>
+        <TabsContent value="transaksi" className="mt-4"><TransactionsTab /></TabsContent>
+        <TabsContent value="pencairan" className="mt-4"><PayoutsTab /></TabsContent>
         <TabsContent value="pengguna" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="lowongan" className="mt-4"><JobsTab /></TabsContent>
         <TabsContent value="lamaran" className="mt-4"><ApplicationsTab /></TabsContent>
-        <TabsContent value="kontrak" className="mt-4"><ContractsTab /></TabsContent>
-        <TabsContent value="transaksi" className="mt-4"><TransactionsTab /></TabsContent>
-        <TabsContent value="pencairan" className="mt-4"><PayoutsTab /></TabsContent>
-        <TabsContent value="sengketa" className="mt-4"><DisputesTab /></TabsContent>
-        <TabsContent value="laporan" className="mt-4"><ReportsTab /></TabsContent>
         <TabsContent value="rekonsiliasi" className="mt-4"><ReconcileTab /></TabsContent>
         <TabsContent value="kategori" className="mt-4"><CategoriesTab /></TabsContent>
         <TabsContent value="pengaturan" className="mt-4"><SettingsTab /></TabsContent>
@@ -93,7 +97,7 @@ function Overview() {
   const a = useQuery({ queryKey: ["work-admin-analytics"], queryFn: () => workRpc<Analytics>("work_admin_analytics") });
   return (
     <div className="space-y-6">
-      {s.isLoading && <Skeleton className="h-40 rounded-xl" />}
+      {s.isLoading && <Skeleton className="h-40 rounded-2xl" />}
       {s.error && <ErrorState error={s.error} onRetry={() => s.refetch()} />}
       {s.data && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -109,7 +113,7 @@ function Overview() {
           <Stat label="Laporan terbuka" value={s.data.reports_open} />
         </div>
       )}
-      {a.isLoading && <Skeleton className="h-40 rounded-xl" />}
+      {a.isLoading && <Skeleton className="h-40 rounded-2xl" />}
       {a.error && <ErrorState error={a.error} onRetry={() => a.refetch()} />}
       {a.data && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -121,7 +125,7 @@ function Overview() {
             {a.data.top_jobs.length ? <ul className="space-y-1 text-sm">{a.data.top_jobs.map((j) => <li key={j.id} className="flex justify-between gap-2"><Link to="/lowongan/$id" params={{ id: j.id }} className="truncate hover:text-primary">{j.title}</Link><span className="tabular-nums text-muted-foreground">{j.applications} pelamar</span></li>)}</ul> : <None />}
           </Card>
           <Card title="Tingkat penyelesaian proyek">
-            <p className="text-3xl font-bold">{a.data.completion_rate === null ? "—" : `${a.data.completion_rate}%`}</p>
+            <p className="text-3xl font-extrabold">{a.data.completion_rate === null ? "—" : `${a.data.completion_rate}%`}</p>
             <p className="text-xs text-muted-foreground">{a.data.completed} selesai · {a.data.cancelled} dibatalkan</p>
           </Card>
         </div>
@@ -129,168 +133,8 @@ function Overview() {
     </div>
   );
 }
-const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <section className="rounded-xl border border-border bg-card p-4"><h3 className="mb-3 text-sm font-semibold">{title}</h3>{children}</section>;
+const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <section className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border"><h3 className="mb-3 text-sm font-extrabold">{title}</h3>{children}</section>;
 const None = () => <p className="text-sm text-muted-foreground">Belum ada data.</p>;
-
-/* ---------- Kontrak ---------- */
-function ContractsTab() {
-  const q = useQuery({
-    queryKey: ["work-admin-contracts"],
-    queryFn: async () => {
-      const { data, error } = await looseDb.from("work_contracts").select(CONTRACT_SELECT).order("updated_at", { ascending: false }).limit(100);
-      if (error) throw new Error(errMsg(error));
-      return (data ?? []) as ContractRow[];
-    },
-  });
-  return (
-    <div className="space-y-3">
-      {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
-      {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
-      {q.data?.length === 0 && <EmptyState>Belum ada kontrak.</EmptyState>}
-      <ul className="space-y-2">
-        {q.data?.map((c) => (
-          <li key={c.id}>
-            <Link to="/kerja/kontrak/$id" params={{ id: c.id }} className="block rounded-xl border border-border bg-card p-4 hover:border-primary/50">
-              <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">{c.title}</span><ContractPill status={c.status} /></div>
-              <p className="text-xs text-muted-foreground">{personName(c.client)} → {personName(c.freelancer)} · {c.payment_type === "fixed" ? rp(c.total_amount) : `${rp(c.hourly_rate)}/jam`} · {fmtDate(c.created_at)}</p>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* ---------- Sengketa ---------- */
-type DisputeAdmin = {
-  id: string; contract_id: string; milestone_id: string | null; reason: string; status: string; decision: string | null; decision_note: string | null; created_at: string;
-  contract: { title: string } | null;
-};
-function DisputesTab() {
-  const qc = useQueryClient();
-  const q = useQuery({
-    queryKey: ["work-admin-disputes"],
-    queryFn: async () => {
-      const { data, error } = await looseDb.from("work_disputes").select("id,contract_id,milestone_id,reason,status,decision,decision_note,created_at,contract:work_contracts(title)").order("created_at", { ascending: false }).limit(100);
-      if (error) throw new Error(errMsg(error));
-      return (data ?? []) as unknown as DisputeAdmin[];
-    },
-  });
-  const [target, setTarget] = useState<DisputeAdmin | null>(null);
-  const [detail, setDetail] = useState<string | null>(null);
-  const [decision, setDecision] = useState("favor_freelancer");
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function decide() {
-    if (!target) return;
-    if (note.trim().length < 10) { toast.error("Catatan keputusan minimal 10 karakter."); return; }
-    setBusy(true);
-    try {
-      await workRpc("work_admin_decide_dispute", { _dispute_id: target.id, _decision: decision, _note: note.trim() });
-      toast.success("Keputusan dicatat");
-      setTarget(null); setNote("");
-      qc.invalidateQueries({ queryKey: ["work-admin-disputes"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] });
-    } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
-  }
-  return (
-    <div className="space-y-3">
-      {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
-      {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
-      {q.data?.length === 0 && <EmptyState>Belum ada sengketa.</EmptyState>}
-      <ul className="space-y-2">
-        {q.data?.map((d) => (
-          <li key={d.id} className="rounded-xl border border-border bg-card p-4 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link to="/kerja/kontrak/$id" params={{ id: d.contract_id }} className="font-semibold hover:text-primary">{d.contract?.title ?? "Kontrak"}</Link>
-              <Pill tone={d.status === "resolved" ? "ok" : "bad"}>{d.status === "resolved" ? "Diputuskan" : "Terbuka"}</Pill>
-            </div>
-            <p className="mt-1 whitespace-pre-wrap">{d.reason}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{timeAgo(d.created_at)}</p>
-            {d.decision && <p className="mt-2 rounded-md bg-muted p-2"><b>{d.decision}</b>: {d.decision_note}</p>}
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setDetail(d.id)}>Bukti & riwayat</Button>
-              {d.status !== "resolved" && <Button size="sm" onClick={() => setTarget(d)}>Putuskan</Button>}
-            </div>
-          </li>
-        ))}
-      </ul>
-      <DisputeDetail disputeId={detail} onClose={() => setDetail(null)} />
-      <Dialog open={!!target} onOpenChange={(o) => !busy && !o && setTarget(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Putuskan sengketa</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Keputusan</Label>
-              <Select value={decision} onValueChange={setDecision}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="favor_freelancer">Menangkan freelancer (milestone disetujui, dana kembali ditahan untuk diteruskan)</SelectItem>
-                  <SelectItem value="favor_client">Menangkan client (dana dikembalikan, pesanan dibatalkan)</SelectItem>
-                  <SelectItem value="split">Bagi dana (diselesaikan manual admin)</SelectItem>
-                  <SelectItem value="dismissed">Tolak sengketa (pekerjaan berlanjut)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5"><Label htmlFor="dn">Catatan penyelesaian (tercatat di audit)</Label><Textarea id="dn" rows={4} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} /></div>
-            <p className="text-xs text-muted-foreground">Pengembalian uang ke client tetap dilakukan manual di dashboard Midtrans; pembayaran akan ditandai "perlu refund".</p>
-          </div>
-          <DialogFooter className="gap-2"><Button variant="outline" disabled={busy} onClick={() => setTarget(null)}>Batal</Button><Button disabled={busy} onClick={decide}>{busy && <Loader2 className="animate-spin" />} Simpan keputusan</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-/* ---------- Laporan ---------- */
-type ReportRow = { id: string; target_type: string; target_id: string; reason: string; detail: string; status: string; admin_note: string | null; created_at: string; reporter: { username: string } | null };
-const TARGET_LINK = (t: string, id: string) => (t === "job" ? `/lowongan/${id}` : t === "contract" ? `/kerja/kontrak/${id}` : t === "profile" ? `/${id}` : null);
-function ReportsTab() {
-  const qc = useQueryClient();
-  const [ask, setAsk] = useState<Ask | null>(null);
-  const q = useQuery({
-    queryKey: ["work-admin-reports"],
-    queryFn: async () => {
-      const { data, error } = await looseDb.from("work_reports").select("id,target_type,target_id,reason,detail,status,admin_note,created_at,reporter:profiles!work_reports_reporter_id_fkey(username)").order("created_at", { ascending: false }).limit(100);
-      if (error) throw new Error(errMsg(error));
-      return (data ?? []) as unknown as ReportRow[];
-    },
-  });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["work-admin-reports"] }); qc.invalidateQueries({ queryKey: ["work-admin-stats"] }); qc.invalidateQueries({ queryKey: ["work-admin-jobs"] }); };
-  async function setStatus(id: string, status: string, note = "") {
-    try { await workRpc("work_admin_set_report", { _report_id: id, _status: status, _note: note }); toast.success("Laporan diperbarui"); refresh(); } catch (e) { toast.error(errMsg(e)); }
-  }
-  return (
-    <div className="space-y-3">
-      {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
-      {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
-      {q.data?.length === 0 && <EmptyState>Belum ada laporan.</EmptyState>}
-      <ul className="space-y-2">
-        {q.data?.map((r) => {
-          const link = TARGET_LINK(r.target_type, r.target_id);
-          return (
-            <li key={r.id} className="rounded-xl border border-border bg-card p-4 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold">{r.target_type} · {r.reason}</span>
-                <Pill tone={r.status === "open" ? "warn" : r.status === "reviewing" ? "info" : "ok"}>{r.status}</Pill>
-              </div>
-              <p className="text-xs text-muted-foreground">oleh @{r.reporter?.username ?? "?"} · {timeAgo(r.created_at)}{link && <> · <a href={link} className="text-primary underline">buka target</a></>}</p>
-              {r.detail && <p className="mt-1 whitespace-pre-wrap">{r.detail}</p>}
-              {r.admin_note && <p className="mt-1 rounded-md bg-muted p-2 text-xs">Catatan admin: {r.admin_note}</p>}
-              {(r.status === "open" || r.status === "reviewing") && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {r.status === "open" && <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "reviewing")}>Tandai diperiksa</Button>}
-                  <Button size="sm" onClick={() => setAsk({ title: "Selesaikan laporan", label: "Catatan penyelesaian", min: 3, confirm: "Selesai", onSubmit: async (t) => { await setStatus(r.id, "resolved", t); } })}>Selesaikan</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAsk({ title: "Tolak laporan", label: "Alasan", min: 3, confirm: "Tolak laporan", onSubmit: async (t) => { await setStatus(r.id, "dismissed", t); } })}>Tolak</Button>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <ReasonDialog ask={ask} onClose={() => setAsk(null)} />
-    </div>
-  );
-}
 
 /* ---------- Rekonsiliasi ---------- */
 type Rec = { kind: string; ref_id: string; detail: string };
@@ -306,13 +150,13 @@ function ReconcileTab() {
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">Mencocokkan pesanan Midtrans yang sudah dibayar dengan status milestone dan catatan escrow. "Periksa" hanya melaporkan; "Perbaiki" hanya mengubah yang aman.</p>
       <div className="flex gap-2">
-        <Button variant="outline" disabled={busy} onClick={() => run(false)}>{busy && <Loader2 className="animate-spin" />} Periksa</Button>
-        <Button disabled={busy} onClick={() => run(true)}>Perbaiki yang aman</Button>
+        <Button variant="outline" className="rounded-full" disabled={busy} onClick={() => run(false)}>{busy && <Loader2 className="animate-spin" />} Periksa</Button>
+        <Button className="rounded-full" disabled={busy} onClick={() => run(true)}>Perbaiki yang aman</Button>
       </div>
       {rows && rows.length === 0 && <EmptyState>Semua cocok. Tidak ada selisih.</EmptyState>}
       <ul className="space-y-2">
         {rows?.map((r, i) => (
-          <li key={`${r.ref_id}-${i}`} className="rounded-lg border border-border bg-card p-3 text-sm"><Pill tone={r.kind === "diperbaiki" ? "ok" : "warn"}>{r.kind}</Pill> <span className="ml-1">{r.detail}</span></li>
+          <li key={`${r.ref_id}-${i}`} className="rounded-xl bg-card p-3 text-sm shadow-sm ring-1 ring-border"><Pill tone={r.kind === "diperbaiki" ? "ok" : "warn"}>{r.kind}</Pill> <span className="ml-1">{r.detail}</span></li>
         ))}
       </ul>
     </div>
@@ -337,21 +181,21 @@ function CategoriesTab() {
   }
   return (
     <div className="space-y-4">
-      {q.isLoading && <Skeleton className="h-28 rounded-xl" />}
+      {q.isLoading && <Skeleton className="h-28 rounded-2xl" />}
       {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       <ul className="space-y-1.5">
         {q.data?.map((c) => (
-          <li key={c.slug} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+          <li key={c.slug} className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-2 text-sm shadow-sm ring-1 ring-border">
             <span className="min-w-0 truncate">{c.label} <span className="font-mono text-xs text-muted-foreground">{c.slug}</span></span>
             <Switch checked={c.active} aria-label={`Aktifkan ${c.label}`} onCheckedChange={(v) => save({ slug: c.slug, label: c.label, active: v, sort: c.sort_order })} />
           </li>
         ))}
       </ul>
-      <form className="grid gap-2 rounded-xl border border-dashed border-border p-3 md:grid-cols-[1fr_1fr_100px_auto]" onSubmit={(e) => { e.preventDefault(); save({ slug: f.slug.trim(), label: f.label.trim(), active: true, sort: Math.round(Number(f.sort) || 0) }).then(() => setF({ slug: "", label: "", sort: "99" })); }}>
+      <form className="grid gap-2 rounded-2xl border border-dashed border-border p-3 md:grid-cols-[1fr_1fr_100px_auto]" onSubmit={(e) => { e.preventDefault(); save({ slug: f.slug.trim(), label: f.label.trim(), active: true, sort: Math.round(Number(f.sort) || 0) }).then(() => setF({ slug: "", label: "", sort: "99" })); }}>
         <div className="space-y-1.5"><Label htmlFor="cs">Slug</Label><Input id="cs" value={f.slug} onChange={(e) => setF({ ...f, slug: e.target.value })} placeholder="game-development" /></div>
         <div className="space-y-1.5"><Label htmlFor="cl">Nama</Label><Input id="cl" value={f.label} onChange={(e) => setF({ ...f, label: e.target.value })} /></div>
         <div className="space-y-1.5"><Label htmlFor="co">Urutan</Label><Input id="co" type="number" value={f.sort} onChange={(e) => setF({ ...f, sort: e.target.value })} /></div>
-        <div className="flex items-end"><Button type="submit">Tambah / ubah</Button></div>
+        <div className="flex items-end"><Button type="submit" className="rounded-full">Tambah / ubah</Button></div>
       </form>
     </div>
   );
