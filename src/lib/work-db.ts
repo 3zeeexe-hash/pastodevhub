@@ -95,6 +95,8 @@ const EVENT_LABEL: Record<string, string> = {
   slot_change_withdrawn: "Pengajuan pergantian jam ditarik",
   dispute_opened: "Sengketa diajukan",
   dispute_resolved: "Sengketa diputuskan admin",
+  admin_milestone_finished: "Admin menyelesaikan milestone dan meneruskan dana ke freelancer",
+  admin_milestone_refunded: "Admin merefund dana ke client — milestone ditutup",
 };
 export function eventLabel(e: string) {
   return EVENT_LABEL[e] ?? (e.startsWith("status_") ? `Status kontrak berubah: ${e.slice(7)}` : e.replace(/_/g, " "));
