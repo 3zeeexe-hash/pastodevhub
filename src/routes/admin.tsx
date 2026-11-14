@@ -1,16 +1,17 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, BadgeCheck, Briefcase, CreditCard, Flag, KeyRound, Landmark, LayoutDashboard, Loader2, LogOut, MessageSquareWarning, Plug, ShieldCheck, Store, ToggleRight, Users, Wallet } from "lucide-react";
+import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
 import { prepareAdminLogin } from "@/lib/admin.functions";
-import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
+import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -27,46 +28,16 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const ADMIN_NAV: NavGroup[] = [
-  { group: "Utama", items: [
-    { to: "/admin", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
-    { to: "/admin/pengguna", label: "Pengguna", Icon: Users },
-    { to: "/admin/verifikasi", label: "Verifikasi developer", Icon: BadgeCheck },
-    { to: "/admin/pantau", label: "Pantau aktivitas", Icon: Activity },
-  ] },
-  { group: "Situs", items: [
-    { to: "/admin/fitur", label: "Fitur & pengumuman", Icon: ToggleRight },
-    { to: "/admin/moderasi", label: "Moderasi konten", Icon: Flag },
-    { to: "/admin/laporan", label: "Laporan Diskusi", Icon: MessageSquareWarning },
-  ] },
-  { group: "GOBI WORK", items: [
-    { to: "/admin/kerja", label: "Lowongan, kontrak & sengketa", Icon: Briefcase },
-  ] },
-  { group: "GOBI SERVICES", items: [
-    { to: "/admin/jasa", label: "Moderasi jasa", Icon: Store },
-  ] },
-  { group: "Keuangan", items: [
-    { to: "/admin/escrow", label: "Escrow & saldo", Icon: Landmark },
-    { to: "/admin/pembayaran", label: "Pembayaran & pencairan", Icon: Wallet },
-    { to: "/admin/midtrans", label: "Midtrans", Icon: CreditCard },
-  ] },
-  { group: "Sistem", items: [
-    { to: "/admin/integrasi", label: "Integrasi", Icon: Plug },
-  ] },
-];
-
 function AdminLayout() {
   const { user, isAdmin, loading, adminLoading } = useAuth();
-  if (loading || adminLoading) return <main className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  if (loading || adminLoading) {
+    return <GobiLoader page />;
+  }
   if (!isAdmin) return <AdminLogin signedInAs={user ? (user.email ?? "akun lain") : null} />;
   return (
-    <SideNavLayout title="Admin" nav={ADMIN_NAV}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="size-6 text-primary" /> Dasbor admin</h1>
-        <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()}><LogOut /> Keluar</Button>
-      </div>
+    <AdminShell>
       <Outlet />
-    </SideNavLayout>
+    </AdminShell>
   );
 }
 
@@ -112,6 +83,7 @@ function AdminLogin({ signedInAs }: { signedInAs: string | null }) {
         <Button className="w-full" disabled={busy || !username.trim() || !password}>
           {busy ? <Loader2 className="animate-spin" /> : <KeyRound />} Masuk
         </Button>
+        <Link to="/" className="block text-center text-xs text-muted-foreground hover:underline">Kembali ke beranda</Link>
       </form>
     </main>
   );
