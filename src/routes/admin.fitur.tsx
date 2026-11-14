@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/fitur")({
   head: () => ({ meta: [{ title: "Fitur & pengumuman — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -57,7 +58,7 @@ function FeaturesPage() {
           Fitur yang dimatikan hilang dari menu, halamannya menampilkan “dinonaktifkan”, dan penambahan konten baru ditolak oleh database. Konten yang sudah ada tidak dihapus. Admin tetap bisa mengaksesnya. Pengunjung lain melihat perubahan dalam sekitar satu menit.
         </p>
       </section>
-      {isLoading && <p className="text-muted-foreground">Memuat…</p>}
+      {isLoading && <GobiLoader />}
       {GROUPS.map((g) => (
         <section key={g} className="rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{g}</h3>
