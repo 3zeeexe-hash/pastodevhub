@@ -1,25 +1,29 @@
 import { BadgeCheck, Bot, Briefcase, ClipboardList, Download, FileCode2, FileSignature, FolderKanban, Images, LayoutDashboard, LibraryBig, MessageSquare, Package, Plus, PlusCircle, Receipt, Search, Settings, Share2, Store, UserCog, Wallet, Wrench, BookMarked } from "lucide-react";
-import type { Role } from "@/lib/roles";
+import type { Capability, Role } from "@/lib/roles";
 import type { NavGroup } from "@/components/nav-list";
 
 /**
  * Data menu per peran. Dipisah dari komponen tampilan supaya sidebar gabungan (app-rail), menu utama (laci GOBI di header)
  * dan layout halaman (side-nav-layout) sama-sama bisa memakainya tanpa saling impor.
  * Menu studio/dashboard tiap peran tidak punya laci sendiri lagi: semuanya digabung ke menu utama lewat `useRailGroups`.
+ * Item dengan `caps` hanya tampil untuk peran yang punya salah satu kemampuan itu (lihat `canSeeNavItem`).
  */
 
-/** Menu GOBI WORK (lowongan, lamaran, kontrak, pesan kerja, pembayaran, profil kerja), dipakai semua peran yang melihat fitur lowongan. */
+/** Peran yang ikut GOBI WORK: yang bisa melamar (developer, freelancer) atau memasang lowongan (client). Peran pribadi tidak. */
+const WORK: readonly Capability[] = ["lamaran", "post_job"];
+
+/** Menu GOBI WORK (lowongan, lamaran, kontrak, pesan kerja, pembayaran, profil kerja), disaring per peran. */
 export const WORK_NAV: NavGroup = {
   group: "GOBI WORK",
   items: [
-    { to: "/kerja", label: "Ringkasan kerja", Icon: LayoutDashboard, exact: true, feature: "jobs" },
-    { to: "/lowongan", label: "Explore Jobs", Icon: Search, exact: true, feature: "jobs" },
-    { to: "/lowongan/baru", label: "Buat Lowongan", Icon: PlusCircle, feature: "jobs" },
-    { to: "/kerja/lamaran", label: "Lamaran Saya", Icon: Briefcase, feature: "jobs" },
-    { to: "/kerja/kontrak", label: "Proyek & Kontrak", Icon: FileSignature, feature: "jobs" },
-    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare, feature: "jobs" },
-    { to: "/kerja/pembayaran", label: "Pembayaran", Icon: Wallet, feature: "jobs" },
-    { to: "/kerja/profil", label: "Profil Kerja", Icon: UserCog, feature: "jobs" },
+    { to: "/kerja", label: "Ringkasan kerja", Icon: LayoutDashboard, exact: true, feature: "jobs", caps: WORK },
+    { to: "/lowongan", label: "Explore Jobs", Icon: Search, exact: true, feature: "jobs", caps: WORK },
+    { to: "/lowongan/baru", label: "Buat Lowongan", Icon: PlusCircle, feature: "jobs", caps: ["post_job"] },
+    { to: "/kerja/lamaran", label: "Lamaran Saya", Icon: Briefcase, feature: "jobs", caps: ["lamaran"] },
+    { to: "/kerja/kontrak", label: "Proyek & Kontrak", Icon: FileSignature, feature: "jobs", caps: WORK },
+    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare, feature: "jobs", caps: WORK },
+    { to: "/kerja/pembayaran", label: "Pembayaran", Icon: Wallet, feature: "jobs", caps: WORK },
+    { to: "/kerja/profil", label: "Profil Kerja", Icon: UserCog, feature: "jobs", caps: ["lamaran"] },
   ],
 };
 
