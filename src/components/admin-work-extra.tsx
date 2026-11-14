@@ -4,11 +4,13 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { timeAgo } from "@/lib/auth";
 import { errMsg } from "@/lib/market";
 import { looseDb } from "@/lib/escrow-db";
 import { eventLabel, fmtDate, rp } from "@/lib/work-db";
 import { evidenceItems, pickEscrow, summarizeTx } from "@/lib/admin-work";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -41,11 +43,27 @@ export function Loading({ q }: { q: { isLoading: boolean; error: unknown; refetc
   );
 }
 
+/** Kolom cari yang sama untuk semua tab admin GOBI WORK. Mencari di data yang sudah dimuat pada tab itu. */
+export function SearchBox({ value, onChange, label, placeholder }: { value: string; onChange: (v: string) => void; label: string; placeholder?: string }) {
+  return (
+    <div className="relative min-w-52 flex-1">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder ?? "Cari…"} aria-label={label} maxLength={80} className="rounded-full pl-9" />
+    </div>
+  );
+}
+/** True bila `term` kosong atau muncul di salah satu isian (tanpa membedakan huruf besar/kecil). */
+export const hasText = (term: string, ...fields: (string | number | null | undefined)[]) => {
+  const t = term.trim().toLowerCase();
+  return !t || fields.some((f) => f != null && String(f).toLowerCase().includes(t));
+};
+
 /* ---------- Lamaran ---------- */
 type AppRow = { id: string; job_id: string; developer_id: string; status: string; work_stage: string | null; bid_amount: number | null; created_at: string; job: { title: string } | null };
 const APP_TONE: Record<string, "ok" | "warn" | "bad" | "info"> = { pending: "warn", accepted: "ok", rejected: "bad", withdrawn: "bad" };
 export function ApplicationsTab() {
   const [status, setStatus] = useState("all");
+  const [term, setTerm] = useState("");
   const q = useQuery({
     queryKey: ["work-admin-applications", status],
     queryFn: async () => {
@@ -55,24 +73,28 @@ export function ApplicationsTab() {
       return { rows, names: await usernameMap(rows.map((r) => r.developer_id)) };
     },
   });
+  const appShown = (q.data?.rows ?? []).filter((a) => hasText(term, a.job?.title, q.data?.names[a.developer_id], a.status, a.work_stage));
   return (
     <div className="space-y-3">
-      <div className="max-w-xs">
+      <div className="flex flex-wrap gap-2">
+        <SearchBox value={term} onChange={setTerm} label="Cari lamaran" placeholder="Cari lowongan atau pelamar…" />
+        <div className="w-48">
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger aria-label="Status lamaran"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">Semua status</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="accepted">Diterima</SelectItem><SelectItem value="rejected">Ditolak</SelectItem><SelectItem value="withdrawn">Ditarik</SelectItem></SelectContent>
         </Select>
+        </div>
       </div>
       <Loading q={q} />
-      {q.data?.rows.length === 0 && <EmptyState>Belum ada lamaran pada filter ini.</EmptyState>}
+      {q.data && appShown.length === 0 && <EmptyState>{term.trim() ? "Tidak ada lamaran yang cocok dengan pencarian." : "Belum ada lamaran pada filter ini."}</EmptyState>}
       <ul className="space-y-2">
-        {q.data?.rows.map((a) => (
+        {appShown.map((a) => (
           <li key={a.id} className="rounded-xl border border-border bg-card p-3 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Link to="/lowongan/$id" params={{ id: a.job_id }} className="font-semibold hover:text-primary">{a.job?.title ?? "Lowongan"}</Link>
               <span className="flex gap-1.5">{a.work_stage && <Pill tone="info">{a.work_stage}</Pill>}<Pill tone={APP_TONE[a.status] ?? "info"}>{a.status}</Pill></span>
             </div>
-            <p className="text-xs text-muted-foreground">{at(q.data.names, a.developer_id)} · tawaran {a.bid_amount != null ? rp(a.bid_amount) : "—"} · {timeAgo(a.created_at)}</p>
+            <p className="text-xs text-muted-foreground">{at(q.data!.names, a.developer_id)} · tawaran {a.bid_amount != null ? rp(a.bid_amount) : "—"} · {timeAgo(a.created_at)}</p>
           </li>
         ))}
       </ul>
@@ -89,6 +111,7 @@ type TxRow = {
 const ESCROW_LABEL: Record<string, string> = { held: "ditahan", frozen: "dibekukan", released: "diteruskan", refunded: "direfund" };
 export function TransactionsTab() {
   const [filter, setFilter] = useState("all");
+  const [term, setTerm] = useState("");
   const q = useQuery({
     queryKey: ["work-admin-transactions"],
     queryFn: async () => {
@@ -107,7 +130,9 @@ export function TransactionsTab() {
     return { r, esc, fee: esc?.fee ?? Number(r.fee_amount ?? 0), needsRefund: (r.payments ?? []).some((p) => p.needs_refund), ref: r.payments?.[0]?.midtrans_order_id ?? null };
   });
   const sum = summarizeTx(rows.map((x) => ({ amount: x.r.amount, paid_at: x.r.paid_at, fee: x.fee, needsRefund: x.needsRefund })));
-  const shown = rows.filter((x) => filter === "all" || (filter === "paid" && x.r.paid_at) || (filter === "unpaid" && !x.r.paid_at) || (filter === "refund" && x.needsRefund));
+  const shown = rows
+    .filter((x) => filter === "all" || (filter === "paid" && x.r.paid_at) || (filter === "unpaid" && !x.r.paid_at) || (filter === "refund" && x.needsRefund))
+    .filter((x) => hasText(term, x.r.title, x.r.status, x.ref, x.esc?.status, q.data?.names[x.r.buyer_id], q.data?.names[x.r.seller_id]));
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -117,6 +142,7 @@ export function TransactionsTab() {
         <Stat label="Perlu refund" value={sum.refund} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
+        <SearchBox value={term} onChange={setTerm} label="Cari transaksi" placeholder="Cari judul, pengguna, atau ref. Midtrans…" />
         <div className="w-48">
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger aria-label="Filter transaksi"><SelectValue /></SelectTrigger>
@@ -126,7 +152,7 @@ export function TransactionsTab() {
         <p className="text-xs text-muted-foreground">100 transaksi terbaru. Tahan, bekukan, refund, dan teruskan dana di <Link to="/admin/escrow" className="text-primary underline">Escrow & saldo</Link>.</p>
       </div>
       <Loading q={q} />
-      {q.data && shown.length === 0 && <EmptyState>Belum ada transaksi GOBI WORK pada filter ini.</EmptyState>}
+      {q.data && shown.length === 0 && <EmptyState>{term.trim() ? "Tidak ada transaksi yang cocok dengan pencarian." : "Belum ada transaksi GOBI WORK pada filter ini."}</EmptyState>}
       <ul className="space-y-2">
         {shown.map(({ r, esc, fee, needsRefund, ref }) => (
           <li key={r.id} className="rounded-xl border border-border bg-card p-3 text-sm">
@@ -154,6 +180,7 @@ export function TransactionsTab() {
 /* ---------- Pencairan ---------- */
 type PayoutRow = { id: string; developer_id: string; amount: number; bank_name: string | null; status: string; created_at: string };
 export function PayoutsTab() {
+  const [term, setTerm] = useState("");
   const q = useQuery({
     queryKey: ["work-admin-payouts"],
     queryFn: async () => {
@@ -161,15 +188,17 @@ export function PayoutsTab() {
       return { rows, names: await usernameMap(rows.map((r) => r.developer_id)) };
     },
   });
+  const payShown = (q.data?.rows ?? []).filter((p) => hasText(term, q.data?.names[p.developer_id], p.bank_name, p.status, p.amount));
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">Semua permintaan pencairan saldo (termasuk dari kontrak GOBI WORK). Nomor rekening sengaja tidak ditampilkan di sini; proses transfer dan penandaan selesai dilakukan di <Link to="/admin/pembayaran" className="text-primary underline">Pembayaran & pencairan</Link>.</p>
+      <div className="flex"><SearchBox value={term} onChange={setTerm} label="Cari pencairan" placeholder="Cari pengguna, bank, atau status…" /></div>
       <Loading q={q} />
-      {q.data?.rows.length === 0 && <EmptyState>Belum ada permintaan pencairan.</EmptyState>}
+      {q.data && payShown.length === 0 && <EmptyState>{term.trim() ? "Tidak ada pencairan yang cocok dengan pencarian." : "Belum ada permintaan pencairan."}</EmptyState>}
       <ul className="space-y-1.5">
-        {q.data?.rows.map((p) => (
+        {payShown.map((p) => (
           <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-            <span>{at(q.data.names, p.developer_id)} · <b>{rp(p.amount)}</b> {p.bank_name && <span className="text-xs text-muted-foreground">· {p.bank_name}</span>}</span>
+            <span>{at(q.data!.names, p.developer_id)} · <b>{rp(p.amount)}</b> {p.bank_name && <span className="text-xs text-muted-foreground">· {p.bank_name}</span>}</span>
             <span className="flex items-center gap-2"><Pill tone={p.status === "paid" ? "ok" : p.status === "requested" ? "warn" : "info"}>{p.status}</Pill><span className="text-xs text-muted-foreground">{timeAgo(p.created_at)}</span></span>
           </li>
         ))}
@@ -182,6 +211,7 @@ export function PayoutsTab() {
 type AuditRow = { id: number; admin_label: string | null; action: string; target_type: string | null; target_id: string | null; note: string | null; created_at: string };
 export function AuditTab() {
   const [all, setAll] = useState(false);
+  const [term, setTerm] = useState("");
   const q = useQuery({
     queryKey: ["work-admin-audit", all],
     queryFn: async () => {
@@ -190,13 +220,15 @@ export function AuditTab() {
       return (await must<AuditRow[]>(query)) ?? [];
     },
   });
+  const auditShown = (q.data ?? []).filter((a) => hasText(term, a.action, a.admin_label, a.target_type, a.target_id, a.note));
   return (
     <div className="space-y-3">
       <label className="flex items-center gap-2 text-sm"><Switch checked={all} onCheckedChange={setAll} aria-label="Tampilkan semua aksi admin" /> Tampilkan semua aksi admin (termasuk escrow dan pembayaran)</label>
+      <div className="flex"><SearchBox value={term} onChange={setTerm} label="Cari audit log" placeholder="Cari aksi, admin, target, atau catatan…" /></div>
       <Loading q={q} />
-      {q.data?.length === 0 && <EmptyState>Belum ada catatan audit.</EmptyState>}
+      {q.data && auditShown.length === 0 && <EmptyState>{term.trim() ? "Tidak ada catatan yang cocok dengan pencarian." : "Belum ada catatan audit."}</EmptyState>}
       <ul className="space-y-1.5">
-        {q.data?.map((a) => (
+        {auditShown.map((a) => (
           <li key={a.id} className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-mono text-xs">{a.action}</span><span className="text-xs text-muted-foreground">{a.admin_label ? `@${a.admin_label}` : "admin"} · {timeAgo(a.created_at)}</span></div>
             {(a.target_type || a.note) && <p className="mt-0.5 break-words text-xs text-muted-foreground">{a.target_type}{a.target_id ? ` ${a.target_id}` : ""}{a.note ? ` — ${a.note}` : ""}</p>}
