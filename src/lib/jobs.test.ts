@@ -46,6 +46,23 @@ describe("validateJobForm", () => {
   });
 });
 
+describe("batas revisi lowongan", () => {
+  it("tanpa batas (null/kosong) valid", () => {
+    expect(validateJobForm({ ...valid, revisionLimit: null }, today)["revisionLimit"]).toBeUndefined();
+    expect(validateJobForm({ ...valid }, today)["revisionLimit"]).toBeUndefined();
+  });
+  it("1–20 kali valid, di luar itu ditolak", () => {
+    expect(validateJobForm({ ...valid, revisionLimit: 2 }, today)["revisionLimit"]).toBeUndefined();
+    expect(validateJobForm({ ...valid, revisionLimit: 20 }, today)["revisionLimit"]).toBeUndefined();
+    expect(validateJobForm({ ...valid, revisionLimit: 0 }, today)["revisionLimit"]).toBeTruthy();
+    expect(validateJobForm({ ...valid, revisionLimit: 21 }, today)["revisionLimit"]).toBeTruthy();
+    expect(validateJobForm({ ...valid, revisionLimit: 1.5 }, today)["revisionLimit"]).toBeTruthy();
+  });
+  it("tidak berlaku untuk lowongan per jam", () => {
+    expect(validateJobForm({ ...valid, paymentType: "hourly", revisionLimit: 2 }, today)["revisionLimit"]).toBeTruthy();
+  });
+});
+
 describe("pembantu", () => {
   it("parseSkills menghapus duplikat dan membatasi jumlah", () => {
     expect(parseSkills("React, react, ,Figma")).toEqual(["React", "Figma"]);

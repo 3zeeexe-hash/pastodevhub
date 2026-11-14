@@ -8,6 +8,7 @@ import { useAuth, timeAgo } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg, formatRupiah } from "@/lib/market";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -107,7 +108,7 @@ function StudioHome() {
           </div>
         )}
         <form onSubmit={payout} className="mt-5 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-          <div><Label htmlFor="amt">Jumlah (Rp)</Label><Input id="amt" inputMode="numeric" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value.replace(/\D/g, "") })} /></div>
+          <div><Label htmlFor="amt">Jumlah</Label><RupiahInput id="amt" value={f.amount} onValueChange={(v) => setF({ ...f, amount: v })} /></div>
           <div><Label htmlFor="bank">Bank / e-wallet</Label><Input id="bank" value={f.bank} maxLength={60} onChange={(e) => setF({ ...f, bank: e.target.value })} placeholder="BCA, Mandiri, DANA…" /></div>
           <div><Label htmlFor="num">Nomor rekening</Label><Input id="num" value={f.number} maxLength={40} onChange={(e) => setF({ ...f, number: e.target.value })} /></div>
           <div><Label htmlFor="nm">Atas nama</Label><Input id="nm" value={f.name} maxLength={100} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
