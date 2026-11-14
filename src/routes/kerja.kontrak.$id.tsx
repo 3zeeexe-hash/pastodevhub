@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { GobiLoader } from "@/components/gobi-loader";
 import { ContractPill, EmptyState, ErrorState, MilestonePill, Pill, ReasonDialog, ReportButton, useRun, type Ask } from "@/components/work-ui";
+import { MilestoneProgress } from "@/components/milestone-progress";
 import { SchedulePanel, ScheduleDraftEditor } from "@/components/schedule-panel";
 import { cn } from "@/lib/utils";
 
@@ -194,6 +195,7 @@ function ContractPage() {
         <section aria-labelledby="ms" className="space-y-3">
           <h2 id="ms" className="text-lg font-extrabold">{sched ? "Pembayaran & hasil kerja" : "Milestone"}</h2>
           {d.milestones.length === 0 && <EmptyState>Belum ada milestone.</EmptyState>}
+          <MilestoneProgress milestones={d.milestones} />
           {d.milestones.map((m) => (
             <MilestoneCard key={m.id} m={m} ctx={ctx} subs={d.subs.filter((s) => s.milestone_id === m.id)} revs={d.revs.filter((r) => r.milestone_id === m.id)}
               onDispute={() => setAsk(disputeAsk(m.id))} />
