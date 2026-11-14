@@ -11,6 +11,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -30,11 +31,7 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const { user, isAdmin, loading, adminLoading } = useAuth();
   if (loading || adminLoading) {
-    return (
-      <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 text-muted-foreground" role="status" aria-live="polite">
-        <Loader2 className="mr-2 size-5 animate-spin" /> Memuat…
-      </main>
-    );
+    return <GobiLoader page />;
   }
   if (!isAdmin) return <AdminLogin signedInAs={user ? (user.email ?? "akun lain") : null} />;
   return (

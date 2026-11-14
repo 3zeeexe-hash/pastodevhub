@@ -8,6 +8,7 @@ import { errMsg, formatRupiah } from "@/lib/market";
 import { PAYMENT_STATUS_LABEL, methodLabel } from "@/lib/midtrans-shared";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/pantau")({
   head: () => ({ meta: [{ title: "Pantau aktivitas — Admin Pastodev" }, { name: "description", content: "Pantau semua pesanan, chat, lowongan, lamaran, jasa, karya, pembayaran, dan tindakan admin." }, { name: "robots", content: "noindex" }] }),
@@ -35,7 +36,7 @@ function List({ rows, loading, error, q, render }: { rows: Row[] | undefined; lo
   return (
     <div>
       {error ? <p role="alert" className="mb-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">{errMsg(error)}</p> : null}
-      {loading && <p className="text-sm text-muted-foreground">Memuat…</p>}
+      {loading && <GobiLoader compact />}
       <ul className="divide-y divide-border rounded-xl border border-border bg-card px-4">
         {shown.map((r, i) => <li key={r["id"] ?? i} className="py-3 text-sm">{render(r)}</li>)}
         {!loading && shown.length === 0 && <li className="py-3 text-muted-foreground">Tidak ada data.</li>}

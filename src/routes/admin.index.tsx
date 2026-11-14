@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { featureLabel, type FeatureKey } from "@/lib/features";
 import { escrowStage } from "@/lib/midtrans-shared";
 import { cn } from "@/lib/utils";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Ringkasan admin — Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -36,7 +37,7 @@ function StatCard({ s, urgent }: { s: Stat; urgent?: boolean }) {
 }
 
 function OverviewPage() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["admin-overview"],
     queryFn: async () => {
       const [users, devs, repos, products, services, jobs, bans, verif, pay, payouts, off, held, refunds] = await Promise.all([
@@ -77,6 +78,8 @@ function OverviewPage() {
     { label: "Jasa", to: "/admin/moderasi", Icon: Wrench, n: data?.services },
     { label: "Lowongan", to: "/admin/moderasi", Icon: Briefcase, n: data?.jobs },
   ];
+
+  if (isLoading) return <GobiLoader />;
 
   return (
     <div className="space-y-8">

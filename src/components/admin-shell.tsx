@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Menu, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/brand";
 import { MenuPanel } from "@/components/menu-panel";
+import { AdminDialogProvider } from "@/components/admin-dialog";
 import { ADMIN_NAV, adminMeta } from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -20,6 +21,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const Icon = meta?.Icon ?? ShieldCheck;
 
   return (
+    <AdminDialogProvider>
     <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 md:grid md:grid-cols-[250px_minmax(0,1fr)] md:gap-8 md:py-6 xl:max-w-7xl">
       <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto rounded-3xl bg-gradient-to-b from-navy to-navy-deep p-3 text-white shadow-lg ring-1 ring-white/10 md:block">
         <Link to="/admin" aria-label="Admin" className="mb-3 flex items-center gap-2 border-b border-white/10 px-2.5 pb-3 pt-1">
@@ -60,5 +62,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </section>
     </div>
+    </AdminDialogProvider>
   );
 }

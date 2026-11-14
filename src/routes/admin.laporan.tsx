@@ -8,6 +8,8 @@ import { fetchReports, resolveReportsForPost, type ReportRow, type ReportStatus 
 import { reportReasonLabel } from "@/lib/feed-rules";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAskAdmin } from "@/lib/admin-ask";
+import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/laporan")({
   head: () => ({ meta: [{ title: "Laporan Diskusi — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -27,6 +29,7 @@ function ReportsPage() {
   const [status, setStatus] = useState<ReportStatus>("open");
   const list = useQuery({ queryKey: ["admin-reports", status], queryFn: () => fetchReports(status) });
 
+  const ask = useAskAdmin();
   const act = useMutation({
     mutationFn: (v: { r: ReportRow; status: "resolved" | "dismissed"; deletePost: boolean }) => {
       if (!user || !v.r.post_id) throw new Error("Post sudah tidak ada.");
@@ -48,8 +51,7 @@ function ReportsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Laporan Diskusi</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Post di Linimasa yang dilaporkan pengguna. Menutup laporan berlaku untuk semua laporan terbuka pada post yang sama.</p>
+      <p className="text-sm text-muted-foreground">Post di Linimasa yang dilaporkan pengguna. Menutup laporan berlaku untuk semua laporan terbuka pada post yang sama.</p>
 
       <div className="mt-4 flex gap-1 border-b border-border" role="tablist" aria-label="Status laporan">
         {TABS.map((t) => (
@@ -62,7 +64,7 @@ function ReportsPage() {
 
       <div className="mt-4 space-y-3">
         {list.isLoading ? (
-          <p className="text-muted-foreground">Memuat…</p>
+          <GobiLoader />
         ) : list.error ? (
           <p role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
             Gagal memuat laporan: {list.error.message}. Pastikan docs/sql/0007_diskusi_fase4.sql sudah diterapkan.
@@ -93,7 +95,7 @@ function ReportsPage() {
                       <Link to="/discuss/status/$id" params={{ id: first.post_id }}><ExternalLink /> Buka post</Link>
                     </Button>
                     <Button size="sm" variant="destructive" disabled={act.isPending}
-                      onClick={() => { if (confirm("Hapus post ini dan tutup semua laporannya?")) act.mutate({ r: first, status: "resolved", deletePost: true }); }}>
+                      onClick={async () => { if (await ask({ title: "Hapus post ini?", description: "Post dihapus dan semua laporan untuknya ditutup. Tidak bisa dibatalkan.", confirmLabel: "Hapus post", destructive: true })) act.mutate({ r: first, status: "resolved", deletePost: true }); }}>
                       Hapus post
                     </Button>
                     <Button size="sm" variant="secondary" disabled={act.isPending} onClick={() => act.mutate({ r: first, status: "resolved", deletePost: false })}>Tandai selesai</Button>
