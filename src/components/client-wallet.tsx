@@ -1,4 +1,5 @@
-// GOBI WORK — saldo client: dana yang dikembalikan (sengketa dimenangkan client, refund admin, kontrak ditutup) masuk ke sini dan bisa ditarik.
+// Saldo client: dana yang dikembalikan dari lowongan atau jasa (sengketa dimenangkan client, refund admin, kontrak ditutup) masuk ke sini dan bisa ditarik.
+// Ditampilkan di menu Saldo (/saldo) dan di halaman Pembayaran GOBI WORK.
 // Membutuhkan docs/sql/gobi-work/011_saldo_client_sengketa_otomatis.sql; sebelum diterapkan, panel ini tidak ditampilkan.
 import { Fragment, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,12 +30,11 @@ const WD_TONE: Record<string, "warn" | "ok" | "bad"> = { requested: "warn", paid
 const num = (v: unknown) => Number(v ?? 0) || 0;
 const card = "rounded-xl border border-border bg-card";
 
-export function ClientWalletPanel() {
+/** Saldo client + riwayat + penarikan. `data` bernilai null bila SQL 011 belum diterapkan. */
+export function useClientWallet() {
   const { user } = useAuth();
   const uid = user?.id;
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const q = useQuery({
+  return useQuery({
     queryKey: ["client-wallet", uid],
     enabled: !!uid,
     refetchInterval: 60_000,
@@ -53,10 +53,16 @@ export function ClientWalletPanel() {
       return { wallet, entries: (e.data ?? []) as Entry[], withdrawals: (d.data ?? []) as Wd[] };
     },
   });
+}
+
+export function ClientWalletPanel({ fallback = null }: { fallback?: React.ReactNode }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const q = useClientWallet();
 
   if (q.isLoading) return <Skeleton className="h-40 rounded-2xl" />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
-  if (!q.data) return null;
+  if (!q.data) return <>{fallback}</>;
   const { wallet, entries, withdrawals } = q.data;
   const canWithdraw = wallet.available >= MIN_WITHDRAW;
 
@@ -100,7 +106,7 @@ export function ClientWalletPanel() {
         <p className="relative flex items-center gap-2 text-sm text-white/70"><Wallet className="size-4" /> Saldo client</p>
         <p className="relative mt-1 text-3xl font-bold tracking-tight">{formatRupiah(wallet.available, "Rp0")}</p>
         <p className="relative mt-1 text-xs text-white/60">
-          Dana yang dikembalikan dari sengketa, refund admin, atau kontrak yang ditutup masuk ke sini otomatis.
+          Dana yang dikembalikan dari lowongan atau jasa (sengketa, refund admin, kontrak ditutup) masuk ke sini otomatis.
           {wallet.requested > 0 && ` Sedang ditarik: ${formatRupiah(wallet.requested)}.`}
           {wallet.paid_out > 0 && ` Sudah ditarik: ${formatRupiah(wallet.paid_out)}.`}
         </p>

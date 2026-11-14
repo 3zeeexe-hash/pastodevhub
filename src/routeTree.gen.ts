@@ -22,6 +22,7 @@ import { Route as KerjaRouteImport } from './routes/kerja'
 import { Route as NewRouteImport } from './routes/new'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SaldoRouteImport } from './routes/saldo'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapChar123nameChar125DotxmlRouteImport } from './routes/sitemap-{$name}[.]xml'
@@ -59,6 +60,7 @@ import { Route as KerjaProfilRouteImport } from './routes/kerja.profil'
 import { Route as LowonganIndexRouteImport } from './routes/lowongan.index'
 import { Route as LowonganIdRouteImport } from './routes/lowongan.$id'
 import { Route as LowonganBaruRouteImport } from './routes/lowongan.baru'
+import { Route as LowonganSayaRouteImport } from './routes/lowongan.saya'
 import { Route as PesananIndexRouteImport } from './routes/pesanan.index'
 import { Route as PesananIdRouteImport } from './routes/pesanan.$id'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
@@ -68,6 +70,7 @@ import { Route as StudioHostingRouteImport } from './routes/studio.hosting'
 import { Route as StudioImagesRouteImport } from './routes/studio.images'
 import { Route as StudioLamaranRouteImport } from './routes/studio.lamaran'
 import { Route as StudioPortofolioRouteImport } from './routes/studio.portofolio'
+import { Route as StudioSaldoRouteImport } from './routes/studio.saldo'
 import { Route as StudioTokoRouteImport } from './routes/studio.toko'
 import { Route as StudioVerifikasiRouteImport } from './routes/studio.verifikasi'
 import { Route as TokoUsernameRouteImport } from './routes/toko.$username'
@@ -162,6 +165,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SaldoRoute = SaldoRouteImport.update({
+  id: '/saldo',
+  path: '/saldo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -350,6 +358,11 @@ const LowonganBaruRoute = LowonganBaruRouteImport.update({
   path: '/lowongan/baru',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LowonganSayaRoute = LowonganSayaRouteImport.update({
+  id: '/lowongan/saya',
+  path: '/lowongan/saya',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PesananIndexRoute = PesananIndexRouteImport.update({
   id: '/pesanan/',
   path: '/pesanan/',
@@ -393,6 +406,11 @@ const StudioLamaranRoute = StudioLamaranRouteImport.update({
 const StudioPortofolioRoute = StudioPortofolioRouteImport.update({
   id: '/portofolio',
   path: '/portofolio',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioSaldoRoute = StudioSaldoRouteImport.update({
+  id: '/saldo',
+  path: '/saldo',
   getParentRoute: () => StudioRoute,
 } as any)
 const StudioTokoRoute = StudioTokoRouteImport.update({
@@ -561,6 +579,7 @@ export interface FileRoutesByFullPath {
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/saldo': typeof SaldoRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
@@ -592,6 +611,7 @@ export interface FileRoutesByFullPath {
   '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
+  '/lowongan/saya': typeof LowonganSayaRoute
   '/pesanan/$id': typeof PesananIdRoute
   '/studio/ai': typeof StudioAiRoute
   '/studio/files': typeof StudioFilesRoute
@@ -599,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/studio/images': typeof StudioImagesRoute
   '/studio/lamaran': typeof StudioLamaranRoute
   '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/saldo': typeof StudioSaldoRoute
   '/studio/toko': typeof StudioTokoRoute
   '/studio/verifikasi': typeof StudioVerifikasiRoute
   '/toko/$username': typeof TokoUsernameRoute
@@ -650,6 +671,7 @@ export interface FileRoutesByTo {
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/saldo': typeof SaldoRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
@@ -679,6 +701,7 @@ export interface FileRoutesByTo {
   '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
+  '/lowongan/saya': typeof LowonganSayaRoute
   '/pesanan/$id': typeof PesananIdRoute
   '/studio/ai': typeof StudioAiRoute
   '/studio/files': typeof StudioFilesRoute
@@ -686,6 +709,7 @@ export interface FileRoutesByTo {
   '/studio/images': typeof StudioImagesRoute
   '/studio/lamaran': typeof StudioLamaranRoute
   '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/saldo': typeof StudioSaldoRoute
   '/studio/toko': typeof StudioTokoRoute
   '/studio/verifikasi': typeof StudioVerifikasiRoute
   '/toko/$username': typeof TokoUsernameRoute
@@ -740,6 +764,7 @@ export interface FileRoutesById {
   '/new': typeof NewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/saldo': typeof SaldoRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
@@ -771,6 +796,7 @@ export interface FileRoutesById {
   '/kerja/profil': typeof KerjaProfilRoute
   '/lowongan/$id': typeof LowonganIdRoute
   '/lowongan/baru': typeof LowonganBaruRoute
+  '/lowongan/saya': typeof LowonganSayaRoute
   '/pesanan/$id': typeof PesananIdRoute
   '/studio/ai': typeof StudioAiRoute
   '/studio/files': typeof StudioFilesRoute
@@ -778,6 +804,7 @@ export interface FileRoutesById {
   '/studio/images': typeof StudioImagesRoute
   '/studio/lamaran': typeof StudioLamaranRoute
   '/studio/portofolio': typeof StudioPortofolioRoute
+  '/studio/saldo': typeof StudioSaldoRoute
   '/studio/toko': typeof StudioTokoRoute
   '/studio/verifikasi': typeof StudioVerifikasiRoute
   '/toko/$username': typeof TokoUsernameRoute
@@ -833,6 +860,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/reset-password'
     | '/robots.txt'
+    | '/saldo'
     | '/search'
     | '/settings'
     | '/sitemap-{$name}.xml'
@@ -864,6 +892,7 @@ export interface FileRouteTypes {
     | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
+    | '/lowongan/saya'
     | '/pesanan/$id'
     | '/studio/ai'
     | '/studio/files'
@@ -871,6 +900,7 @@ export interface FileRouteTypes {
     | '/studio/images'
     | '/studio/lamaran'
     | '/studio/portofolio'
+    | '/studio/saldo'
     | '/studio/toko'
     | '/studio/verifikasi'
     | '/toko/$username'
@@ -922,6 +952,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/reset-password'
     | '/robots.txt'
+    | '/saldo'
     | '/search'
     | '/settings'
     | '/sitemap-{$name}.xml'
@@ -951,6 +982,7 @@ export interface FileRouteTypes {
     | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
+    | '/lowongan/saya'
     | '/pesanan/$id'
     | '/studio/ai'
     | '/studio/files'
@@ -958,6 +990,7 @@ export interface FileRouteTypes {
     | '/studio/images'
     | '/studio/lamaran'
     | '/studio/portofolio'
+    | '/studio/saldo'
     | '/studio/toko'
     | '/studio/verifikasi'
     | '/toko/$username'
@@ -1011,6 +1044,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/reset-password'
     | '/robots.txt'
+    | '/saldo'
     | '/search'
     | '/settings'
     | '/sitemap-{$name}.xml'
@@ -1042,6 +1076,7 @@ export interface FileRouteTypes {
     | '/kerja/profil'
     | '/lowongan/$id'
     | '/lowongan/baru'
+    | '/lowongan/saya'
     | '/pesanan/$id'
     | '/studio/ai'
     | '/studio/files'
@@ -1049,6 +1084,7 @@ export interface FileRouteTypes {
     | '/studio/images'
     | '/studio/lamaran'
     | '/studio/portofolio'
+    | '/studio/saldo'
     | '/studio/toko'
     | '/studio/verifikasi'
     | '/toko/$username'
@@ -1103,6 +1139,7 @@ export interface RootRouteChildren {
   NewRoute: typeof NewRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SaldoRoute: typeof SaldoRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapChar123nameChar125DotxmlRoute: typeof SitemapChar123nameChar125DotxmlRoute
@@ -1119,6 +1156,7 @@ export interface RootRouteChildren {
   KaryaIdRoute: typeof KaryaIdRoute
   LowonganIdRoute: typeof LowonganIdRoute
   LowonganBaruRoute: typeof LowonganBaruRoute
+  LowonganSayaRoute: typeof LowonganSayaRoute
   PesananIdRoute: typeof PesananIdRoute
   TokoUsernameRoute: typeof TokoUsernameRoute
   DiscussIndexRoute: typeof DiscussIndexRoute
@@ -1223,6 +1261,13 @@ declare module '@tanstack/react-router' {
       path: '/robots.txt'
       fullPath: '/robots.txt'
       preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saldo': {
+      id: '/saldo'
+      path: '/saldo'
+      fullPath: '/saldo'
+      preLoaderRoute: typeof SaldoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -1484,6 +1529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LowonganBaruRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lowongan/saya': {
+      id: '/lowongan/saya'
+      path: '/lowongan/saya'
+      fullPath: '/lowongan/saya'
+      preLoaderRoute: typeof LowonganSayaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pesanan/': {
       id: '/pesanan/'
       path: '/pesanan'
@@ -1545,6 +1597,13 @@ declare module '@tanstack/react-router' {
       path: '/portofolio'
       fullPath: '/studio/portofolio'
       preLoaderRoute: typeof StudioPortofolioRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/saldo': {
+      id: '/studio/saldo'
+      path: '/saldo'
+      fullPath: '/studio/saldo'
+      preLoaderRoute: typeof StudioSaldoRouteImport
       parentRoute: typeof StudioRoute
     }
     '/studio/toko': {
@@ -1823,6 +1882,7 @@ interface StudioRouteChildren {
   StudioImagesRoute: typeof StudioImagesRoute
   StudioLamaranRoute: typeof StudioLamaranRoute
   StudioPortofolioRoute: typeof StudioPortofolioRoute
+  StudioSaldoRoute: typeof StudioSaldoRoute
   StudioTokoRoute: typeof StudioTokoRoute
   StudioVerifikasiRoute: typeof StudioVerifikasiRoute
   StudioIndexRoute: typeof StudioIndexRoute
@@ -1839,6 +1899,7 @@ const StudioRouteChildren: StudioRouteChildren = {
   StudioImagesRoute: StudioImagesRoute,
   StudioLamaranRoute: StudioLamaranRoute,
   StudioPortofolioRoute: StudioPortofolioRoute,
+  StudioSaldoRoute: StudioSaldoRoute,
   StudioTokoRoute: StudioTokoRoute,
   StudioVerifikasiRoute: StudioVerifikasiRoute,
   StudioIndexRoute: StudioIndexRoute,
@@ -1917,6 +1978,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewRoute: NewRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
+  SaldoRoute: SaldoRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapChar123nameChar125DotxmlRoute: SitemapChar123nameChar125DotxmlRoute,
@@ -1933,6 +1995,7 @@ const rootRouteChildren: RootRouteChildren = {
   KaryaIdRoute: KaryaIdRoute,
   LowonganIdRoute: LowonganIdRoute,
   LowonganBaruRoute: LowonganBaruRoute,
+  LowonganSayaRoute: LowonganSayaRoute,
   PesananIdRoute: PesananIdRoute,
   TokoUsernameRoute: TokoUsernameRoute,
   DiscussIndexRoute: DiscussIndexRoute,

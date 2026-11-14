@@ -111,7 +111,7 @@ function OrderPage() {
       {actions.includes("deliver") && <DeliverBox onDeliver={(n) => run("deliver_order", { _order_id: o.id, _note: n }, "Hasil dikirim ke client")} />}
       {actions.includes("complete") && (
         <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-          Periksa hasilnya dulu. Kalau masih ada yang kurang, tekan <b>Minta revisi</b>. <b>Tandai selesai</b> berarti kamu menerima hasil; dana tetap ditahan admin minimal 1 hari, lalu admin meneruskannya ke developer secara manual.
+          Periksa hasilnya dulu. Kalau masih ada yang kurang, tekan <b>Minta revisi</b>. <b>Tandai selesai</b> berarti kamu menerima hasil; dana langsung diteruskan ke developer tanpa ditahan admin.
         </p>
       )}
       {(actions.includes("complete") || actions.includes("cancel")) && (
@@ -158,7 +158,7 @@ function PayNowBox({ amount, onPay }: { amount: number; onPay: () => void }) {
     <section className="rounded-lg border border-primary/50 bg-card p-4">
       <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-primary" /> Bayar {formatRupiah(amount)}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Pilih Virtual Account atau QRIS di pop-up pembayaran. Setelah lunas, pesanan otomatis berjalan dan dana ditahan admin (escrow) sampai pekerjaan selesai.
+        Pilih Virtual Account atau QRIS di pop-up pembayaran. Setelah lunas, pesanan otomatis berjalan dan dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasil.
       </p>
       <Button className="mt-3 w-full sm:w-auto" onClick={onPay}><CreditCard /> Bayar sekarang</Button>
     </section>

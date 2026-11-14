@@ -20,9 +20,6 @@ export function midtransBaseUrl(mode: MidtransMode) {
   return mode === "production" ? "https://api.midtrans.com" : "https://api.sandbox.midtrans.com";
 }
 
-/** Funds are held by the admin at least this long after payment. */
-export const ESCROW_HOLD_HOURS = 24;
-
 export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   pending: "Menunggu pembayaran",
   paid: "Lunas",
@@ -34,34 +31,28 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
 };
 
 export type EscrowStage =
-  | "holding" // masa tahan 1 hari belum selesai
-  | "waiting_delivery" // masa tahan selesai, jasa belum diterima client
-  | "ready_for_admin" // jasa sudah diterima + lewat 1 hari: tinggal konfirmasi manual admin
-  | "auto_available" // karya: otomatis tersedia untuk developer setelah masa tahan
+  | "waiting_delivery" // jasa masih dikerjakan atau belum diterima client; dana disimpan di escrow
+  | "ready_for_admin" // jasa sudah diterima client tetapi dana belum diteruskan (sisa data lama): admin bisa meneruskan manual
+  | "auto_available" // karya: bagian developer langsung tersedia, tanpa masa tahan
   | "frozen"
   | "released"
   | "refunded";
 
 /**
- * Tahap dana escrow. Sama dengan aturan di SQL (developer_wallet / admin_release_escrow):
- * jasa TIDAK pernah otomatis masuk saldo; hanya admin yang meneruskannya setelah client menerima dan lewat 1 hari.
+ * Tahap dana escrow. Sama dengan aturan di SQL (developer_wallet, gobi-work/012): tidak ada masa tahan 1 hari.
+ * Jasa diteruskan otomatis begitu client menerima hasil; admin hanya perlu bertindak untuk sisa data lama,
+ * dana yang dibekukan, atau refund.
  */
-export function escrowStage(
-  ledger: { status: string; held_until: string },
-  kind: string,
-  orderStatus: string,
-  now: number = Date.now(),
-): EscrowStage {
+export function escrowStage(ledger: { status: string }, kind: string, orderStatus: string): EscrowStage {
   if (ledger.status === "frozen") return "frozen";
   if (ledger.status === "released") return "released";
   if (ledger.status === "refunded") return "refunded";
-  if (new Date(ledger.held_until).getTime() > now) return "holding";
   if (kind === "service") return orderStatus === "completed" ? "ready_for_admin" : "waiting_delivery";
   return "auto_available";
 }
 
 export const ESCROW_STATUS_LABEL: Record<string, string> = {
-  held: "Ditahan admin",
+  held: "Disimpan di escrow",
   released: "Sudah diteruskan ke developer",
   frozen: "Dibekukan admin",
   refunded: "Direfund",

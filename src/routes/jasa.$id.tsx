@@ -33,7 +33,7 @@ export const Route = createFileRoute("/jasa/$id")({
 const STEPS = [
   { title: "Kirim permintaan", text: "Ceritakan kebutuhan dan budget. Belum ada pembayaran." },
   { title: "Developer menjawab", text: "Developer menerima dan menentukan harga final, atau menolak." },
-  { title: "Bayar dengan aman", text: "Bayar lewat Virtual Account atau QRIS. Dana ditahan admin (escrow) sampai pekerjaan selesai." },
+  { title: "Bayar dengan aman", text: "Bayar lewat Virtual Account atau QRIS. Dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasil." },
   { title: "Terima hasil", text: "Periksa hasilnya, minta revisi kalau perlu, lalu tandai selesai." },
 ] as const;
 
@@ -131,7 +131,7 @@ function JasaDetail() {
               )}
               <p className="flex items-start gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>Kamu baru membayar setelah developer menyetujui dan menentukan harga final. Dana ditahan admin sampai pekerjaan selesai.</span>
+                <span>Kamu baru membayar setelah developer menyetujui dan menentukan harga final. Dana disimpan di escrow sampai kamu menerima hasil.</span>
               </p>
             </form>
           )}

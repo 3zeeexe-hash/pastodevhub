@@ -65,7 +65,7 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
       try {
         const r = await sync({ data: { orderId } });
         if (!stop && r.orderStatus && r.orderStatus !== "awaiting_payment" && r.orderStatus !== "payment_review") {
-          toast.success("Pembayaran diterima. Dana ditahan admin (escrow).");
+          toast.success("Pembayaran diterima. Dana disimpan di escrow.");
           onPaid();
           onOpenChange(false);
         }
@@ -114,7 +114,7 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Bayar {formatRupiah(amount)}</DialogTitle>
-          <DialogDescription>Dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai.</DialogDescription>
+          <DialogDescription>Dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasil pekerjaan.</DialogDescription>
         </DialogHeader>
 
         {info.data?.mode === "sandbox" && (

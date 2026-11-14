@@ -7,7 +7,7 @@ import { errMsg, formatRupiah } from "@/lib/market";
 import { ESCROW_STATUS_LABEL, PAYMENT_STATUS_LABEL, escrowStage, methodLabel } from "@/lib/midtrans-shared";
 import { Button } from "@/components/ui/button";
 
-type Ledger = { status: string; net: number; fee: number; gross: number; held_until: string; released_at: string | null; note: string | null };
+type Ledger = { status: string; net: number; fee: number; gross: number; released_at: string | null; note: string | null };
 type PayRow = { id: string; method: string; status: string; gross_amount: number; paid_at: string | null; created_at: string; needs_refund: boolean };
 
 /** Escrow + Midtrans payment summary on the order page. Admin gets the manual release controls. */
@@ -18,7 +18,7 @@ export function EscrowBox({ order, isAdmin, isSeller, onChanged }: {
     queryKey: ["escrow", order.id, order.status],
     queryFn: async () => {
       const [l, p] = await Promise.all([
-        looseDb.from("escrow_ledger").select("status,net,fee,gross,held_until,released_at,note").eq("order_id", order.id).maybeSingle(),
+        looseDb.from("escrow_ledger").select("status,net,fee,gross,released_at,note").eq("order_id", order.id).maybeSingle(),
         looseDb.from("payments").select("id,method,status,gross_amount,paid_at,created_at,needs_refund").eq("order_id", order.id).order("created_at", { ascending: false }).limit(10),
       ]);
       return { ledger: (l.data ?? null) as Ledger | null, payments: ((p.data ?? []) as PayRow[]) };
@@ -35,10 +35,9 @@ export function EscrowBox({ order, isAdmin, isSeller, onChanged }: {
   const stage = ledger ? escrowStage(ledger, order.kind, order.status) : null;
   const canRelease = stage === "ready_for_admin" || stage === "auto_available";
   let hint = "";
-  if (ledger && stage === "holding") hint = `Ditahan sampai ${new Date(ledger.held_until).toLocaleString("id-ID")}.`;
-  else if (stage === "waiting_delivery") hint = "Menunggu hasil dikirim dan diterima client.";
-  else if (stage === "ready_for_admin") hint = "Siap diteruskan: menunggu konfirmasi manual admin.";
-  else if (stage === "auto_available") hint = "Masa tahan selesai; saldo karya otomatis tersedia untuk developer.";
+  if (stage === "waiting_delivery") hint = "Dana disimpan di escrow sampai client menerima hasil, lalu langsung diteruskan ke developer.";
+  else if (stage === "ready_for_admin") hint = "Client sudah menerima hasil tetapi dana belum diteruskan: admin bisa meneruskannya sekarang.";
+  else if (stage === "auto_available") hint = "Karya: bagian developer langsung tersedia, tanpa masa tahan.";
 
   return (
     <section className="rounded-lg border border-border bg-card p-4">
@@ -65,7 +64,7 @@ export function EscrowBox({ order, isAdmin, isSeller, onChanged }: {
             <Button size="sm" variant="outline" onClick={() => act("admin_set_escrow", { _order_id: order.id, _action: "unfreeze", _note: "" }, "Pembekuan dicabut")}>Cabut pembekuan</Button>
           )}
           {(ledger.status === "held" || ledger.status === "frozen") && (
-            <Button size="sm" variant="ghost" onClick={() => { const n = prompt("Alasan refund? (uang dikembalikan manual di dashboard Midtrans)"); if (n) act("admin_set_escrow", { _order_id: order.id, _action: "refund", _note: n }, "Ditandai refund"); }}>Tandai refund</Button>
+            <Button size="sm" variant="ghost" onClick={() => { const n = prompt("Alasan refund? Dana masuk ke saldo client di platform dan pesanan dibatalkan."); if (n) act("admin_set_escrow", { _order_id: order.id, _action: "refund", _note: n }, "Dana dikembalikan ke saldo client"); }}>Refund ke saldo client</Button>
           )}
         </div>
       )}

@@ -52,10 +52,10 @@ function OverviewPage() {
         count("payouts", (q) => q.eq("status", "requested")),
         sb.from("feature_flags").select("key").eq("enabled", false),
         // Tabel escrow baru ada setelah SQL docs/sql/midtrans-escrow dijalankan; sebelum itu hasilnya kosong.
-        sb.from("escrow_ledger").select("kind,status,held_until,order:orders(status)").eq("status", "held").limit(1000),
+        sb.from("escrow_ledger").select("kind,status,order:orders(status)").eq("status", "held").limit(1000),
         count("payments", (q) => q.eq("needs_refund", true)),
       ]);
-      const heldRows = ((held.data ?? []) as { kind: string; status: string; held_until: string; order: { status: string } | null }[]);
+      const heldRows = ((held.data ?? []) as { kind: string; status: string; order: { status: string } | null }[]);
       const ready = heldRows.filter((r) => escrowStage(r, r.kind, r.order?.status ?? "") === "ready_for_admin").length;
       return { users, devs, repos, products, services, jobs, bans, verif, pay, payouts, ready, refunds, off: ((off.data ?? []) as { key: string }[]).map((r) => r.key) };
     },

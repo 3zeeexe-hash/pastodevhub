@@ -48,9 +48,9 @@ async function profilesByNames(names: string[]): Promise<Record<string, Prof>> {
   return Object.fromEntries(rows.map((p) => [p.username, p]));
 }
 
-type Esc = { fee: number | null; net: number | null; status: string; held_until: string | null; released_at: string | null; note: string | null };
+type Esc = { fee: number | null; net: number | null; status: string; released_at: string | null; note: string | null };
 const escOf = (v: unknown): Esc | null => (Array.isArray(v) ? ((v[0] as Esc) ?? null) : ((v as Esc | null) ?? null));
-const ESCROW_LABEL: Record<string, string> = { held: "ditahan", frozen: "dibekukan", released: "diteruskan", refunded: "dikembalikan ke client" };
+const ESCROW_LABEL: Record<string, string> = { held: "disimpan di escrow", frozen: "dibekukan", released: "diteruskan", refunded: "dikembalikan ke client" };
 
 /** Profil singkat (avatar, nama, @username, centang biru); `full` menambah headline dan tanggal bergabung. */
 export function PersonChip({ p, label, full }: { p?: Prof | null; label?: string; full?: boolean }) {
@@ -96,7 +96,7 @@ async function loadCase(id: string) {
     must<JobLite>(looseDb.from("jobs").select("id,title,status,category,payment_type,budget_min,budget_max,created_at").eq("id", c.job_id).maybeSingle()),
     must<MsRaw[]>(looseDb.from("contract_milestones").select("id,position,title,amount,status,deadline").eq("contract_id", id).order("position")),
     must<OrderFull[]>(looseDb.from("orders")
-      .select("id,number,title,amount,status,paid_at,fee_amount,work_milestone_id,created_at,escrow:escrow_ledger(fee,net,status,held_until,released_at,note),payments(midtrans_order_id,status,needs_refund)")
+      .select("id,number,title,amount,status,paid_at,fee_amount,work_milestone_id,created_at,escrow:escrow_ledger(fee,net,status,released_at,note),payments(midtrans_order_id,status,needs_refund)")
       .eq("work_contract_id", id).order("created_at", { ascending: false })),
     must<DisputeRaw[]>(looseDb.from("work_disputes").select("*").eq("contract_id", id).order("created_at", { ascending: false })),
     must<EvRaw[]>(looseDb.from("work_contract_events").select("id,actor_id,event,created_at").eq("contract_id", id).order("id", { ascending: false }).limit(80)),
@@ -191,7 +191,6 @@ export function CaseDialog({ contractId, onClose }: { contractId: string | null;
                         <p className="mt-1 text-xs text-muted-foreground">
                           {rp(o.amount)} · {o.paid_at ? `dibayar ${fmtDate(o.paid_at)}` : `dibuat ${fmtDate(o.created_at)}`}
                           {esc ? ` · komisi ${rp(esc.fee)} · bersih ${rp(esc.net)}` : ""}
-                          {esc?.status === "held" && esc.held_until ? ` · ditahan sampai ${fmtDate(esc.held_until)}` : ""}
                           {esc?.released_at ? ` · diteruskan ${fmtDate(esc.released_at)}` : ""}
                         </p>
                         {esc?.note && <p className="mt-0.5 text-xs text-muted-foreground">Catatan escrow: {esc.note}</p>}
@@ -460,7 +459,7 @@ export function DisputesTab2() {
       const msIds = rows.map((r) => r.milestone_id).filter((x): x is string => !!x);
       const [jobs, ods, profs] = await Promise.all([
         jobIds.length ? must<{ id: string; title: string }[]>(looseDb.from("jobs").select("id,title").in("id", jobIds)) : Promise.resolve([]),
-        msIds.length ? must<OrderFull[]>(looseDb.from("orders").select("id,amount,status,paid_at,work_milestone_id,escrow:escrow_ledger(status,fee,net,held_until,released_at,note),payments(midtrans_order_id,status,needs_refund)").in("work_milestone_id", msIds)) : Promise.resolve([] as OrderFull[]),
+        msIds.length ? must<OrderFull[]>(looseDb.from("orders").select("id,amount,status,paid_at,work_milestone_id,escrow:escrow_ledger(status,fee,net,released_at,note),payments(midtrans_order_id,status,needs_refund)").in("work_milestone_id", msIds)) : Promise.resolve([] as OrderFull[]),
         profilesByIds(rows.flatMap((r) => [r.contract?.client_id, r.contract?.freelancer_id, r.opened_by])),
       ]);
       return {

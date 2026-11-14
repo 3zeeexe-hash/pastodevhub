@@ -89,8 +89,8 @@ function SaldoPage() {
   const items: Item[] = wallet
     ? [
         { key: "available", label: "Tersedia", v: wallet.available, Icon: Wallet, bar: "bg-primary", hint: "Siap kamu cairkan sekarang." },
-        { key: "on_hold", label: "Ditahan", v: wallet.on_hold, Icon: Hourglass, bar: "bg-amber-400", hint: "Masa tahan 1 hari untuk karya, atau pekerjaan jasa masih berjalan." },
-        { key: "awaiting", label: "Menunggu konfirmasi admin", v: wallet.awaiting_admin, Icon: ShieldCheck, bar: "bg-sky-500", hint: "Hasil jasa sudah diterima client. Admin meneruskan dananya secara manual." },
+        { key: "on_hold", label: "Di escrow", v: wallet.on_hold, Icon: Hourglass, bar: "bg-amber-400", hint: "Pekerjaan jasa yang belum diterima client. Dana langsung masuk saldo tersedia begitu client menerima hasil." },
+        { key: "awaiting", label: "Menunggu admin", v: wallet.awaiting_admin, Icon: ShieldCheck, bar: "bg-sky-500", hint: "Sisa data lama: hasil sudah diterima client tetapi dananya belum diteruskan." },
         { key: "requested", label: "Sedang dicairkan", v: wallet.requested, Icon: Send, bar: "bg-violet-500", hint: "Pengajuan pencairan menunggu transfer admin." },
         { key: "paid", label: "Sudah dicairkan", v: wallet.paid_out, Icon: CheckCircle2, bar: "bg-emerald-500", hint: "Total yang sudah ditransfer ke rekeningmu." },
         ...(wallet.frozen > 0 ? [{ key: "frozen", label: "Dibekukan admin", v: wallet.frozen, Icon: Snowflake, bar: "bg-slate-400", hint: "Dana dibekukan admin, misalnya karena ada sengketa." }] : []),
@@ -179,8 +179,8 @@ function SaldoPage() {
           <div className={cn(card, "p-4")}>
             <h2 className="flex items-center gap-2 text-base font-bold"><Info className="size-4 text-primary" /> Cara kerja saldo</h2>
             <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
-              <li>Semua pembayaran ditahan admin 1 hari. Saldo karya otomatis tersedia setelah itu.</li>
-              <li>Saldo jasa baru tersedia setelah hasil diterima client dan admin meneruskannya secara manual.</li>
+              <li>Tidak ada masa tahan 1 hari. Saldo karya langsung tersedia setelah dibeli.</li>
+              <li>Saldo jasa dan lowongan langsung tersedia begitu client menerima hasil. Jika client tidak menanggapi sampai batas waktu yang disepakati dan tidak ada revisi, dana otomatis diteruskan tanpa menunggu admin.</li>
               {wallet && <li>Pencairan minimal {formatRupiah(MIN_PAYOUT)}.</li>}
               <li>Pengajuan pencairan diproses admin secara manual. Statusnya bisa dipantau di tab Riwayat tarik.</li>
             </ul>
