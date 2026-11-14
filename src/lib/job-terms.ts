@@ -1,5 +1,6 @@
-// Aturan kerja sebuah lowongan: kerja langsung atau per jam, tanggal selesai dari client, dan batas revisi.
-// Diambil terpisah dari data lowongan utama supaya halaman tetap jalan sebelum docs/sql/gobi-work/006 dijalankan.
+// Aturan kerja sebuah lowongan: kerja langsung atau per jam, tanggal selesai dari client, batas revisi,
+// hak penggunaan hasil pekerjaan, dan ketentuan pembatalan.
+// Diambil terpisah dari data lowongan utama supaya halaman tetap jalan sebelum docs/sql/gobi-work/006 dan 008 dijalankan.
 import { useQuery } from "@tanstack/react-query";
 import { looseDb } from "@/lib/escrow-db";
 import { formatRupiah } from "@/lib/market";
@@ -10,11 +11,18 @@ export type JobTerms = {
   deadline: string | null;
   /** Batas jumlah revisi; null = tanpa batas. */
   revisionLimit: number | null;
+  /** Hak penggunaan hasil pekerjaan yang ditulis pembuat lowongan (kosong pada lowongan lama). */
+  usageRights?: string;
+  /** Ketentuan pembatalan yang ditulis pembuat lowongan (kosong pada lowongan lama). */
+  cancellationTerms?: string;
 };
 
-export const DEFAULT_TERMS: JobTerms = { paymentType: "fixed", deadline: null, revisionLimit: null };
+export const DEFAULT_TERMS: JobTerms = { paymentType: "fixed", deadline: null, revisionLimit: null, usageRights: "", cancellationTerms: "" };
 
-type Raw = { payment_type?: string | null; deadline?: string | null; revision_limit?: number | null };
+type Raw = {
+  payment_type?: string | null; deadline?: string | null; revision_limit?: number | null;
+  usage_rights?: string | null; cancellation_terms?: string | null;
+};
 
 export function normalizeTerms(r: Raw | null | undefined): JobTerms {
   if (!r) return DEFAULT_TERMS;
@@ -22,6 +30,8 @@ export function normalizeTerms(r: Raw | null | undefined): JobTerms {
     paymentType: r.payment_type === "hourly" ? "hourly" : "fixed",
     deadline: r.deadline ? String(r.deadline).slice(0, 10) : null,
     revisionLimit: typeof r.revision_limit === "number" && r.revision_limit > 0 ? r.revision_limit : null,
+    usageRights: (r.usage_rights ?? "").trim(),
+    cancellationTerms: (r.cancellation_terms ?? "").trim(),
   };
 }
 
@@ -29,7 +39,8 @@ export function useJobTerms(jobId: string) {
   return useQuery({
     queryKey: ["job-terms", jobId],
     queryFn: async (): Promise<JobTerms> => {
-      let res = await looseDb.from("jobs").select("payment_type,deadline,revision_limit").eq("id", jobId).maybeSingle();
+      let res = await looseDb.from("jobs").select("payment_type,deadline,revision_limit,usage_rights,cancellation_terms").eq("id", jobId).maybeSingle();
+      if (res.error) res = await looseDb.from("jobs").select("payment_type,deadline,revision_limit").eq("id", jobId).maybeSingle();
       if (res.error) res = await looseDb.from("jobs").select("payment_type,deadline").eq("id", jobId).maybeSingle();
       if (res.error) return DEFAULT_TERMS;
       return normalizeTerms(res.data as Raw | null);

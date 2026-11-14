@@ -18,6 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { RupiahInput } from "@/components/rupiah-input";
 import { parseRupiah } from "@/lib/rupiah";
 import { MAX_REVISION_LIMIT } from "@/lib/jobs";
+import { LEGAL_TERMS_MAX, LEGAL_TERMS_MIN, validateLegalTerms } from "@/lib/job-legal-terms";
+import { isMissingColumn } from "@/lib/job-terms";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 
@@ -40,6 +42,10 @@ type FormState = {
   title: string; description: string; category: string; skills: string; jobType: string; workMode: string;
   location: string; experience: string; min: string; max: string; deadline: string;
   positions: string; requirements: string;
+  /** Wajib: siapa pemilik hasil pekerjaan dan batas pemakaiannya. */
+  usageRights: string;
+  /** Wajib: aturan jika client atau freelancer membatalkan pekerjaan. */
+  cancellationTerms: string;
   /** Tombol "Bayar per jam"; mati = kerja langsung (bawaan). */
   hourly: boolean;
   /** Tombol "Batasi revisi"; angkanya di revisionLimit. */
@@ -48,6 +54,7 @@ type FormState = {
 const INITIAL: FormState = {
   title: "", description: "", category: "web-development", skills: "", jobType: "freelance", workMode: "remote",
   location: "", experience: "mid", min: "", max: "", deadline: "", positions: "1", requirements: "",
+  usageRights: "", cancellationTerms: "",
   hourly: false, limitRevisions: false, revisionLimit: "2",
 };
 const SELECT_CLS = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
@@ -59,6 +66,11 @@ function toInput(f: FormState): JobFormInput {
     min: parseRupiah(f.min), max: parseRupiah(f.max), deadline: f.deadline, positions: Number(f.positions || 0), requirements: f.requirements,
     revisionLimit: !f.hourly && f.limitRevisions ? Number(f.revisionLimit || 0) : null,
   };
+}
+
+/** Semua pemeriksaan form: isian lowongan ditambah hak penggunaan hasil dan ketentuan pembatalan (keduanya wajib). */
+function validateAll(f: FormState) {
+  return { ...validateJobForm(toInput(f)), ...validateLegalTerms(f) };
 }
 
 function Err({ m }: { m?: string }) {
@@ -91,7 +103,7 @@ function NewJob() {
 
   function toPreview(e: React.FormEvent) {
     e.preventDefault();
-    const errs = validateJobForm(toInput(f));
+    const errs = validateAll(f);
     setErrors(errs);
     if (Object.keys(errs).length > 0) { toast.error("Periksa kembali isian yang ditandai."); return; }
     setStep("preview");
@@ -101,7 +113,7 @@ function NewJob() {
   async function publish() {
     // Validasi diulang tepat sebelum kirim; RLS dan constraint database tetap menjadi penentu akhir.
     const v = toInput(f);
-    const errs = validateJobForm(v);
+    const errs = validateAll(f);
     if (Object.keys(errs).length > 0) { setErrors(errs); setStep("edit"); return; }
     setBusy(true);
     // Lowongan baru selalu ditinjau admin dulu. Database (SQL 005) memaksa 'pending' untuk akun biasa, jadi nilai ini bukan penentu.
@@ -110,12 +122,15 @@ function NewJob() {
       budget_min: v.min, budget_max: v.max, deadline: v.deadline || null,
       job_type: v.jobType, work_mode: v.workMode, location: v.location.trim() || null, experience_level: v.experience,
       payment_type: v.paymentType, positions: v.positions, requirements: v.requirements.trim() || null,
+      // Wajib diisi pembuat lowongan; SQL 008 menolak lowongan baru yang keduanya kosong.
+      usage_rights: f.usageRights.trim(), cancellation_terms: f.cancellationTerms.trim(),
       // Hanya dikirim jika client mengaktifkannya, supaya lowongan biasa tetap jalan sebelum SQL 006 dijalankan.
       ...(v.revisionLimit ? { revision_limit: v.revisionLimit } : {}),
     }).select("id").single();
     setBusy(false);
     if (error || !data) {
-      if (error?.code === "42703" && v.revisionLimit) toast.error("Batas revisi belum aktif di database. Jalankan docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql, atau matikan batas revisi.");
+      if (isMissingColumn(error) && /usage_rights|cancellation_terms/i.test(error?.message ?? "")) toast.error("Kolom hak penggunaan dan ketentuan pembatalan belum ada di database. Jalankan docs/sql/gobi-work/008_hak_hasil_dan_pembatalan.sql di SQL editor.");
+      else if (error?.code === "42703" && v.revisionLimit) toast.error("Batas revisi belum aktif di database. Jalankan docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql, atau matikan batas revisi.");
       else if (error?.code === "42703") toast.error("Skema GOBI WORK belum aktif di database. Jalankan docs/sql/gobi-work/001_gobi_work_core.sql lewat Lovable.");
       else toast.error(error ? errMsg(error) : "Gagal mengirim lowongan.");
       return;
@@ -144,6 +159,8 @@ function NewJob() {
         <div className="mt-3 flex flex-wrap gap-1.5">{v.skills.map((s) => <span key={s} className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs">{s}</span>)}</div>
         <section className="mt-4 rounded-xl border border-border bg-card p-5"><Markdown>{v.description.trim()}</Markdown></section>
         {v.requirements.trim() && <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h2><Markdown>{v.requirements.trim()}</Markdown></section>}
+        <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Hak penggunaan hasil pekerjaan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.usageRights.trim()}</p></section>
+        <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Ketentuan pembatalan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.cancellationTerms.trim()}</p></section>
         {v.jobType === "internship" && <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Lowongan magang: pastikan pelamar memenuhi batas usia dan ketentuan hukum setempat. Pastodev tidak memfasilitasi pekerjaan yang melanggar kebijakan platform.</p>}
         <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Setelah dikirim, admin meninjau lowongan ini dulu. Lowongan baru tampil di daftar dan bisa dilamar setelah disetujui; kamu bisa melihat statusnya di dashboard.</p>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -207,6 +224,18 @@ function NewJob() {
           )}
         </div>
         <div><Label htmlFor="s">Keahlian yang dibutuhkan</Label><Input id="s" value={f.skills} onChange={(e) => up({ skills: e.target.value })} placeholder="React, Laravel, Figma" /><p className="mt-1 text-xs text-muted-foreground">Pisahkan dengan koma, maksimal 12.</p><Err m={errors.skills} /></div>
+        <div>
+          <Label htmlFor="ur">Hak penggunaan hasil pekerjaan <span className="text-destructive" aria-hidden>*</span></Label>
+          <Textarea id="ur" rows={4} maxLength={LEGAL_TERMS_MAX} value={f.usageRights} onChange={(e) => up({ usageRights: e.target.value })} aria-invalid={!!errors.usageRights} placeholder="Contoh: Seluruh hak cipta dan kode sumber menjadi milik client setelah pembayaran lunas. Freelancer boleh menampilkan hasilnya di portofolio setelah mendapat izin client." />
+          <p className="mt-1 text-xs text-muted-foreground">Wajib diisi (minimal {LEGAL_TERMS_MIN} karakter). Jelaskan siapa pemilik hasil pekerjaan, apakah freelancer boleh memakainya di portofolio, dan batas pemakaian lainnya.</p>
+          <Err m={errors.usageRights} />
+        </div>
+        <div>
+          <Label htmlFor="ct">Ketentuan pembatalan <span className="text-destructive" aria-hidden>*</span></Label>
+          <Textarea id="ct" rows={4} maxLength={LEGAL_TERMS_MAX} value={f.cancellationTerms} onChange={(e) => up({ cancellationTerms: e.target.value })} aria-invalid={!!errors.cancellationTerms} placeholder="Contoh: Client boleh membatalkan sebelum pekerjaan dimulai dan dana dikembalikan penuh. Setelah pekerjaan dimulai, pembayaran dihitung sesuai bagian yang sudah dikerjakan dan disepakati kedua pihak." />
+          <p className="mt-1 text-xs text-muted-foreground">Wajib diisi (minimal {LEGAL_TERMS_MIN} karakter). Jelaskan kapan pekerjaan boleh dibatalkan, oleh siapa, dan bagaimana dana atau pembayarannya diatur.</p>
+          <Err m={errors.cancellationTerms} />
+        </div>
         <div><Label htmlFor="rq">Persyaratan tambahan (opsional)</Label><Textarea id="rq" rows={4} maxLength={4000} value={f.requirements} onChange={(e) => up({ requirements: e.target.value })} placeholder="Contoh: bersedia meeting mingguan, sudah pernah membuat toko online…" /><Err m={errors.requirements} /></div>
         <Button className="w-full sm:w-auto">Lihat pratinjau</Button>
       </form>
