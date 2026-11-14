@@ -41,7 +41,8 @@ const ctl = "text-white/80 hover:bg-white/10 hover:text-white";
  * tautan menu, lonceng notifikasi, dan avatar dengan panah menu akun. Warnanya biru tua di semua halaman.
  * Tinggi total tetap 3,5rem supaya elemen lengket lain (top-14) tidak bergeser.
  * Lebar isinya sama dengan beranda (max-w-6xl, xl: max-w-7xl) supaya tepi kiri/kanan sejajar.
- * Tombol menu di kiri (di bawah lg) membuka laci menu utama (`MainMenuDrawer`) yang sudah berisi menu studio/dashboard sesuai peran dan GOBI WORK.
+ * Tombol menu di kiri (di bawah lg) membuka laci menu utama (`MainMenuDrawer`): menu sesuai peran + GOBI WORK, dengan pencarian
+ * yang hanya menyaring menu. Pencarian situs (talenta dan lainnya) ada di kolom pencarian header ini.
  */
 export function SiteHeader() {
   const { user, profile, isAdmin } = useAuth();
@@ -82,12 +83,6 @@ export function SiteHeader() {
       <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2 rounded-2xl bg-gradient-to-r from-navy-deep via-navy to-navy-mid px-2.5 text-header-foreground shadow-[0_10px_28px_-12px_rgb(7_19_54/0.7)] ring-1 ring-white/10 sm:px-3 xl:max-w-7xl">
         <MainMenuDrawer
           trigger={<Button size="icon" variant="ghost" className={`${ctl} size-9 lg:hidden`} aria-label="Buka menu"><Menu /></Button>}
-          top={(close) => (
-            <form onSubmit={(e) => { close(); doSearch(e); }} className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari talenta…" className="pl-8" />
-            </form>
-          )}
         />
 
         <Link to="/" className="flex shrink-0 items-center gap-2">
