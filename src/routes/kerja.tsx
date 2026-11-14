@@ -1,9 +1,8 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { Bell, Briefcase, FileSignature, LayoutDashboard, MessageSquare, PlusCircle, Search, UserCog, Wallet } from "lucide-react";
+import { Briefcase, FileSignature, LayoutDashboard, MessageSquare, PlusCircle, Search, UserCog, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SideNavLayout, type NavGroup } from "@/components/side-nav-layout";
 import { SignInCta } from "@/components/sign-in-cta";
-import { WorkChatBadge, WorkNotifBadge } from "@/components/work-badges";
 
 export const Route = createFileRoute("/kerja")({
   head: () => ({
@@ -16,23 +15,15 @@ export const Route = createFileRoute("/kerja")({
   component: KerjaLayout,
 });
 
-// Dikelompokkan menurut urutan pemakaian: mulai, cari/pasang, proyek berjalan, akun. Nama menu sengaja memakai bahasa sehari-hari.
 export const KERJA_NAV: NavGroup[] = [
-  { group: "Mulai", items: [
+  { group: "GOBI WORK", items: [
     { to: "/kerja", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
-    { to: "/kerja/notifikasi", label: "Notifikasi", Icon: Bell, Badge: WorkNotifBadge },
-    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare, Badge: WorkChatBadge },
-  ] },
-  { group: "Cari & pasang", items: [
-    { to: "/lowongan", label: "Cari Lowongan", Icon: Search, exact: true, feature: "jobs" },
-    { to: "/lowongan/baru", label: "Pasang Lowongan", Icon: PlusCircle, feature: "jobs" },
-    { to: "/kerja/lamaran", label: "Lamaran & Lowongan Saya", Icon: Briefcase },
-  ] },
-  { group: "Proyek berjalan", items: [
+    { to: "/lowongan", label: "Explore Jobs", Icon: Search, exact: true, feature: "jobs" },
+    { to: "/lowongan/baru", label: "Buat Lowongan", Icon: PlusCircle, feature: "jobs" },
+    { to: "/kerja/lamaran", label: "Lamaran Saya", Icon: Briefcase },
     { to: "/kerja/kontrak", label: "Proyek & Kontrak", Icon: FileSignature },
+    { to: "/kerja/pesan", label: "Pesan Kerja", Icon: MessageSquare },
     { to: "/kerja/pembayaran", label: "Pembayaran", Icon: Wallet },
-  ] },
-  { group: "Akun", items: [
     { to: "/kerja/profil", label: "Profil Kerja", Icon: UserCog },
   ] },
 ];
