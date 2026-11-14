@@ -18,14 +18,13 @@ import { useSiteConfig } from "@/lib/use-site-config";
 import { useHomeData } from "@/components/home/use-home-data";
 import { PRODUCT_SELECT, type ProductCardData } from "@/components/market-cards";
 import { AvatarMini } from "@/components/avatar-mini";
-import { BrandMark } from "@/components/brand";
 import { GobiLoader } from "@/components/gobi-loader";
+import { MainMenuDrawer } from "@/components/main-menu-drawer";
 import banner1 from "@/assets/gobi-banner-1.png";
 import banner2 from "@/assets/gobi-banner-2.png";
 import banner3 from "@/assets/gobi-banner-3.png";
 import jobImage from "@/assets/lowongan-job.jpg";
 import { VerifiedBadge } from "@/components/verified-badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -69,6 +68,7 @@ const MENU = [
  * Beranda GOBI: header biru tua (menu, logo, notifikasi, akun, pencarian), banner slider gambar,
  * 4 menu cepat, lalu Karya Terbaru, Lowongan Freelance, Diskusi Hangat, dan ajakan impor dari GitHub.
  * Beranda memakai header-nya sendiri, jadi SiteHeader global disembunyikan di "/" (lihat __root.tsx) agar tidak dobel.
+ * Tombol menu di kiri header (di bawah lg) membuka laci menu utama (`MainMenuDrawer`): menu studio/dashboard sesuai peran dan GOBI WORK sudah ada di dalamnya.
  * Mobile: satu kolom, menu cepat berupa 4 kotak ikon.
  * Desktop (lg ke atas), grid 12 kolom yang sama di semua bagian supaya tepinya sejajar:
  *  - header: logo, menu (ikon kecil + teks, ukuran seimbang), pencarian (inline mulai xl), notifikasi, akun.
@@ -213,7 +213,6 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
   const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
   const signedIn = !!user && !!profile;
   const menu = MENU.filter((m) => !m.feature || on(m.feature));
   const unread = useQuery({
@@ -224,7 +223,6 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
   });
   const dashTo = workspacePath(profile?.account_type);
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q: q.trim(), type: "users" } }); };
-  const item = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-accent";
   // Menu desktop: ikon 16px + teks 14px (ukuran seimbang), pil tipis yang terang saat disorot.
   const navLink = "inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white xl:px-3";
 
@@ -247,23 +245,9 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
       <div className="pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-primary/30 blur-2xl" />
       <div className={cn("relative", WRAP)}>
         <div className="flex items-center gap-3">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <button type="button" aria-label="Buka menu" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10 lg:hidden"><Menu className="size-7" /></button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 bg-card">
-              <SheetHeader><SheetTitle className="flex items-center gap-2"><BrandMark size={28} /> GOBI</SheetTitle></SheetHeader>
-              <nav className="mt-4 flex flex-col gap-1">
-                <Link to="/search" search={{ q: "", type: "users" }} onClick={() => setOpen(false)} className={item}><Users className="size-4 text-primary" />Talenta</Link>
-                {menu.map((m) => (
-                  <Link key={m.to} to={m.to} onClick={() => setOpen(false)} className={item}><m.Icon className="size-4 text-primary" />{m.label}</Link>
-                ))}
-                {signedIn
-                  ? <Link to={dashTo} onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-accent"><LayoutDashboard className="size-4 text-primary" />Ruang kerja</Link>
-                  : <Link to="/auth" onClick={() => setOpen(false)} className="mt-3 rounded-md bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground">Masuk / Daftar</Link>}
-              </nav>
-            </SheetContent>
-          </Sheet>
+          <MainMenuDrawer
+            trigger={<button type="button" aria-label="Buka menu" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10 lg:hidden"><Menu className="size-7" /></button>}
+          />
 
           <Link to="/" className="flex min-w-0 flex-1 items-center justify-center gap-2 lg:flex-none lg:justify-start" aria-label="GOBI">
             <img src="/gobi-logo.png" alt="GOBI" width={120} height={48} draggable={false} className="h-12 w-auto select-none object-contain" />
