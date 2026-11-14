@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Bookmark, BookMarked, Briefcase, Home, LogIn, LogOut, Mail, MessageSquare, Package, Search, User, Wrench } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Bell, Bookmark, BookMarked, Briefcase, Home, Mail, MessageSquare, Package, Search, User, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchDmUnread } from "@/lib/dm";
 import { fetchUnreadCount } from "@/lib/feed";
@@ -10,7 +9,8 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { useRole } from "@/lib/use-role";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { navForRole } from "@/components/nav-data";
-import { NavList, canSeeNavItem, type NavGroup, type NavItem } from "@/components/nav-list";
+import { canSeeNavItem, type NavGroup, type NavItem } from "@/components/nav-list";
+import { MenuPanel } from "@/components/menu-panel";
 import { BrandMark } from "@/components/brand";
 
 function CountBadge({ n }: { n?: number }) {
@@ -32,7 +32,7 @@ function NotifBadge() {
 }
 
 /**
- * Isi sidebar gabungan. Urutan grup:
+ * Daftar menu utama, satu sumber untuk laci di ponsel (`MainMenuDrawer`) dan sidebar di layar lebar (`AppRail`). Urutan grup:
  *  1. "Menu utama": Beranda, Cari, Repositori, Pesan, Notifikasi, Profil.
  *  2. Menu halaman (`pageNav`, mis. GOBI WORK) lalu menu dashboard sesuai peran aktif, hanya setelah login.
  *  3. "Jelajah": tautan publik (Lowongan, Jasa, Katalog, Forum, Tersimpan) yang belum ada di grup di atas.
@@ -89,18 +89,13 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
 const SHOW_FROM = { md: "md:block", lg: "lg:block" } as const;
 
 /**
- * Sidebar utama (kartu biru tua dengan logo, menu, dan tombol Keluar), dipakai di linimasa dan di semua halaman dashboard.
- * Setelah login, menu dashboard sesuai peran (Developer, Freelancer, Client, Pribadi) digabung ke sini, jadi hanya ada satu sidebar.
+ * Sidebar utama layar lebar (kartu biru tua dengan logo dan `MenuPanel`), dipakai di linimasa dan di semua halaman dashboard.
+ * Isinya sama persis dengan laci menu di ponsel (`MainMenuDrawer`): satu daftar menu sesuai peran, satu kolom "Cari menu…", dan tombol Keluar.
  * `nav`: menu khusus halaman yang diletakkan sebelum menu peran. `title`: nama ruang kerja di samping logo.
- * `breakpoint`: lebar layar mulai tampil; di bawahnya, menu lewat menu bawah atau laci.
+ * `breakpoint`: lebar layar mulai tampil; di bawahnya, menu lewat laci menu di header.
  */
 export function AppRail({ nav, title, breakpoint = "lg" }: { nav?: NavGroup[]; title?: string; breakpoint?: "md" | "lg" }) {
-  const { user, profile } = useAuth();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
   const groups = useRailGroups(nav);
-  const signedIn = !!user && !!profile;
-  const row = "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm text-white/75 transition-colors hover:bg-white/10 hover:text-white";
 
   return (
     <aside className={`sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto rounded-3xl bg-gradient-to-b from-navy to-navy-deep p-3 text-white shadow-lg ring-1 ring-white/10 ${SHOW_FROM[breakpoint]}`}>
@@ -114,20 +109,7 @@ export function AppRail({ nav, title, breakpoint = "lg" }: { nav?: NavGroup[]; t
           <BrandMark size={44} />
         </Link>
       )}
-      <NavList nav={groups} pathname={pathname} navy />
-      <div className="mt-3 border-t border-white/10 pt-3">
-        {signedIn ? (
-          <button
-            type="button"
-            onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/" }); }}
-            className={row}
-          >
-            <LogOut className="size-4 shrink-0" /> Keluar
-          </button>
-        ) : (
-          <Link to="/auth" className={row}><LogIn className="size-4 shrink-0" /> Masuk</Link>
-        )}
-      </div>
+      <MenuPanel groups={groups} navy />
     </aside>
   );
 }
