@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/admin/escrow")({
-  head: () => ({ meta: [{ title: "Escrow — Admin Pastodev" }, { name: "description", content: "Dana ditahan, konfirmasi manual pelepasan saldo ke developer, dan refund." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Escrow — Admin Pastodev" }, { name: "description", content: "Dana escrow, pelepasan manual saldo ke developer, pembekuan, dan refund ke saldo client." }, { name: "robots", content: "noindex" }] }),
   component: EscrowPage,
 });
 
 type Row = {
-  order_id: string; kind: string; gross: number; fee: number; net: number; status: string; held_until: string; released_at: string | null; note: string | null; created_at: string;
+  order_id: string; kind: string; gross: number; fee: number; net: number; status: string; released_at: string | null; note: string | null; created_at: string;
   order: { number: number; title: string; status: string; completed_at: string | null } | null;
   developer: { username: string } | null;
 };
@@ -43,10 +43,8 @@ function EscrowPage() {
     else { toast.success(ok); qc.invalidateQueries({ queryKey: ["admin-escrow"] }); }
   }
 
-  const now = Date.now();
   const rows = data?.rows ?? [];
-  const matured = (r: Row) => new Date(r.held_until).getTime() <= now;
-  const ready = rows.filter((r) => escrowStage(r, r.kind, r.order?.status ?? "", now) === "ready_for_admin");
+  const ready = rows.filter((r) => escrowStage(r, r.kind, r.order?.status ?? "") === "ready_for_admin");
   const holding = rows.filter((r) => r.status === "held" && !ready.includes(r));
   const frozen = rows.filter((r) => r.status === "frozen");
   const history = rows.filter((r) => r.status === "released" || r.status === "refunded");
@@ -62,7 +60,6 @@ function EscrowPage() {
           <p className="text-xs text-muted-foreground">
             @{r.developer?.username ?? "?"} · {r.kind === "service" ? "Jasa" : "Karya"} · developer <b>{formatRupiah(r.net)}</b> (total {formatRupiah(r.gross)}, biaya {formatRupiah(r.fee, "Rp0")})
             · {ESCROW_STATUS_LABEL[r.status] ?? r.status}
-            {r.status === "held" && !matured(r) && ` · ditahan sampai ${new Date(r.held_until).toLocaleString("id-ID")}`}
             {r.note && ` · ${r.note}`}
           </p>
         </div>
@@ -78,14 +75,14 @@ function EscrowPage() {
     <Button size="sm" variant="outline" onClick={() => { const n = prompt("Alasan membekukan dana?"); if (n) act("admin_set_escrow", { _order_id: r.order_id, _action: "freeze", _note: n }, "Dana dibekukan"); }}>Bekukan</Button>
   );
   const refund = (r: Row) => (
-    <Button size="sm" variant="ghost" onClick={() => { const n = prompt("Alasan refund? (uang dikembalikan manual di dashboard Midtrans)"); if (n) act("admin_set_escrow", { _order_id: r.order_id, _action: "refund", _note: n }, "Ditandai refund"); }}>Tandai refund</Button>
+    <Button size="sm" variant="ghost" onClick={() => { const n = prompt("Alasan refund? Dana masuk ke saldo client di platform dan pesanan dibatalkan."); if (n) act("admin_set_escrow", { _order_id: r.order_id, _action: "refund", _note: n }, "Dana dikembalikan ke saldo client"); }}>Refund ke saldo client</Button>
   );
 
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-4">
-        <Stat label="Siap diteruskan (menunggu admin)" v={sum(ready)} n={ready.length} big />
-        <Stat label="Masih ditahan" v={sum(holding)} n={holding.length} />
+        <Stat label="Sisa menunggu admin" v={sum(ready)} n={ready.length} big />
+        <Stat label="Disimpan di escrow" v={sum(holding)} n={holding.length} />
         <Stat label="Dibekukan" v={sum(frozen)} n={frozen.length} />
         <Stat label="Perlu refund" v={(data?.refunds ?? []).reduce((a, p) => a + Number(p.gross_amount), 0)} n={data?.refunds.length ?? 0} />
       </div>
@@ -94,21 +91,21 @@ function EscrowPage() {
 
       <Tabs defaultValue="ready">
         <TabsList className="flex h-auto flex-wrap justify-start">
-          <TabsTrigger value="ready">Siap diteruskan ({ready.length})</TabsTrigger>
-          <TabsTrigger value="holding">Ditahan ({holding.length})</TabsTrigger>
+          <TabsTrigger value="ready">Menunggu admin ({ready.length})</TabsTrigger>
+          <TabsTrigger value="holding">Di escrow ({holding.length})</TabsTrigger>
           <TabsTrigger value="frozen">Dibekukan ({frozen.length})</TabsTrigger>
           <TabsTrigger value="refund">Perlu refund ({data?.refunds.length ?? 0})</TabsTrigger>
           <TabsTrigger value="history">Riwayat ({history.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="ready">
-          <p className="mb-2 text-xs text-muted-foreground">Jasa yang sudah diterima client dan lewat masa tahan 1 hari. Tidak ada yang diteruskan otomatis; tekan tombol setelah kamu memeriksa pesanan.</p>
+          <p className="mb-2 text-xs text-muted-foreground">Tidak ada masa tahan lagi: dana jasa otomatis diteruskan begitu client menerima hasil. Daftar ini hanya berisi sisa data lama yang sudah diterima client tetapi dananya belum diteruskan; tekan tombol setelah kamu memeriksa pesanan.</p>
           <ul className="divide-y divide-border rounded-xl border border-border bg-card px-4">
             {ready.map((r) => <RowItem key={r.order_id} r={r} actions={<>{release(r)}{freeze(r)}</>} />)}
             {ready.length === 0 && <li className="py-3 text-sm text-muted-foreground">Tidak ada.</li>}
           </ul>
         </TabsContent>
         <TabsContent value="holding">
-          <p className="mb-2 text-xs text-muted-foreground">Dana yang belum memenuhi syarat. Karya otomatis tersedia untuk developer setelah 1 hari; jasa menunggu hasil dan penerimaan client.</p>
+          <p className="mb-2 text-xs text-muted-foreground">Jasa yang masih dikerjakan atau belum diterima client; dana otomatis diteruskan saat client menerima hasil. Karya langsung tersedia untuk developer. Kamu masih bisa membekukan atau refund ke saldo client.</p>
           <ul className="divide-y divide-border rounded-xl border border-border bg-card px-4">
             {holding.map((r) => <RowItem key={r.order_id} r={r} actions={<>{freeze(r)}{refund(r)}</>} />)}
             {holding.length === 0 && <li className="py-3 text-sm text-muted-foreground">Tidak ada.</li>}
@@ -121,7 +118,7 @@ function EscrowPage() {
           </ul>
         </TabsContent>
         <TabsContent value="refund">
-          <p className="mb-2 text-xs text-muted-foreground">Pembayaran ganda atau refund dari Midtrans. Kembalikan uang lewat dashboard Midtrans, lalu tandai selesai di sini.</p>
+          <p className="mb-2 text-xs text-muted-foreground">Pembayaran ganda atau refund dari Midtrans. Kembalikan uang lewat dashboard Midtrans, lalu tandai selesai di sini. Refund pesanan dari escrow tidak masuk daftar ini: dananya langsung ke saldo client.</p>
           <ul className="divide-y divide-border rounded-xl border border-border bg-card px-4">
             {(data?.refunds ?? []).map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">

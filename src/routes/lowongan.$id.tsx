@@ -390,7 +390,7 @@ function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
   if (order.data) {
     return <Button asChild size="sm" className="rounded-full"><Link to="/pesanan/$id" params={{ id: order.data.id }}><CreditCard /> Buka pesanan</Link></Button>;
   }
-  return <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat kontrak atau pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
+  return <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat kontrak atau pesanan pembayaran; setelah dibayar, dana disimpan di escrow dan kamu bisa mulai bekerja.</p>;
 }
 
 function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone }: { a: App; finishDate: string | null; hourly: boolean; stage: string | null; canAnswer: boolean; slots: number; onDone: () => void }) {
@@ -480,7 +480,7 @@ function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone 
         <ReportButton targetType="application" targetId={a.id} label="Laporkan pelamar" defaultReason={a.status === "accepted" ? "not_completed" : "policy"} className="rounded-full" />
       </div>
       {a.status === "accepted" && !order.data && !contract.data && (
-        <p className="mt-2 text-xs text-muted-foreground">Kontrak GOBI WORK cocok untuk milestone atau per jam; pesanan langsung untuk satu pembayaran. Pembayaran lewat Midtrans, dana ditahan admin (escrow) dan baru diteruskan ke developer setelah pekerjaan selesai dan kamu menerima hasilnya.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Kontrak GOBI WORK cocok untuk milestone atau per jam; pesanan langsung untuk satu pembayaran. Pembayaran lewat Midtrans, dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasilnya.</p>
       )}
       {chat && <div className="mt-3"><ApplicationThread applicationId={a.id} /></div>}
     </div>

@@ -407,7 +407,7 @@ function MilestoneCard({ m, ctx, subs, revs, onDispute }: { m: MilestoneRow; ctx
         <p className="mt-2 text-xs text-muted-foreground">Kirim hasil sebelum akhir hari {fmtDate(m.deadline)} agar client punya waktu memeriksa.{c.revision_limit ? ` Sisa revisi: ${left} kali.` : ""}</p>
       )}
       {m.status === "awaiting_payment" && !act.pay && <p className="mt-2 text-xs text-muted-foreground">Menunggu client membayar lewat Midtrans. Pekerjaan dimulai setelah pembayaran terverifikasi.</p>}
-      {m.status === "approved" && <p className="mt-2 text-xs text-muted-foreground">{m.auto_approved_at ? "Disetujui otomatis karena client tidak menanggapi sampai batas waktu. Dana diteruskan ke saldo freelancer setelah masa tahan escrow 1 hari." : "Disetujui. Admin akan meneruskan dana ke saldo freelancer; status berubah menjadi \"Dana diteruskan\"."}</p>}
+      {m.status === "approved" && <p className="mt-2 text-xs text-muted-foreground">{m.auto_approved_at ? "Disetujui otomatis karena client tidak menanggapi sampai batas waktu. Dana langsung diteruskan ke saldo freelancer." : "Disetujui. Dana langsung diteruskan ke saldo freelancer; jika belum berubah menjadi \"Dana diteruskan\", admin sedang memeriksa dananya."}</p>}
       {showForm && act.submit && <SubmitForm milestoneId={m.id} onDone={() => { setShowForm(false); run(async () => undefined); }} />}
     </article>
   );

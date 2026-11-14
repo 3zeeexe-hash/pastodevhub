@@ -52,6 +52,7 @@ export const DEV_NAV: NavGroup[] = [
 export const CLIENT_NAV: NavGroup[] = [
   { group: "Utama", items: [
     { to: "/dashboard", label: "Ringkasan", Icon: LayoutDashboard, exact: true },
+    { to: "/saldo", label: "Saldo & penarikan", Icon: Wallet },
     { to: "/pesanan", label: "Pesanan saya", Icon: Receipt },
   ] },
   { group: "Proyek", items: [

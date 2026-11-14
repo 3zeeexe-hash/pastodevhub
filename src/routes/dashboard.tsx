@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, Download, FileSignature, ListChecks, Plus, Receipt, Search, Sparkles, UserPlus, Users, Wrench } from "lucide-react";
+import { Briefcase, Download, FileSignature, ListChecks, Plus, Receipt, Search, Sparkles, UserPlus, Users, Wallet, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { looseDb } from "@/lib/escrow-db";
 import { useAuth, timeAgo } from "@/lib/auth";
@@ -12,6 +12,7 @@ import { useSiteConfig } from "@/lib/use-site-config";
 import { workRpc } from "@/lib/work-db";
 import { Button } from "@/components/ui/button";
 import { SignInCta } from "@/components/sign-in-cta";
+import { useClientWallet } from "@/components/client-wallet";
 import { GobiLoader } from "@/components/gobi-loader";
 import { JobStatusBadge } from "@/components/job-card";
 import { OrderStatusBadge } from "@/components/order-status";
@@ -49,6 +50,7 @@ const SHORTCUTS: Sc[] = [
   { to: "/jasa", label: "Pesan jasa", desc: "Layanan siap pakai", Icon: Wrench, feature: "jasa" },
   { to: "/katalog", label: "Katalog karya", desc: "Template, kode, dan aset", Icon: Download, feature: "karya" },
   { to: "/kerja/kontrak", label: "Proyek & kontrak", desc: "Milestone dan pembayaran", Icon: FileSignature, feature: "jobs" },
+  { to: "/saldo", label: "Saldo & penarikan", desc: "Dana kembali dan tarik ke rekening", Icon: Wallet },
   { to: "/pesanan", label: "Pesanan saya", desc: "Pantau semua pesanan", Icon: Receipt },
 ];
 
@@ -77,6 +79,7 @@ function Dashboard() {
     enabled,
     queryFn: () => workRpc<ClientStats>("work_dashboard_stats"),
   });
+  const wallet = useClientWallet();
   if (loading || (user && !profile)) return <main className="mx-auto max-w-6xl px-4"><GobiLoader page /></main>;
   if (!user) return <main className="mx-auto max-w-xl px-4 py-12"><SignInCta text="Masuk untuk membuka dashboard." /></main>;
   if (profile?.account_type === "developer") return <Navigate to="/studio" />;
@@ -90,7 +93,9 @@ function Dashboard() {
   const inReview = jobs.filter((j) => normalizeModeration(j.moderation_status) === "pending").length;
   const rejected = jobs.filter((j) => normalizeModeration(j.moderation_status) === "rejected").length;
   const newApplicants = Number(c?.["applicants_new"] ?? 0);
-  const shortcuts = SHORTCUTS.filter((s) => !s.feature || isFeatureOn(flags, s.feature));
+  const walletAvailable = wallet.data?.wallet.available;
+  const shortcuts = SHORTCUTS.filter((s) => !s.feature || isFeatureOn(flags, s.feature))
+    .map((s) => (s.to === "/saldo" && walletAvailable !== undefined ? { ...s, desc: `Tersedia ${formatRupiah(walletAvailable, "Rp0")}` } : s));
   const name = profile?.display_name || profile?.username || "";
 
   const actions: ActionItem[] = [
@@ -111,6 +116,7 @@ function Dashboard() {
         <SummaryHero eyebrow="dashboard client" title={`Halo, ${name}`} subtitle="Pasang proyek, pilih developer terbaik, dan pantau pesananmu." avatar={{ name: profile!.username, url: profile!.avatar_url ?? null }}>
           {isFeatureOn(flags, "jobs") && <Button asChild className="shadow-glow"><Link to="/lowongan/baru"><Plus /> Pasang lowongan</Link></Button>}
           <Button asChild variant="outline" className={heroOutline}><Link to="/search" search={{ q: "", type: "users" }}><Search /> Cari developer</Link></Button>
+          <Button asChild variant="outline" className={heroOutline}><Link to="/saldo"><Wallet /> Saldo</Link></Button>
           {isFeatureOn(flags, "karya") && <Button asChild variant="outline" className={heroOutline}><Link to="/katalog"><Download /> Katalog</Link></Button>}
         </SummaryHero>
 
