@@ -9,6 +9,7 @@ import {
 } from "@/lib/jobs";
 import { fetchJobs } from "@/lib/jobs-query";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/job-card";
 import { GobiLoader } from "@/components/gobi-loader";
@@ -156,8 +157,8 @@ function JobsPage() {
               </Field>
               <Field label="Lokasi"><Input value={f.location} onChange={(e) => set({ location: e.target.value })} placeholder="Kota atau provinsi" className="h-10 rounded-xl" /></Field>
               <Field label="Teknologi"><Input value={f.skill} onChange={(e) => set({ skill: e.target.value })} placeholder="React, Laravel, Figma…" className="h-10 rounded-xl" /></Field>
-              <Field label="Budget minimal (Rp)">
-                <Input type="number" min={0} step={100000} inputMode="numeric" value={f.minBudget || ""} onChange={(e) => set({ minBudget: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} placeholder="1000000" className="h-10 rounded-xl" />
+              <Field label="Budget minimal">
+                <RupiahInput value={f.minBudget ? String(f.minBudget) : ""} onValueChange={(v) => set({ minBudget: Number(v || 0) })} placeholder="Rp 1.000.000" className="h-10 rounded-xl" />
               </Field>
             </div>
           )}

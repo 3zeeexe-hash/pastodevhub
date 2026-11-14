@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { CATEGORIES, errMsg, safeFileName, safeUrl } from "@/lib/market";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,7 +103,7 @@ function KaryaForm() {
           <Button type="button" size="sm" variant={!paid ? "default" : "outline"} onClick={() => setPaid(false)}>Gratis</Button>
           <Button type="button" size="sm" variant={paid ? "default" : "outline"} onClick={() => setPaid(true)}>Berbayar</Button>
         </div>
-        {paid && <div className="mt-3"><Label htmlFor="pr">Harga (Rp)</Label><Input id="pr" inputMode="numeric" value={f.price === "0" ? "" : f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(/\D/g, "") })} className="w-48" placeholder="50000" /></div>}
+        {paid && <div className="mt-3"><Label htmlFor="pr">Harga</Label><RupiahInput id="pr" value={f.price === "0" ? "" : f.price} onValueChange={(v) => setF({ ...f, price: v })} className="w-48" placeholder="Rp 50.000" /></div>}
       </div>
       <div className="rounded-lg border border-border p-4">
         <Label htmlFor="file">File karya (ZIP, maks 50 MB)</Label>

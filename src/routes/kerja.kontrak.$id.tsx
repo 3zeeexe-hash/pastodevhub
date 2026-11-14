@@ -13,6 +13,10 @@ import {
 import { isClient, isFreelancer, milestoneActions, milestonesMatchTotal, timesheetSummary, validAmount, validTimesheetEntry } from "@/lib/work";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RupiahInput } from "@/components/rupiah-input";
+import { parseRupiah } from "@/lib/rupiah";
+import { isMissingFunction } from "@/lib/job-terms";
+import { autoReleaseAt, canRequestRevision, formatDuration, hoursBetween, revisionsLeft, todayWIB } from "@/lib/work-deadline";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +33,8 @@ type Loaded = {
 };
 
 async function loadContract(id: string): Promise<Loaded | null> {
+  // Teruskan dana yang sudah melewati batas waktu client (SQL 006). Galat (mis. SQL belum dijalankan) diabaikan.
+  try { await looseDb.rpc("work_sweep_due"); } catch { /* tidak kritis */ }
   const head = await looseDb.from("work_contracts").select(CONTRACT_SELECT).eq("id", id).maybeSingle();
   if (head.error) throw new Error(errMsg(head.error));
   if (!head.data) return null;
@@ -102,13 +108,14 @@ function ContractPage() {
       <Link to="/kerja/kontrak" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Semua kontrak</Link>
 
       <header className="rounded-xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center gap-2"><ContractPill status={c.status} /><Pill>{c.payment_type === "fixed" ? "Harga tetap" : "Per jam"}</Pill><span className="text-xs text-muted-foreground">Versi {c.version}</span></div>
+        <div className="flex flex-wrap items-center gap-2"><ContractPill status={c.status} /><Pill>{c.payment_type === "fixed" ? "Kerja langsung" : "Per jam"}</Pill><span className="text-xs text-muted-foreground">Versi {c.version}</span></div>
         <h1 className="mt-2 text-2xl font-bold">{c.title}</h1>
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
           <Info label="Client" value={personName(c.client)} />
           <Info label="Freelancer" value={personName(c.freelancer)} />
           <Info label={c.payment_type === "fixed" ? "Nilai kontrak" : "Tarif per jam"} value={c.payment_type === "fixed" ? rp(c.total_amount) : rp(c.hourly_rate)} />
-          <Info label="Deadline" value={fmtDate(c.deadline)} />
+          <Info label="Selesai paling lambat" value={c.deadline ? fmtDate(c.deadline) : "Fleksibel"} />
+          {c.payment_type === "fixed" && <Info label="Batas revisi" value={c.revision_limit ? `${c.revisions_used ?? 0} dari ${c.revision_limit} kali dipakai` : "Tanpa batas"} />}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           Persetujuan client: {c.client_approved_at ? fmtDate(c.client_approved_at) : "belum"} · freelancer: {c.freelancer_approved_at ? fmtDate(c.freelancer_approved_at) : "belum"}. Kontrak hanya aktif setelah keduanya tercatat.
@@ -221,14 +228,14 @@ function Terms({ c }: { c: ContractRow }) {
 
 function DraftEditor({ ctx, milestones, onCancel }: { ctx: Ctx; milestones: MilestoneRow[]; onCancel: () => void }) {
   const { c, busy, run } = ctx;
-  const [amount, setAmount] = useState(String(c.payment_type === "fixed" ? c.total_amount : c.hourly_rate));
+  const [amount, setAmount] = useState(String(c.payment_type === "fixed" ? c.total_amount : c.hourly_rate)); // digit saja
   const [m, setM] = useState({ title: "", desc: "", amount: "", deadline: "" });
   const fixed = c.payment_type === "fixed";
   const sum = milestones.reduce((s, x) => s + x.amount, 0);
   const ready = fixed ? milestonesMatchTotal(c.total_amount, milestones) : validAmount(c.hourly_rate);
   function addMilestone(e: React.FormEvent) {
     e.preventDefault();
-    const a = Math.round(Number(m.amount));
+    const a = parseRupiah(m.amount);
     if (m.title.trim().length < 3) { toast.error("Nama milestone minimal 3 huruf."); return; }
     if (!validAmount(a)) { toast.error("Nilai milestone tidak valid."); return; }
     run(async () => {
@@ -240,9 +247,9 @@ function DraftEditor({ ctx, milestones, onCancel }: { ctx: Ctx; milestones: Mile
     <section aria-labelledby="draft" className="space-y-4 rounded-xl border border-primary/40 bg-card p-5">
       <h2 id="draft" className="font-semibold">Siapkan kontrak</h2>
       <div className="flex flex-wrap items-end gap-2">
-        <div className="space-y-1.5"><Label htmlFor="amt">{fixed ? "Nilai kontrak (Rp)" : "Tarif per jam (Rp)"}</Label><Input id="amt" type="number" min={1} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="amt">{fixed ? "Nilai kontrak" : "Tarif per jam"}</Label><RupiahInput id="amt" value={amount} onValueChange={setAmount} /></div>
         <Button variant="outline" disabled={busy} onClick={() => {
-          const a = Math.round(Number(amount));
+          const a = parseRupiah(amount);
           if (!validAmount(a)) { toast.error("Nilai tidak valid."); return; }
           run(() => workRpc("work_set_contract_amount", { _contract_id: c.id, _amount: a }), "Nilai disimpan");
         }}>Simpan nilai</Button>
@@ -266,9 +273,9 @@ function DraftEditor({ ctx, milestones, onCancel }: { ctx: Ctx; milestones: Mile
           </div>
           <form onSubmit={addMilestone} className="grid gap-2 rounded-lg border border-dashed border-border p-3 md:grid-cols-2">
             <div className="space-y-1.5"><Label htmlFor="mt">Nama milestone</Label><Input id="mt" value={m.title} onChange={(e) => setM({ ...m, title: e.target.value })} maxLength={120} /></div>
-            <div className="space-y-1.5"><Label htmlFor="ma">Nilai (Rp)</Label><Input id="ma" type="number" min={1} step={1000} value={m.amount} onChange={(e) => setM({ ...m, amount: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label htmlFor="ma">Nilai</Label><RupiahInput id="ma" value={m.amount} onValueChange={(v) => setM({ ...m, amount: v })} /></div>
             <div className="space-y-1.5 md:col-span-2"><Label htmlFor="md">Deskripsi</Label><Textarea id="md" rows={2} value={m.desc} onChange={(e) => setM({ ...m, desc: e.target.value })} maxLength={4000} /></div>
-            <div className="space-y-1.5"><Label htmlFor="mdl">Deadline</Label><Input id="mdl" type="date" value={m.deadline} onChange={(e) => setM({ ...m, deadline: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label htmlFor="mdl">Tanggal selesai</Label><Input id="mdl" type="date" value={m.deadline} onChange={(e) => setM({ ...m, deadline: e.target.value })} /></div>
             <div className="flex items-end"><Button type="submit" variant="outline" disabled={busy}><Plus /> Tambah milestone</Button></div>
           </form>
         </>
@@ -290,12 +297,16 @@ function MilestoneCard({ m, ctx, subs, revs, onDispute }: { m: MilestoneRow; ctx
   const party = isClient(c, uid) || isFreelancer(c, uid);
   const canDispute = party && c.status === "active" && ["funded", "in_progress", "submitted", "revision_requested", "approved"].includes(m.status);
   const last = subs[subs.length - 1];
+  const left = revisionsLeft(c.revision_limit, c.revisions_used ?? 0);
+  const mayRevise = canRequestRevision(c.revision_limit, c.revisions_used ?? 0);
+  const releaseAt = m.status === "submitted" && m.deadline && c.payment_type === "fixed" ? autoReleaseAt(m.deadline, last?.created_at ?? null) : null;
+  const fmtDateTime = (d: Date) => d.toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
   return (
     <article className="rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-semibold">{m.position}. {m.title}</p>
-          <p className="text-sm text-muted-foreground">{rp(m.amount)}{m.deadline ? ` · deadline ${fmtDate(m.deadline)}` : ""}</p>
+          <p className="text-sm text-muted-foreground">{rp(m.amount)}{m.deadline ? ` · selesai paling lambat ${fmtDate(m.deadline)}` : ""}</p>
         </div>
         <MilestonePill status={m.status} />
       </div>
@@ -324,15 +335,26 @@ function MilestoneCard({ m, ctx, subs, revs, onDispute }: { m: MilestoneRow; ctx
           <Button size="sm" disabled={busy} onClick={() => { if (confirm("Setujui hasil ini? Setelah disetujui, dana siap diteruskan admin ke freelancer.")) run(() => workRpc("work_approve_milestone", { _milestone_id: m.id }), "Hasil disetujui"); }}><Check /> Setujui hasil</Button>
         )}
         {act.requestRevision && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => setAsk({
+          <Button size="sm" variant="outline" disabled={busy || !mayRevise} title={mayRevise ? undefined : "Jatah revisi sudah habis"} onClick={() => setAsk({
             title: "Minta revisi", label: "Apa yang perlu diperbaiki?", min: 5, confirm: "Kirim permintaan revisi",
             onSubmit: async (t) => { await workRpc("work_request_revision", { _milestone_id: m.id, _note: t }); toast.success("Revisi diminta"); ctx.run(async () => undefined); },
           })}>Minta revisi</Button>
         )}
         {canDispute && <Button size="sm" variant="ghost" onClick={onDispute}><Scale /> Sengketa</Button>}
       </div>
+      {releaseAt && (
+        <p className="mt-2 rounded-lg bg-primary/10 p-2 text-xs">
+          {isClient(c, uid)
+            ? <>Setujui atau minta revisi sebelum <b>{fmtDateTime(releaseAt)}</b>. Setelah itu hasil dianggap disetujui dan dana otomatis diteruskan ke freelancer.</>
+            : <>Jika client tidak menanggapi sampai <b>{fmtDateTime(releaseAt)}</b>, hasil dianggap disetujui dan dana otomatis masuk ke saldomu.</>}
+          {c.revision_limit ? <> {left === 0 ? "Jatah revisi sudah habis." : `Sisa revisi: ${left} kali.`}</> : null}
+        </p>
+      )}
+      {m.deadline && ["funded", "in_progress", "revision_requested"].includes(m.status) && c.payment_type === "fixed" && isFreelancer(c, uid) && (
+        <p className="mt-2 text-xs text-muted-foreground">Kirim hasil sebelum akhir hari {fmtDate(m.deadline)} agar client punya waktu memeriksa.{c.revision_limit ? ` Sisa revisi: ${left} kali.` : ""}</p>
+      )}
       {m.status === "awaiting_payment" && !act.pay && <p className="mt-2 text-xs text-muted-foreground">Menunggu client membayar lewat Midtrans. Pekerjaan dimulai setelah pembayaran terverifikasi.</p>}
-      {m.status === "approved" && <p className="mt-2 text-xs text-muted-foreground">Disetujui. Admin akan meneruskan dana ke saldo freelancer; status berubah menjadi "Dana diteruskan".</p>}
+      {m.status === "approved" && <p className="mt-2 text-xs text-muted-foreground">{m.auto_approved_at ? "Disetujui otomatis karena client tidak menanggapi sampai batas waktu. Dana diteruskan ke saldo freelancer setelah masa tahan escrow 1 hari." : "Disetujui. Admin akan meneruskan dana ke saldo freelancer; status berubah menjadi \"Dana diteruskan\"."}</p>}
       {showForm && act.submit && <SubmitForm milestoneId={m.id} onDone={() => { setShowForm(false); run(async () => undefined); }} />}
     </article>
   );
@@ -370,14 +392,27 @@ function HourlyPanel({ ctx, sheets, orders }: { ctx: Ctx; sheets: TimesheetRow[]
   const sum = timesheetSummary(sheets, c.hourly_rate);
   const unbilled = sheets.filter((s) => s.status === "approved" && !s.billed_order_id);
   const unbilledHours = unbilled.reduce((t, s) => t + s.hours, 0);
-  const [f, setF] = useState({ date: new Date().toISOString().slice(0, 10), hours: "", note: "" });
+  const today = todayWIB();
+  const [f, setF] = useState({ date: today, start: "", end: "", note: "" });
   const active = c.status === "active";
+  const h = hoursBetween(f.start, f.end);
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const h = Number(f.hours);
-    if (!validTimesheetEntry(new Date(f.date + "T00:00:00"), h)) { toast.error("Tanggal atau jam tidak valid (maksimal 60 hari ke belakang, 0–24 jam)."); return; }
+    if (!f.start || !f.end) { toast.error("Isi jam mulai dan jam selesai."); return; }
+    if (h === null) { toast.error("Jam selesai harus setelah jam mulai (hari yang sama)."); return; }
+    if (!validTimesheetEntry(new Date(f.date + "T00:00:00"), h)) { toast.error("Tanggal tidak valid (maksimal 60 hari ke belakang, tidak di masa depan)."); return; }
+    if (c.deadline && f.date > c.deadline) { toast.error("Tanggal kerja melewati tanggal selesai kontrak."); return; }
     if (f.note.trim().length < 5) { toast.error("Catat pekerjaan yang dilakukan."); return; }
-    run(async () => { await workRpc("work_submit_timesheet", { _contract_id: c.id, _work_date: f.date, _hours: h, _note: f.note.trim() }); setF({ ...f, hours: "", note: "" }); }, "Jam kerja dikirim");
+    run(async () => {
+      try {
+        await workRpc("work_submit_timesheet_range", { _contract_id: c.id, _work_date: f.date, _start: f.start, _end: f.end, _note: f.note.trim() });
+      } catch (err) {
+        // SQL 006 belum dijalankan: catat sebagai jumlah jam seperti sebelumnya.
+        if (!isMissingFunction({ message: err instanceof Error ? err.message : "" })) throw err;
+        await workRpc("work_submit_timesheet", { _contract_id: c.id, _work_date: f.date, _hours: h, _note: f.note.trim() });
+      }
+      setF({ ...f, start: "", end: "", note: "" });
+    }, "Jam kerja dikirim");
   }
   return (
     <section aria-labelledby="hr" className="space-y-4">
@@ -390,11 +425,13 @@ function HourlyPanel({ ctx, sheets, orders }: { ctx: Ctx; sheets: TimesheetRow[]
       </div>
 
       {iFree && active && (
-        <form onSubmit={submit} className="grid gap-2 rounded-xl border border-border bg-card p-4 md:grid-cols-[160px_120px_1fr_auto]">
-          <div className="space-y-1.5"><Label htmlFor="td">Tanggal</Label><Input id="td" type="date" value={f.date} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label htmlFor="th">Jam</Label><Input id="th" type="number" min={0.25} max={24} step={0.25} value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
+        <form onSubmit={submit} className="grid gap-2 rounded-xl border border-border bg-card p-4 md:grid-cols-[160px_110px_110px_1fr_auto]">
+          <div className="space-y-1.5"><Label htmlFor="td">Tanggal</Label><Input id="td" type="date" value={f.date} max={c.deadline && c.deadline < today ? c.deadline : today} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="ts">Jam mulai</Label><Input id="ts" type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="te">Jam selesai</Label><Input id="te" type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></div>
           <div className="space-y-1.5"><Label htmlFor="tn">Catatan pekerjaan</Label><Input id="tn" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={2000} /></div>
           <div className="flex items-end"><Button disabled={busy}>Kirim</Button></div>
+          {h !== null && <p className="text-xs text-muted-foreground md:col-span-5">Durasi: <b>{formatDuration(h)}</b>{c.hourly_rate ? ` · ${rp(Math.round(h * c.hourly_rate))} bila disetujui` : ""}</p>}
         </form>
       )}
 
@@ -403,7 +440,7 @@ function HourlyPanel({ ctx, sheets, orders }: { ctx: Ctx; sheets: TimesheetRow[]
           {sheets.map((s) => (
             <li key={s.id} className="rounded-xl border border-border bg-card p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium">{fmtDate(s.work_date)} · {s.hours} jam</span>
+                <span className="font-medium">{fmtDate(s.work_date)} · {s.start_time && s.end_time ? `${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} · ` : ""}{formatDuration(s.hours)}</span>
                 <Pill tone={s.status === "approved" ? "ok" : s.status === "rejected" ? "bad" : "warn"}>{s.status === "approved" ? (s.billed_order_id ? "Disetujui · ditagih" : "Disetujui") : s.status === "rejected" ? "Ditolak" : "Menunggu"}</Pill>
               </div>
               <p className="mt-1 text-muted-foreground">{s.note}</p>

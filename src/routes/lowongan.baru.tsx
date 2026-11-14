@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg } from "@/lib/market";
 import {
-  EXPERIENCE_LEVELS, JOB_CATEGORIES, JOB_TYPES, PAYMENT_TYPES, WORK_MODES,
+  EXPERIENCE_LEVELS, JOB_CATEGORIES, JOB_TYPES, WORK_MODES,
   budgetLabel, canPostJob, experienceLabel, jobCategoryLabel, jobTypeLabel, parseSkills, paymentTypeLabel,
   todayISO, validateJobForm, workModeLabel, type JobFormInput,
 } from "@/lib/jobs";
@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { RupiahInput } from "@/components/rupiah-input";
+import { parseRupiah } from "@/lib/rupiah";
+import { MAX_REVISION_LIMIT } from "@/lib/jobs";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 
@@ -34,20 +38,26 @@ export const Route = createFileRoute("/lowongan/baru")({
 
 type FormState = {
   title: string; description: string; category: string; skills: string; jobType: string; workMode: string;
-  location: string; experience: string; paymentType: string; min: string; max: string; deadline: string;
+  location: string; experience: string; min: string; max: string; deadline: string;
   positions: string; requirements: string;
+  /** Tombol "Bayar per jam"; mati = kerja langsung (bawaan). */
+  hourly: boolean;
+  /** Tombol "Batasi revisi"; angkanya di revisionLimit. */
+  limitRevisions: boolean; revisionLimit: string;
 };
 const INITIAL: FormState = {
   title: "", description: "", category: "web-development", skills: "", jobType: "freelance", workMode: "remote",
-  location: "", experience: "mid", paymentType: "fixed", min: "", max: "", deadline: "", positions: "1", requirements: "",
+  location: "", experience: "mid", min: "", max: "", deadline: "", positions: "1", requirements: "",
+  hourly: false, limitRevisions: false, revisionLimit: "2",
 };
 const SELECT_CLS = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
 
 function toInput(f: FormState): JobFormInput {
   return {
     title: f.title, description: f.description, category: f.category, skills: parseSkills(f.skills), jobType: f.jobType,
-    workMode: f.workMode, location: f.location, experience: f.experience, paymentType: f.paymentType,
-    min: Number(f.min || 0), max: Number(f.max || 0), deadline: f.deadline, positions: Number(f.positions || 0), requirements: f.requirements,
+    workMode: f.workMode, location: f.location, experience: f.experience, paymentType: f.hourly ? "hourly" : "fixed",
+    min: parseRupiah(f.min), max: parseRupiah(f.max), deadline: f.deadline, positions: Number(f.positions || 0), requirements: f.requirements,
+    revisionLimit: !f.hourly && f.limitRevisions ? Number(f.revisionLimit || 0) : null,
   };
 }
 
@@ -100,10 +110,13 @@ function NewJob() {
       budget_min: v.min, budget_max: v.max, deadline: v.deadline || null,
       job_type: v.jobType, work_mode: v.workMode, location: v.location.trim() || null, experience_level: v.experience,
       payment_type: v.paymentType, positions: v.positions, requirements: v.requirements.trim() || null,
+      // Hanya dikirim jika client mengaktifkannya, supaya lowongan biasa tetap jalan sebelum SQL 006 dijalankan.
+      ...(v.revisionLimit ? { revision_limit: v.revisionLimit } : {}),
     }).select("id").single();
     setBusy(false);
     if (error || !data) {
-      if (error?.code === "42703") toast.error("Skema GOBI WORK belum aktif di database. Jalankan docs/sql/gobi-work/001_gobi_work_core.sql lewat Lovable.");
+      if (error?.code === "42703" && v.revisionLimit) toast.error("Batas revisi belum aktif di database. Jalankan docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql, atau matikan batas revisi.");
+      else if (error?.code === "42703") toast.error("Skema GOBI WORK belum aktif di database. Jalankan docs/sql/gobi-work/001_gobi_work_core.sql lewat Lovable.");
       else toast.error(error ? errMsg(error) : "Gagal mengirim lowongan.");
       return;
     }
@@ -117,7 +130,8 @@ function NewJob() {
       ["Kategori", jobCategoryLabel(v.category)], ["Jenis", jobTypeLabel(v.jobType)], ["Metode kerja", workModeLabel(v.workMode)],
       ["Lokasi", v.location.trim() || (v.workMode === "remote" ? "Remote" : "—")], ["Pengalaman", experienceLabel(v.experience)],
       ["Pembayaran", paymentTypeLabel(v.paymentType)], ["Budget", `${budgetLabel(v.min, v.max)}${v.paymentType === "hourly" ? " /jam" : ""}`],
-      ["Deadline", v.deadline ? new Date(v.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "Fleksibel"],
+      ["Selesai paling lambat", v.deadline ? new Date(v.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "Fleksibel"],
+      ...(v.paymentType === "fixed" ? [["Batas revisi", v.revisionLimit ? `${v.revisionLimit} kali` : "Tanpa batas"] as [string, string]] : []),
       ["Kebutuhan", `${v.positions} freelancer`],
     ];
     return (
@@ -157,13 +171,40 @@ function NewJob() {
           <div><Label htmlFor="wm">Metode kerja</Label>
             <select id="wm" value={f.workMode} onChange={(e) => up({ workMode: e.target.value })} className={SELECT_CLS}>{WORK_MODES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select><Err m={errors.workMode} /></div>
           <div className="sm:col-span-2"><Label htmlFor="lc">Lokasi{f.workMode === "remote" ? " (opsional)" : ""}</Label><Input id="lc" maxLength={100} value={f.location} onChange={(e) => up({ location: e.target.value })} placeholder="Kota atau provinsi" /><Err m={errors.location} /></div>
-          <div><Label htmlFor="pt">Sistem pembayaran</Label>
-            <select id="pt" value={f.paymentType} onChange={(e) => up({ paymentType: e.target.value })} className={SELECT_CLS}>{PAYMENT_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select><Err m={errors.paymentType} /></div>
+          <div className="sm:col-span-2 rounded-xl border border-border bg-secondary/40 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label htmlFor="hr" className="text-sm font-semibold">Bayar per jam</Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {f.hourly
+                    ? "Aktif: freelancer melaporkan jam mulai dan jam selesai, client menyetujui, lalu menagih jam yang disetujui."
+                    : "Mati (bawaan): kerja langsung dengan harga tetap. Client membayar, freelancer mengerjakan sampai tanggal selesai."}
+                </p>
+              </div>
+              <Switch id="hr" checked={f.hourly} onCheckedChange={(v) => up({ hourly: v, limitRevisions: v ? false : f.limitRevisions })} aria-label="Bayar per jam" />
+            </div>
+            <p className="mt-2 text-xs font-medium text-primary">{f.hourly ? "Sistem pembayaran: Per jam" : "Sistem pembayaran: Kerja langsung"}</p>
+          </div>
           <div><Label htmlFor="ps">Jumlah freelancer</Label><Input id="ps" type="number" min={1} max={100} value={f.positions} onChange={(e) => up({ positions: e.target.value })} /><p className="mt-1 text-xs text-muted-foreground">Lowongan tetap dibuka sampai semua posisi terisi.</p><Err m={errors.positions} /></div>
-          <div><Label htmlFor="mn">{f.paymentType === "hourly" ? "Tarif minimum per jam (Rp)" : "Budget minimum (Rp)"}</Label><Input id="mn" type="number" min={0} step={1000} inputMode="numeric" value={f.min} onChange={(e) => up({ min: e.target.value })} placeholder="500000" /></div>
-          <div><Label htmlFor="mx">{f.paymentType === "hourly" ? "Tarif maksimum per jam (Rp)" : "Budget maksimum (Rp)"}</Label><Input id="mx" type="number" min={0} step={1000} inputMode="numeric" value={f.max} onChange={(e) => up({ max: e.target.value })} placeholder="2000000" /></div>
+          <div><Label htmlFor="mn">{f.hourly ? "Tarif minimum per jam" : "Budget minimum"}</Label><RupiahInput id="mn" value={f.min} onValueChange={(v) => up({ min: v })} placeholder="Rp 500.000" /></div>
+          <div><Label htmlFor="mx">{f.hourly ? "Tarif maksimum per jam" : "Budget maksimum"}</Label><RupiahInput id="mx" value={f.max} onValueChange={(v) => up({ max: v })} placeholder="Rp 2.000.000" /></div>
           <div className="sm:col-span-2"><Err m={errors.budget} /></div>
-          <div><Label htmlFor="dl">Deadline (opsional)</Label><Input id="dl" type="date" min={todayISO()} value={f.deadline} onChange={(e) => up({ deadline: e.target.value })} /><Err m={errors.deadline} /></div>
+          <div><Label htmlFor="dl">Pekerjaan harus selesai sampai (opsional)</Label><Input id="dl" type="date" min={todayISO()} value={f.deadline} onChange={(e) => up({ deadline: e.target.value })} />
+            <p className="mt-1 text-xs text-muted-foreground">Pelamar memilih tanggal selesai sendiri, tidak boleh melewati tanggal ini. Jika setelah freelancer mengirim hasil client tidak menyetujui atau meminta revisi sampai 1 hari setelah tanggal selesai, dana otomatis diteruskan ke freelancer.</p><Err m={errors.deadline} /></div>
+          {!f.hourly && (
+            <div className="rounded-xl border border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div><Label htmlFor="lr" className="text-sm font-semibold">Batasi jumlah revisi</Label><p className="text-xs text-muted-foreground">{f.limitRevisions ? "Revisi di atas batas ditolak sistem." : "Mati: revisi tidak dibatasi."}</p></div>
+                <Switch id="lr" checked={f.limitRevisions} onCheckedChange={(v) => up({ limitRevisions: v })} aria-label="Batasi jumlah revisi" />
+              </div>
+              {f.limitRevisions && (
+                <div className="mt-3 max-w-[10rem]"><Label htmlFor="rl">Maksimal revisi</Label>
+                  <select id="rl" value={f.revisionLimit} onChange={(e) => up({ revisionLimit: e.target.value })} className={SELECT_CLS}>
+                    {Array.from({ length: MAX_REVISION_LIMIT }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n} kali</option>)}
+                  </select><Err m={errors["revisionLimit"]} /></div>
+              )}
+            </div>
+          )}
         </div>
         <div><Label htmlFor="s">Keahlian yang dibutuhkan</Label><Input id="s" value={f.skills} onChange={(e) => up({ skills: e.target.value })} placeholder="React, Laravel, Figma" /><p className="mt-1 text-xs text-muted-foreground">Pisahkan dengan koma, maksimal 12.</p><Err m={errors.skills} /></div>
         <div><Label htmlFor="rq">Persyaratan tambahan (opsional)</Label><Textarea id="rq" rows={4} maxLength={4000} value={f.requirements} onChange={(e) => up({ requirements: e.target.value })} placeholder="Contoh: bersedia meeting mingguan, sudah pernah membuat toko online…" /><Err m={errors.requirements} /></div>

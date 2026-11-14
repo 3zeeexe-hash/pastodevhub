@@ -13,6 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RupiahInput } from "@/components/rupiah-input";
+import { JobTermsCard } from "@/components/job-terms";
+import { bidText, isMissingColumn, isMissingFunction, useJobTerms, type JobTerms } from "@/lib/job-terms";
+import { parseRupiah } from "@/lib/rupiah";
+import { addDaysISO, finishDateError, todayWIB } from "@/lib/work-deadline";
 import { AvatarMini } from "@/components/avatar-mini";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
@@ -53,11 +58,23 @@ const CARD = "rounded-2xl bg-card shadow-sm ring-1 ring-border";
  */
 async function respondToApplication(applicationId: string, accept: boolean) {
   const r = await looseDb.rpc("work_respond_application", { _application_id: applicationId, _accept: accept });
-  if (r.error && (r.error.code === "PGRST202" || /could not find the function/i.test(r.error.message ?? ""))) {
+  if (r.error && isMissingFunction(r.error)) {
     const old = await supabase.rpc("respond_job_application", { _application_id: applicationId, _accept: accept });
-    return { error: old.error, summary: null as RespondSummary | null };
+    return { error: old.error, summary: null as RespondSummary | null, contractId: null as string | null };
   }
-  return { error: r.error, summary: (r.data ?? null) as RespondSummary | null };
+  return { error: r.error, summary: (r.data ?? null) as RespondSummary | null, contractId: null as string | null };
+}
+
+/**
+ * Menerima lamaran + membuat kesepakatan kerja (kontrak) otomatis lewat work_accept_application (SQL 006).
+ * Persetujuan client tercatat saat menerima; kontrak aktif setelah freelancer setuju, baru client membayar.
+ * Jika SQL 006 belum dijalankan, dipakai alur lama (terima saja, kontrak dibuat manual).
+ */
+async function acceptApplication(applicationId: string) {
+  const r = await looseDb.rpc("work_accept_application", { _application_id: applicationId });
+  if (r.error && isMissingFunction(r.error)) return respondToApplication(applicationId, true);
+  const d = (r.data ?? null) as (RespondSummary & { contract_id?: string }) | null;
+  return { error: r.error, summary: d, contractId: d?.contract_id ?? null };
 }
 
 function JobDetail() {
@@ -83,6 +100,7 @@ function JobDetail() {
       return { positions: r.positions ?? 1, moderation: normalizeModeration(r.moderation_status), note: r.moderation_note };
     },
   });
+  const termsQ = useJobTerms(id);
   const ownerId = job.data?.client_id;
   const viewerIsOwner = !!user && !!ownerId && user.id === ownerId;
   // Tahap lamaran (GOBI WORK, SQL 002). Diambil terpisah supaya halaman tetap jalan sebelum SQL itu dijalankan.
@@ -95,6 +113,16 @@ function JobDetail() {
       return Object.fromEntries(((data ?? []) as { id: string; work_stage: string | null }[]).map((r) => [r.id, r.work_stage])) as Record<string, string | null>;
     },
   });
+  // Tanggal selesai yang diusulkan pelamar (SQL 006). Pemilik melihat semua; pelamar hanya miliknya.
+  const finishDates = useQuery({
+    queryKey: ["job-app-finish", id, user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await looseDb.from("job_applications").select("id,finish_date").eq("job_id", id);
+      if (error) return {} as Record<string, string | null>;
+      return Object.fromEntries(((data ?? []) as { id: string; finish_date: string | null }[]).map((r) => [r.id, r.finish_date])) as Record<string, string | null>;
+    },
+  });
   // Saat pemilik membuka daftar pelamar, lamaran yang masih menunggu ditandai "dilihat" (sekali; diabaikan jika SQL 002 belum ada).
   const hasPending = !!apps.data?.some((a) => a.status === "pending");
   useEffect(() => {
@@ -103,7 +131,7 @@ function JobDetail() {
     }
   }, [viewerIsOwner, hasPending, id, qc]);
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["job-app-stages", id] });
+    qc.invalidateQueries({ queryKey: ["job", id] }); qc.invalidateQueries({ queryKey: ["job-apps", id] }); qc.invalidateQueries({ queryKey: ["job-app-stages", id] }); qc.invalidateQueries({ queryKey: ["job-app-finish", id] });
     qc.invalidateQueries({ queryKey: ["job-review", id] }); qc.invalidateQueries({ queryKey: ["jobs"] });
   };
 
@@ -119,6 +147,7 @@ function JobDetail() {
   // Hanya pemilik yang melihat semua lamaran, jadi hitungan ini dipakai di tampilan pemilik.
   const acceptedCount = apps.data?.filter((a) => a.status === "accepted").length ?? 0;
   const left = slotsLeft(positions, acceptedCount);
+  const terms = termsQ.data ?? { paymentType: "fixed", deadline: j.deadline ? String(j.deadline).slice(0, 10) : null, revisionLimit: null } satisfies JobTerms;
 
   async function setStatus(status: "open" | "closed") {
     const { error } = await supabase.from("jobs").update({ status }).eq("id", id);
@@ -170,7 +199,7 @@ function JobDetail() {
             <div className="grid grid-cols-1 gap-3 text-sm min-[420px]:grid-cols-3">
               <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Anggaran</p><p className="flex items-start gap-1 font-bold"><Wallet className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 break-words">{budgetLabel(j.budget_min, j.budget_max)}</span></p></div>
               <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Pelamar</p><p className="flex items-center gap-1 font-bold"><Users className="size-4" />{j.applications_count}</p></div>
-              <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Tenggat</p><p className="flex items-center gap-1 font-bold"><CalendarClock className="size-4 shrink-0" />{j.deadline ? new Date(j.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "Fleksibel"}</p></div>
+              <div className="rounded-xl bg-secondary/60 p-3"><p className="text-xs text-muted-foreground">Selesai paling lambat</p><p className="flex items-center gap-1 font-bold"><CalendarClock className="size-4 shrink-0" />{j.deadline ? new Date(j.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "Fleksibel"}</p></div>
             </div>
             {j.skills.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{j.skills.map((s) => <span key={s} className="rounded-md bg-navy/10 px-2 py-0.5 font-mono text-xs text-navy">{s}</span>)}</div>}
           </header>
@@ -178,6 +207,7 @@ function JobDetail() {
             <h2 className="mb-3 font-extrabold">Deskripsi proyek</h2>
             {j.description ? <Markdown>{j.description}</Markdown> : <p className="text-sm text-muted-foreground">Tidak ada deskripsi.</p>}
           </section>
+          <JobTermsCard terms={terms} className={cn(CARD, "p-4 sm:p-5")} />
           <JobExtras jobId={j.id} />
 
           {isOwner && (
@@ -190,7 +220,7 @@ function JobDetail() {
               </p>
               {apps.isLoading && <div className={CARD}><GobiLoader compact /></div>}
               {apps.data?.length === 0 && <p className={cn(CARD, "p-8 text-center text-sm text-muted-foreground")}>{moderation === "approved" ? "Belum ada pelamar. Bagikan link lowongan ini ke komunitas." : "Belum ada pelamar. Lowongan baru bisa dilamar setelah disetujui admin."}</p>}
-              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} stage={stages.data?.[a.id] ?? null} canAnswer={canRespond(j, a, user?.id ?? null) && moderation === "approved"} slots={left} onDone={refresh} />)}
+              {apps.data?.map((a) => <ApplicantCard key={a.id} a={a} finishDate={finishDates.data?.[a.id] ?? null} hourly={terms.paymentType === "hourly"} stage={stages.data?.[a.id] ?? null} canAnswer={canRespond(j, a, user?.id ?? null) && moderation === "approved"} slots={left} onDone={refresh} />)}
             </section>
           )}
 
@@ -200,7 +230,7 @@ function JobDetail() {
                 <h2 className="font-extrabold">Lamaran kamu</h2>
                 <ApplicationStatusBadge status={mine.status} />
               </div>
-              <p className="text-sm">Penawaran <b>{formatRupiah(mine.bid_amount, "Nego")}</b> · {mine.est_days} hari · dikirim {timeAgo(mine.created_at)}</p>
+              <p className="text-sm">Penawaran <b>{formatRupiah(mine.bid_amount, "Nego")}{terms.paymentType === "hourly" ? " /jam" : ""}</b> · {finishDates.data?.[mine.id] ? `selesai ${fmtDay(finishDates.data[mine.id]!)}` : `${mine.est_days} hari`} · dikirim {timeAgo(mine.created_at)}</p>
               <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{mine.cover_letter}</p>
               {mine.status === "pending" && (
                 <Button size="sm" variant="outline" className="rounded-full" onClick={async () => {
@@ -235,7 +265,7 @@ function JobDetail() {
           ) : !user ? (
             <SignInCta text="Masuk sebagai developer untuk melamar." />
           ) : canApply(j, viewer, !!mine) ? (
-            <ApplyForm jobId={j.id} userId={user.id} onDone={refresh} />
+            <ApplyForm jobId={j.id} userId={user.id} terms={terms} onDone={refresh} />
           ) : !mine ? (
             <div className={cn(CARD, "p-4 text-sm text-muted-foreground")}>
               {j.status !== "open" ? "Lowongan ini sudah tidak menerima lamaran." : profile?.account_type !== "developer" ? "Hanya akun developer yang bisa melamar. Ganti jenis akun di Pengaturan." : "Kamu tidak bisa melamar lowongan ini."}
@@ -249,30 +279,59 @@ function JobDetail() {
   );
 }
 
-function ApplyForm({ jobId, userId, onDone }: { jobId: string; userId: string; onDone: () => void }) {
-  const [f, setF] = useState({ letter: "", bid: "", days: "7" });
+const fmtDay = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+
+function ApplyForm({ jobId, userId, terms, onDone }: { jobId: string; userId: string; terms: JobTerms; onDone: () => void }) {
+  const hourly = terms.paymentType === "hourly";
+  const [f, setF] = useState({ letter: "", bid: "", finish: "" });
+  const [errors, setErrors] = useState<{ bid?: string; finish?: string }>({});
   const [busy, setBusy] = useState(false);
+  const today = todayWIB();
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (f.letter.trim().length < 20) { toast.error("Ceritakan pengalamanmu minimal 20 karakter."); return; }
+    const bid = parseRupiah(f.bid);
+    const next: { bid?: string; finish?: string } = {};
+    if (bid < 1000) next.bid = hourly ? "Isi tarif per jam, minimal Rp 1.000." : "Isi penawaran harga, minimal Rp 1.000.";
+    const fe = finishDateError(f.finish, terms.deadline, !hourly, today);
+    if (fe) next.finish = fe;
+    setErrors(next);
+    if (next.bid || next.finish) { toast.error("Periksa kembali isian yang ditandai."); return; }
     setBusy(true);
-    const { error } = await supabase.from("job_applications").insert({
-      job_id: jobId, developer_id: userId, cover_letter: f.letter.trim().slice(0, 4000),
-      bid_amount: Math.max(0, Math.round(Number(f.bid || 0))), est_days: Math.min(365, Math.max(1, Math.round(Number(f.days || 7)))),
-    });
+    const days = f.finish ? Math.min(365, Math.max(1, Math.round((Date.parse(f.finish + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86_400_000))) : 7;
+    const base = { job_id: jobId, developer_id: userId, cover_letter: f.letter.trim().slice(0, 4000), bid_amount: bid, est_days: days };
+    let { error } = await supabase.from("job_applications").insert(f.finish ? { ...base, finish_date: f.finish } as typeof base : base);
+    // SQL 006 belum dijalankan: kirim tanpa tanggal selesai (lama kerja tetap tersimpan sebagai jumlah hari).
+    if (error && f.finish && isMissingColumn(error)) ({ error } = await supabase.from("job_applications").insert(base));
     setBusy(false);
-    if (error) { toast.error(error.code === "23505" ? "Kamu sudah melamar lowongan ini." : "Gagal mengirim lamaran."); return; }
-    toast.success("Lamaran terkirim! Client akan meninjau penawaranmu.");
+    if (error) { toast.error(error.code === "23505" ? "Kamu sudah melamar lowongan ini." : /tanggal selesai/i.test(error.message ?? "") ? error.message : "Gagal mengirim lamaran."); return; }
+    toast.success("Lamaran terkirim! Jika client menerima, kamu akan diminta menyetujui kesepakatan kerja.");
     onDone();
   }
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-2xl bg-card p-4 shadow-glow ring-2 ring-primary/40">
+    <form onSubmit={submit} className="space-y-3 rounded-2xl bg-card p-4 shadow-glow ring-2 ring-primary/40" noValidate>
       <p className="font-extrabold">Lamar proyek ini</p>
+      <ol className="space-y-1 rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
+        <li><b className="text-foreground">1.</b> Kirim penawaran{hourly ? "" : " dan tanggal selesai"}.</li>
+        <li><b className="text-foreground">2.</b> Client menerima, kamu menyetujui kesepakatan.</li>
+        <li><b className="text-foreground">3.</b> Client membayar (escrow), kamu mulai bekerja.</li>
+      </ol>
       <div><Label htmlFor="cl">Surat lamaran</Label><Textarea id="cl" rows={6} value={f.letter} onChange={(e) => setF({ ...f, letter: e.target.value })} placeholder="Kenapa kamu cocok? Sertakan link portofolio atau proyek serupa." /></div>
-      <div className="grid grid-cols-2 gap-2">
-        <div><Label htmlFor="bid">Penawaran (Rp)</Label><Input id="bid" type="number" min={0} step={1000} value={f.bid} onChange={(e) => setF({ ...f, bid: e.target.value })} placeholder="1500000" /></div>
-        <div><Label htmlFor="days">Lama kerja (hari)</Label><Input id="days" type="number" min={1} max={365} value={f.days} onChange={(e) => setF({ ...f, days: e.target.value })} /></div>
+      <div>
+        <Label htmlFor="bid">{hourly ? "Tarif per jam" : "Penawaran harga"}</Label>
+        <RupiahInput id="bid" value={f.bid} onValueChange={(v) => setF({ ...f, bid: v })} placeholder="Rp 1.500.000" aria-invalid={!!errors.bid} />
+        {errors.bid && <p className="mt-1 text-xs text-destructive" role="alert">{errors.bid}</p>}
       </div>
+      <div>
+        <Label htmlFor="fd">{hourly ? "Selesai pada tanggal (opsional)" : "Selesai pada tanggal"}</Label>
+        <Input id="fd" type="date" min={today} max={terms.deadline ?? undefined} value={f.finish} onChange={(e) => setF({ ...f, finish: e.target.value })} aria-invalid={!!errors.finish} />
+        <p className="mt-1 text-xs text-muted-foreground">
+          {terms.deadline ? `Tidak boleh lewat ${fmtDay(terms.deadline)} (batas dari client). ` : ""}
+          {hourly ? "" : `Jika client tidak menanggapi hasil sampai ${f.finish ? fmtDay(addDaysISO(f.finish, 1)) : "1 hari setelah tanggal ini"}, dana otomatis diteruskan kepadamu.`}
+        </p>
+        {errors.finish && <p className="mt-1 text-xs text-destructive" role="alert">{errors.finish}</p>}
+      </div>
+      {!hourly && terms.revisionLimit ? <p className="text-xs text-muted-foreground">Client membatasi revisi maksimal <b>{terms.revisionLimit} kali</b>.</p> : null}
       <Button disabled={busy} className="w-full rounded-full">{busy ? <Loader2 className="animate-spin" /> : <Send />} Kirim lamaran</Button>
     </form>
   );
@@ -316,7 +375,7 @@ function MyAcceptedOrder({ applicationId }: { applicationId: string }) {
   return <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Lamaranmu diterima. Menunggu client membuat kontrak atau pesanan pembayaran; setelah dibayar, dana ditahan admin dan kamu bisa mulai bekerja.</p>;
 }
 
-function ApplicantCard({ a, stage, canAnswer, slots, onDone }: { a: App; stage: string | null; canAnswer: boolean; slots: number; onDone: () => void }) {
+function ApplicantCard({ a, finishDate, hourly, stage, canAnswer, slots, onDone }: { a: App; finishDate: string | null; hourly: boolean; stage: string | null; canAnswer: boolean; slots: number; onDone: () => void }) {
   const [chat, setChat] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
@@ -326,20 +385,27 @@ function ApplicantCard({ a, stage, canAnswer, slots, onDone }: { a: App; stage: 
   async function respond(accept: boolean) {
     if (accept) {
       const name = `@${a.developer?.username}`;
+      const deal = `${bidText(a.bid_amount)}${hourly ? " per jam" : ""}${finishDate ? `, selesai ${fmtDay(finishDate)}` : ""}`;
+      const next = "Kesepakatan kerja dibuat otomatis; setelah freelancer setuju, kamu membayar lewat escrow.";
       const ask = slots > 1
-        ? `Terima ${name}? Lowongan tetap dibuka untuk ${slots - 1} posisi lainnya.`
-        : `Terima ${name}? Ini posisi terakhir: pelamar lain yang masih menunggu otomatis tidak dipilih dan lowongan ditutup untuk lamaran baru.`;
+        ? `Terima ${name} (${deal})? ${next} Lowongan tetap dibuka untuk ${slots - 1} posisi lainnya.`
+        : `Terima ${name} (${deal})? ${next} Ini posisi terakhir: pelamar lain yang masih menunggu otomatis tidak dipilih dan lowongan ditutup untuk lamaran baru.`;
       if (!confirm(ask)) return;
     }
     setBusy(true);
-    const { error, summary } = await respondToApplication(a.id, accept);
+    const { error, summary, contractId } = accept ? await acceptApplication(a.id) : await respondToApplication(a.id, false);
     setBusy(false);
     if (error) { toast.error(errMsg(error)); return; }
-    if (!accept) toast.success("Lamaran ditolak");
-    else if (summary) toast.success(`${acceptedMessage(Math.max(0, summary.positions - summary.accepted))} Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.`);
-    else toast.success("Developer diterima! Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.");
     onDone();
-    if (accept) setChat(true);
+    if (!accept) { toast.success("Lamaran ditolak"); return; }
+    if (contractId) {
+      toast.success(`${summary ? acceptedMessage(Math.max(0, summary.positions - summary.accepted)) : "Developer diterima."} Kesepakatan kerja sudah dibuat; menunggu freelancer menyetujui, lalu kamu membayar.`);
+      navigate({ to: "/kerja/kontrak/$id", params: { id: contractId } });
+      return;
+    }
+    if (summary) toast.success(`${acceptedMessage(Math.max(0, summary.positions - summary.accepted))} Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.`);
+    else toast.success("Developer diterima! Buat kontrak GOBI WORK atau pesanan langsung untuk membayar lewat escrow.");
+    setChat(true);
   }
   async function setStage(next: "shortlisted" | "interview") {
     setBusy(true);
@@ -370,7 +436,7 @@ function ApplicantCard({ a, stage, canAnswer, slots, onDone }: { a: App; stage: 
           <ApplicationStatusBadge status={a.status} />
         </div>
       </div>
-      <p className="mt-3 text-sm">Penawaran <b className="text-primary">{formatRupiah(a.bid_amount, "Nego")}</b> · {a.est_days} hari · {timeAgo(a.created_at)}</p>
+      <p className="mt-3 text-sm">{hourly ? "Tarif" : "Penawaran"} <b className="text-primary">{bidText(a.bid_amount)}{hourly ? " /jam" : ""}</b> · {finishDate ? `selesai ${fmtDay(finishDate)}` : `${a.est_days} hari`} · {timeAgo(a.created_at)}</p>
       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{a.cover_letter}</p>
       {a.developer?.skills?.length ? <div className="mt-2 flex flex-wrap gap-1">{a.developer.skills.slice(0, 8).map((s) => <span key={s} className="rounded bg-navy/10 px-1.5 py-0.5 font-mono text-[11px] text-navy">{s}</span>)}</div> : null}
       <div className="mt-3 flex flex-wrap gap-2">

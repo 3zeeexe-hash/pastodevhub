@@ -39,3 +39,8 @@
 - [ ] Verify Midtrans sandbox live — waiting on the owner running `docs/sql/midtrans-escrow` 001 + 002 and entering sandbox keys in /admin/midtrans
 - [x] Peran aktif (Developer / Freelancer / Client / Pribadi) disimpan di database (`user_role_prefs`), localStorage jadi cadangan (SQL `docs/sql/0008_peran_pengguna.sql`)
 - [ ] Terapkan `docs/sql/0008_peran_pengguna.sql` lewat Lovable — sebelum itu peran tetap tersimpan di perangkat
+- [x] Lowongan: bawaan "Kerja langsung" (harga tetap), "Bayar per jam" jadi tombol; tanggal selesai dari client dan batas revisi opsional (SQL `docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql`)
+- [x] Lamaran: freelancer memilih tanggal selesai (tidak melewati tanggal client); client menerima = kesepakatan kerja otomatis, kontrak aktif setelah freelancer setuju, baru client membayar
+- [x] Dana diteruskan otomatis ke freelancer bila client tidak menyetujui/meminta revisi sampai 1 hari setelah tanggal selesai; revisi ditolak bila jatah habis
+- [x] Semua isian nominal memakai format Rupiah (`RupiahInput`), tanggal memakai pemilih tanggal, laporan jam kerja memakai jam mulai dan jam selesai
+- [ ] Terapkan `docs/sql/gobi-work/006_kerja_langsung_tenggat_revisi.sql` di database — sebelum itu aplikasi memakai alur lama (tanpa kontrak otomatis dan pelepasan dana otomatis)

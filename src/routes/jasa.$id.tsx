@@ -11,6 +11,7 @@ import { isFeatureOn } from "@/lib/features";
 import { categoryLabel, formatRupiah } from "@/lib/market";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,8 +121,8 @@ function JasaDetail() {
                 </p>
               </div>
               <div>
-                <Label htmlFor="budget">Budget (opsional, Rp)</Label>
-                <Input id="budget" inputMode="numeric" value={budget} onChange={(e) => setBudget(e.target.value.replace(/\D/g, ""))} placeholder={String(s.price_from || "")} />
+                <Label htmlFor="budget">Budget (opsional)</Label>
+                <RupiahInput id="budget" value={budget} onValueChange={setBudget} placeholder={s.price_from ? formatRupiah(s.price_from) : "Rp 0"} />
                 <p className="mt-1 text-xs text-muted-foreground">{budget ? formatRupiah(Number(budget)) : "Kosongkan kalau mau nego dengan developer."}</p>
               </div>
               <Button className="w-full" disabled={busy || !briefOk}><Send /> {busy ? "Mengirim…" : "Kirim permintaan"}</Button>

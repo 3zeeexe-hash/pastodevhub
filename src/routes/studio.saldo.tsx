@@ -10,6 +10,7 @@ import { BANK_PRESETS, MAX_PAYOUT_ACCOUNTS, maskNumber, usePayoutAccounts } from
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -274,8 +275,8 @@ function WithdrawForm({ available, walletMode, accounts, onSent, goAccounts }: {
       )}
       <fieldset disabled={locked} className="space-y-5 disabled:opacity-60">
         <div>
-          <Label htmlFor="w-amount">Jumlah (Rp)</Label>
-          <Input id="w-amount" inputMode="numeric" value={amount} placeholder={`Tersedia ${rupiah(available)}`} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} />
+          <Label htmlFor="w-amount">Jumlah</Label>
+          <RupiahInput id="w-amount" value={amount} placeholder={`Tersedia ${rupiah(available)}`} onValueChange={setAmount} />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.map(([label, pct]) => (
               <button key={label} type="button" onClick={() => setAmount(String(Math.floor(available * pct)))} className="rounded-full border border-border px-3 py-1 text-xs transition hover:bg-accent">{label}</button>

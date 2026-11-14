@@ -10,6 +10,8 @@ export type ContractRow = {
   title: string; description: string; scope: string; payment_type: PaymentType;
   total_amount: number; hourly_rate: number; deadline: string | null;
   revision_terms: string; usage_rights: string; cancellation_terms: string; payment_terms: string;
+  /** Kolom SQL 006; undefined/null sebelum dijalankan. null = tanpa batas revisi. */
+  revision_limit?: number | null; revisions_used?: number;
   status: ContractStatus; client_approved_at: string | null; freelancer_approved_at: string | null;
   version: number; created_at: string; updated_at: string;
   client: PartyProfile; freelancer: PartyProfile;
@@ -18,12 +20,14 @@ export type ContractRow = {
 export type MilestoneRow = {
   id: string; contract_id: string; position: number; title: string; description: string; amount: number;
   deadline: string | null; status: MilestoneStatus; order_id: string | null; created_at: string; updated_at: string;
+  auto_approved_at?: string | null;
 };
 export type SubmissionRow = { id: string; milestone_id: string; note: string; links: string[]; created_at: string };
 export type RevisionRow = { id: string; milestone_id: string; note: string; created_at: string };
 export type TimesheetRow = {
   id: string; contract_id: string; work_date: string; hours: number; note: string;
   status: "submitted" | "approved" | "rejected"; decision_note: string | null; billed_order_id: string | null; created_at: string;
+  start_time?: string | null; end_time?: string | null;
 };
 export type EventRow = { id: number; actor_id: string | null; event: string; detail: Record<string, unknown>; created_at: string };
 export type DisputeRow = {
@@ -65,7 +69,9 @@ const EVENT_LABEL: Record<string, string> = {
   milestone_submitted: "Hasil pekerjaan dikirim",
   revision_requested: "Revisi diminta",
   milestone_approved: "Hasil disetujui client",
-  milestone_released: "Dana diteruskan admin ke saldo freelancer",
+  milestone_released: "Dana diteruskan ke saldo freelancer",
+  milestone_auto_approved: "Client tidak menanggapi sampai batas waktu — hasil disetujui otomatis",
+  milestone_auto_released: "Dana diteruskan otomatis ke saldo freelancer",
   timesheet_submitted: "Jam kerja dikirim",
   timesheet_approved: "Jam kerja disetujui",
   timesheet_rejected: "Jam kerja ditolak",

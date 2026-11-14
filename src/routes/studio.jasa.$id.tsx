@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { CATEGORIES, errMsg } from "@/lib/market";
 import { Button } from "@/components/ui/button";
+import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +72,7 @@ function JasaForm() {
           <select id="c" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
             {CATEGORIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select></div>
-        <div><Label htmlFor="p">Harga mulai (Rp)</Label><Input id="p" inputMode="numeric" value={f.price_from} onChange={(e) => setF({ ...f, price_from: e.target.value.replace(/\D/g, "") })} placeholder="Kosong = nego" /></div>
+        <div><Label htmlFor="p">Harga mulai</Label><RupiahInput id="p" value={f.price_from} onValueChange={(v) => setF({ ...f, price_from: v })} placeholder="Kosong = nego" /></div>
         <div><Label htmlFor="dd">Estimasi (hari)</Label><Input id="dd" inputMode="numeric" value={f.delivery_days} onChange={(e) => setF({ ...f, delivery_days: e.target.value.replace(/\D/g, "") })} /></div>
       </div>
       <label className="flex items-center justify-between rounded-lg border border-border p-3 text-sm"><span><b>Terima pesanan</b><span className="block text-xs text-muted-foreground">Matikan untuk menyembunyikan jasa sementara.</span></span><Switch checked={f.is_active} onCheckedChange={(v) => setF({ ...f, is_active: v })} /></label>
