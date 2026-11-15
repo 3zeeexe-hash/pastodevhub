@@ -100,6 +100,16 @@ function LegacyList({ q, cat }: { q: string; cat: string }) {
   );
 }
 
+/** Satu bagian kurasi di halaman awal (populer, terbaru, rating tinggi). Hanya aktif saat tidak ada filter. */
+function useSection(key: string, enabled: boolean, patch: Partial<ExploreFilters>) {
+  return useQuery({
+    queryKey: ["services", "explore-section", key],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () => serviceRpc<ExploreResult>("service_explore", buildExploreArgs({ ...EMPTY_FILTERS, ...patch }, 0, SECTION_SIZE)),
+  });
+}
+
 function JasaExplore() {
   const { user, profile } = useAuth();
   const taxonomy = useServiceTaxonomy();
@@ -107,16 +117,15 @@ function JasaExplore() {
   const [text, setText] = useState("");
   const [page, setPage] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);
   const [legacyCat, setLegacyCat] = useState("");
 
-  const active = hasActiveFilters(f);
+  const active = hasActiveFilters(f) || browseAll;
   const args = buildExploreArgs(f, page);
   const results = useQuery({ queryKey: ["services", "explore", args], enabled: active, queryFn: () => serviceRpc<ExploreResult>("service_explore", args) });
-  const section = (key: string, patch: Partial<ExploreFilters>) =>
-    useQuery({ queryKey: ["services", "explore-section", key], enabled: !active, staleTime: 60_000, queryFn: () => serviceRpc<ExploreResult>("service_explore", buildExploreArgs({ ...EMPTY_FILTERS, ...patch }, 0, SECTION_SIZE)) });
-  const popular = section("popular", { sort: "popular" });
-  const newest = section("newest", {});
-  const topRated = section("rating", { sort: "rating", minRating: "4" });
+  const popular = useSection("popular", !active, { sort: "popular" });
+  const newest = useSection("newest", !active, {});
+  const topRated = useSection("rating", !active, { sort: "rating", minRating: "4" });
   const sellers = useQuery({ queryKey: ["services", "top-sellers"], enabled: !active, staleTime: 60_000, queryFn: () => serviceRpc<TopSeller[]>("service_top_sellers", { _limit: 8 }) });
 
   const rpcFailed = active ? !!results.error : !!(popular.error && newest.error);
@@ -124,7 +133,7 @@ function JasaExplore() {
   const subcats = (taxonomy.data?.subcategories ?? []).filter((s) => s.category_slug === f.category);
 
   const set = (patch: Partial<ExploreFilters>) => { setF((p) => ({ ...p, ...patch })); setPage(0); };
-  const reset = () => { setF(EMPTY_FILTERS); setText(""); setPage(0); };
+  const reset = () => { setF(EMPTY_FILTERS); setText(""); setPage(0); setBrowseAll(false); };
   const total = results.data?.total ?? 0;
   const pages = pageCount(total, PAGE_SIZE);
 
@@ -220,7 +229,7 @@ function JasaExplore() {
           ) : (
             <div className="space-y-10">
               <Section title="Jasa populer" hint="Paling banyak dipesan sampai selesai." query={popular} onAll={() => set({ sort: "popular" })} />
-              <Section title="Jasa terbaru" hint="Baru dibuka oleh developer." query={newest} onAll={() => set({ sort: "newest", q: " " })} />
+              <Section title="Jasa terbaru" hint="Baru dibuka oleh developer." query={newest} onAll={() => { setBrowseAll(true); setPage(0); }} />
               <Section title="Rating tinggi" hint="Ulasan pembeli 4 bintang ke atas." query={topRated} onAll={() => set({ sort: "rating", minRating: "4" })} />
               <TopSellers sellers={sellers.data ?? []} />
               {!popular.isLoading && !newest.isLoading && (newest.data?.rows.length ?? 0) === 0 && <p className="py-10 text-center text-muted-foreground">Belum ada jasa yang terbit.</p>}
