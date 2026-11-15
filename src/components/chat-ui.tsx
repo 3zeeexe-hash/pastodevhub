@@ -3,8 +3,9 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { Loader2, Send, Trash2 } from "lucide-react";
 import { clockTime, dayLabel, isSameDay } from "@/lib/chat-time";
 import { cn } from "@/lib/utils";
+import { AttachImageButton, AttachmentPreview, MessageImage, type ChatAttachment } from "@/components/chat-attachment";
 
-export type ChatMessage = { id: string; sender_id: string; body: string; created_at: string };
+export type ChatMessage = { id: string; sender_id: string; body: string; created_at: string; image_url?: string | null };
 
 /** Latar obrolan: krem berpola titik halus seperti wallpaper WhatsApp. Elemen ini sendiri yang menggulir. */
 export function ChatBackdrop({ children, className }: { children: ReactNode; className?: string | undefined }) {
@@ -23,7 +24,7 @@ function DayChip({ iso }: { iso: string }) {
   );
 }
 
-function Bubble({ mine, body, time, tail, onDelete }: { mine: boolean; body: string; time: string; tail: boolean; onDelete?: (() => void) | undefined }) {
+function Bubble({ mine, body, image, time, tail, onDelete }: { mine: boolean; body: string; image?: string | null | undefined; time: string; tail: boolean; onDelete?: (() => void) | undefined }) {
   return (
     <div className={cn("group flex items-end gap-1", mine ? "justify-end" : "justify-start", tail ? "mt-2" : "mt-0.5")}>
       {mine && onDelete && (
@@ -43,6 +44,7 @@ function Bubble({ mine, body, time, tail, onDelete }: { mine: boolean; body: str
           tail && (mine ? "rounded-tr-none" : "rounded-tl-none"),
         )}
       >
+        {image && <MessageImage url={image} className={cn("-mx-1 -mt-0.5", body.trim() ? "mb-1" : "mb-0")} />}
         {/* Teks biasa: whitespace-pre-wrap menjaga baris baru, React meng-escape isinya. */}
         <span className="whitespace-pre-wrap break-words">{body}</span>
         <span className="float-right ml-3 mt-2 select-none text-[11px] leading-none text-[#667781]">{time}</span>
@@ -72,7 +74,7 @@ export function MessageList({
         return (
           <div key={m.id}>
             {newDay && <DayChip iso={m.created_at} />}
-            <Bubble mine={mine} body={m.body} time={clockTime(m.created_at)} tail={tail} onDelete={onDelete ? () => onDelete(m.id) : undefined} />
+            <Bubble mine={mine} body={m.body} image={m.image_url} time={clockTime(m.created_at)} tail={tail} onDelete={onDelete ? () => onDelete(m.id) : undefined} />
           </div>
         );
       })}
@@ -101,6 +103,7 @@ export function Composer({
   disabled,
   maxLength,
   placeholder = "Ketik pesan",
+  attachment,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -109,6 +112,8 @@ export function Composer({
   disabled: boolean;
   maxLength: number;
   placeholder?: string;
+  /** Jika diisi, tombol lampirkan gambar ikut tampil. */
+  attachment?: ChatAttachment | undefined;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -117,13 +122,21 @@ export function Composer({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [value]);
-  const submit = () => { if (!disabled && !pending) onSend(); };
+  const busy = pending || !!attachment?.uploading;
+  const submit = () => { if (!disabled && !busy) onSend(); };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-end gap-2 bg-[#f0f2f5] px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+    <div className="bg-[#f0f2f5]">
+    {attachment && <AttachmentPreview attachment={attachment} />}
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-end gap-2 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+      {attachment && <AttachImageButton attachment={attachment} className="text-[#54656f]" />}
       <textarea
         ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onPaste={(e) => {
+          const f = attachment ? [...e.clipboardData.files].find((x) => x.type.startsWith("image/")) : undefined;
+          if (f && attachment) { e.preventDefault(); void attachment.pick(f); }
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia("(pointer: fine)").matches) {
             e.preventDefault();
@@ -136,9 +149,10 @@ export function Composer({
         aria-label="Isi pesan"
         className="max-h-[120px] min-h-11 flex-1 resize-none rounded-3xl bg-white px-4 py-2.5 text-base leading-6 text-[#111b21] outline-none placeholder:text-[#667781] md:text-[15px]"
       />
-      <button type="submit" disabled={disabled || pending} aria-label="Kirim pesan" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-white transition active:scale-95 disabled:opacity-50">
+      <button type="submit" disabled={disabled || busy} aria-label="Kirim pesan" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-white transition active:scale-95 disabled:opacity-50">
         {pending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
       </button>
     </form>
+    </div>
   );
 }
