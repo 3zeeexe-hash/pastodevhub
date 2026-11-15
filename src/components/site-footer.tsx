@@ -72,6 +72,8 @@ export function SiteFooter() {
               ) : (
                 <li><Link to="/auth" className={link}>Masuk / Daftar</Link></li>
               )}
+              <li><a href="/privacy" className={link}>Kebijakan Privasi</a></li>
+              <li><a href="/terms" className={link}>Syarat Layanan</a></li>
             </ul>
           </nav>
         </div>
