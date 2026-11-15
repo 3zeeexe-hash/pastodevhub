@@ -191,6 +191,7 @@ const GROUPS: { key: "all" | Group; label: string }[] = [
 ];
 
 const ACCOUNT_LABEL = (t: string | null) => (t === "developer" ? "Developer" : t === "client" ? "Client" : "Belum memilih jenis akun");
+const CONTRACT_STATUSES = ["draft", "waiting_approval", "active", "completed", "cancelled", "disputed"] as const;
 
 function useActions() {
   return useQuery({
@@ -269,7 +270,7 @@ function useMarket() {
     queryKey: ["admin-overview", "market"],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const [products, productsPub, services, servicesOn, jobs, apps, apps7, orders, ordersPaid, ordersDone, reviews, ratings, paid30, payoutRows, refunds, ...cs] = await Promise.all([
+      const [products, productsPub, services, servicesOn, jobs, apps, apps7, orders, ordersPaid, ordersDone, reviews, ratings, paid30, payoutRows, refunds, contractCounts] = await Promise.all([
         cnt("products"),
         cnt("products", (q) => q.eq("is_published", true)),
         cnt("services"),
@@ -285,16 +286,16 @@ function useMarket() {
         rows<{ gross_amount: number; paid_at: string }>("payments", "gross_amount,paid_at", (q) => q.not("paid_at", "is", null).gte("paid_at", ago(30 * DAY)).limit(5000)),
         rows<{ amount: number }>("payouts", "amount", (q) => q.eq("status", "requested").limit(1000)),
         cnt("payments", (q) => q.eq("needs_refund", true)),
-        ...(["draft", "waiting_approval", "active", "completed", "cancelled", "disputed"] as const).map((s) => cnt("work_contracts", (q) => q.eq("status", s))),
+        Promise.all(CONTRACT_STATUSES.map((s) => cnt("work_contracts", (q) => q.eq("status", s)))),
       ]);
-      const [cDraft, cWait, cActive, cDone, cCancel, cDisp] = cs as (number | null)[];
+      const [draft, wait, active, done, cancel, disp] = contractCounts;
       return {
         products, productsPub, services, servicesOn, jobs, apps, apps7, orders, ordersPaid, ordersDone, reviews,
         avgRating: ratings.length ? sum(ratings, "rating") / ratings.length : null,
         paid30Count: paid30.length, paid30Sum: sum(paid30, "gross_amount"),
         paidPerDay: dayBuckets(paid30.map((r) => ({ at: r.paid_at, v: Number(r.gross_amount) }))),
         payoutCount: payoutRows.length, payoutSum: sum(payoutRows, "amount"), refunds,
-        contracts: { draft: cDraft, wait: cWait, active: cActive, done: cDone, cancel: cCancel, disp: cDisp },
+        contracts: { draft, wait, active, done, cancel, disp },
       };
     },
   });
@@ -362,6 +363,7 @@ function OverviewPage() {
   const mk = market.data;
   const mb = members.data;
   const cm = community.data;
+  const c = mk?.contracts;
 
   const todo: M[] = [
     { label: "Pengajuan verifikasi", to: "/admin/verifikasi", Icon: BadgeCheck, value: a?.verif },
@@ -376,8 +378,11 @@ function OverviewPage() {
   ];
   const pending = todo.reduce((s, t) => s + (typeof t.value === "number" ? t.value : 0), 0);
   const todoSorted = [...todo].sort((x, y) => (Number(y.value) || 0) - (Number(x.value) || 0));
-  const todoLoading = actions.isLoading;
+  const todoLoading = actions.isLoading || work.isLoading;
   const updated = Math.max(0, actions.dataUpdatedAt, members.dataUpdatedAt, market.dataUpdatedAt, timeline.dataUpdatedAt);
+
+  const closed = (c?.done ?? 0) + (c?.cancel ?? 0);
+  const completion = c && closed > 0 ? `${Math.round(((c.done ?? 0) / closed) * 100)}%` : "—";
 
   const memberMetrics: M[] = [
     { label: "Total member", value: mb?.total, hint: `+${num(mb?.new30)} dalam 30 hari`, Icon: Users, to: "/admin/pengguna", tone: "brand" },
@@ -403,7 +408,6 @@ function OverviewPage() {
     { label: "Bintang repositori", value: cm?.stars, Icon: Star },
   ];
 
-  const c = mk?.contracts;
   const marketMetrics: M[] = [
     { label: "Karya", value: mk?.products, hint: `${num(mk?.productsPub)} terbit`, Icon: Package, to: "/admin/moderasi" },
     { label: "Jasa", value: mk?.services, hint: `${num(mk?.servicesOn)} aktif`, Icon: Wrench, to: "/admin/moderasi" },
@@ -412,7 +416,7 @@ function OverviewPage() {
     { label: "Kontrak berjalan", value: c?.active, hint: `${num(c?.done)} selesai`, Icon: ScrollText, to: "/admin/kerja", tone: "ok" },
     { label: "Pesanan", value: mk?.orders, hint: `${num(mk?.ordersPaid)} dibayar · ${num(mk?.ordersDone)} selesai`, Icon: ShoppingBag, to: "/admin/pantau" },
     { label: "Ulasan", value: mk?.reviews, hint: mk?.avgRating != null ? `Rata-rata ★ ${mk.avgRating.toFixed(1)}` : undefined, Icon: Star },
-    { label: "Tingkat penyelesaian proyek", value: work.isError ? "—" : (work.isLoading ? undefined : `${(w as any)?.completion_rate ?? (c && (c.done ?? 0) + (c.cancel ?? 0) > 0 ? Math.round(((c.done ?? 0) / ((c.done ?? 0) + (c.cancel ?? 0))) * 100) : "—")}${typeof (w as any)?.completion_rate === "number" || (c && (c.done ?? 0) + (c.cancel ?? 0) > 0) ? "%" : ""}`), Icon: CheckCircle2, tone: "ok" },
+    { label: "Tingkat penyelesaian proyek", value: completion, hint: closed > 0 ? `${num(c?.done)} selesai · ${num(c?.cancel)} dibatalkan` : undefined, Icon: CheckCircle2, tone: "ok" },
   ];
 
   const financeMetrics: M[] = [
@@ -436,7 +440,7 @@ function OverviewPage() {
             <p className="font-mono text-sm font-semibold text-primary">admin · ringkasan</p>
             <h1 className="mt-1 text-2xl font-extrabold">Ringkasan GoBi</h1>
             <p className="mt-1 max-w-2xl text-sm text-white/80">
-              {todoLoading ? "Memuat data…" : pending > 0 ? `${num(pending)} hal menunggu tindakan kamu. Lihat daftar di bawah.` : "Semua beres, tidak ada yang menunggu tindakan."}{" "}
+              {todoLoading ? "Memuat data…" : pending > 0 ? `${num(pending)} hal menunggu tindakan kamu. Lihat daftarnya di bawah.` : "Semua beres, tidak ada yang menunggu tindakan."}{" "}
               Data diperbarui otomatis tiap 30 detik.
             </p>
           </div>
@@ -529,67 +533,66 @@ function OverviewPage() {
 
       {/* Keuangan */}
       <Section title="Keuangan" hint="Uang yang masuk, ditahan, dan menunggu dicairkan.">
-        <MetricGrid items={financeMetrics} loading={market.isLoading || actions.isLoading} cols="lg:grid-cols-3" />
+        <MetricGrid items={financeMetrics} loading={market.isLoading || actions.isLoading || work.isLoading} cols="lg:grid-cols-3" />
         {work.isError && <p className="text-xs text-muted-foreground">Volume dan komisi GOBI Work butuh SQL di docs/sql/gobi-work/ dijalankan di database.</p>}
       </Section>
 
       {/* Aktivitas terbaru + fitur */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Section title="Aktivitas terbaru" hint="Gabungan kejadian terbaru di seluruh platform.">
-          <div className="lg:col-span-2" />
-        </Section>
-      </div>
-      <div className="-mt-[4.5rem] grid gap-6 lg:grid-cols-3">
-        <div className="space-y-3 lg:col-span-2">
-          <div className="flex flex-wrap gap-1.5 lg:mt-14" role="tablist" aria-label="Saring aktivitas">
-            {GROUPS.map((g) => (
-              <button
-                key={g.key}
-                role="tab"
-                aria-selected={group === g.key}
-                onClick={() => setGroup(g.key)}
-                className={cn("rounded-full px-3 py-1 text-xs font-medium transition", group === g.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-2xl bg-card shadow-sm ring-1 ring-border">
-            {timeline.isLoading && <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div>}
-            {!timeline.isLoading && shown.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Belum ada aktivitas untuk filter ini.</p>}
-            <ul className="divide-y divide-border">
-              {shown.map((e) => {
-                const Icon = KIND_ICON[e.kind];
-                const row = (
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <span className={cn("mt-0.5 grid size-8 shrink-0 place-items-center rounded-full", e.group === "transaksi" ? ICON_TONE.ok : e.group === "admin" ? ICON_TONE.warn : e.group === "member" ? ICON_TONE.brand : ICON_TONE.default)}><Icon className="size-4" /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{e.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{e.sub}</p>
+      <Section title="Aktivitas terbaru" hint="Gabungan kejadian terbaru di seluruh platform.">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-3 lg:col-span-2">
+            <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Saring aktivitas">
+              {GROUPS.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={group === g.key}
+                  onClick={() => setGroup(g.key)}
+                  className={cn("rounded-full px-3 py-1 text-xs font-medium transition", group === g.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            <div className="rounded-2xl bg-card shadow-sm ring-1 ring-border">
+              {timeline.isLoading && <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div>}
+              {!timeline.isLoading && shown.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Belum ada aktivitas untuk filter ini.</p>}
+              <ul className="divide-y divide-border">
+                {shown.map((e) => {
+                  const Icon = KIND_ICON[e.kind];
+                  const tone = e.group === "transaksi" ? ICON_TONE.ok : e.group === "admin" ? ICON_TONE.warn : e.group === "member" ? ICON_TONE.brand : ICON_TONE.default;
+                  const row = (
+                    <div className="flex items-start gap-3 px-4 py-3">
+                      <span className={cn("mt-0.5 grid size-8 shrink-0 place-items-center rounded-full", tone)}><Icon className="size-4" /></span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{e.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{e.sub}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(e.at)}</span>
                     </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(e.at)}</span>
-                  </div>
-                );
-                return <li key={e.id}>{e.to ? <ALink to={e.to} params={e.params} className="block transition hover:bg-secondary/50">{row}</ALink> : row}</li>;
-              })}
-            </ul>
-          </div>
-          <p className="text-xs text-muted-foreground">Menampilkan {shown.length} kejadian terbaru. Untuk riwayat lengkap dan pencarian, buka <ALink to="/admin/pantau" className="text-link hover:underline">Pantau aktivitas</ALink>.</p>
-        </div>
-
-        <div className="space-y-3 lg:mt-14">
-          <Panel title="Fitur yang sedang dimatikan">
-            {actions.isLoading && <Skeleton className="h-10" />}
-            {a && a.off.length === 0 && <Empty>Semua fitur menyala.</Empty>}
-            {a && a.off.length > 0 && (
-              <ul className="flex flex-wrap gap-2">
-                {a.off.map((k) => <li key={k} className="rounded-full bg-destructive/10 px-3 py-1 text-sm text-destructive">{featureLabel(k as FeatureKey)}</li>)}
+                  );
+                  return <li key={e.id}>{e.to ? <ALink to={e.to} params={e.params} className="block transition hover:bg-secondary/50">{row}</ALink> : row}</li>;
+                })}
               </ul>
-            )}
-            <ALink to="/admin/fitur" className="mt-3 inline-block text-sm text-link hover:underline">Atur fitur dan pengumuman</ALink>
-          </Panel>
+            </div>
+            <p className="text-xs text-muted-foreground">Menampilkan {shown.length} kejadian terbaru. Untuk riwayat lengkap dan pencarian, buka <ALink to="/admin/pantau" className="text-link hover:underline">Pantau aktivitas</ALink>.</p>
+          </div>
+
+          <div>
+            <Panel title="Fitur yang sedang dimatikan">
+              {actions.isLoading && <Skeleton className="h-10" />}
+              {a && a.off.length === 0 && <Empty>Semua fitur menyala.</Empty>}
+              {a && a.off.length > 0 && (
+                <ul className="flex flex-wrap gap-2">
+                  {a.off.map((k) => <li key={k} className="rounded-full bg-destructive/10 px-3 py-1 text-sm text-destructive">{featureLabel(k as FeatureKey)}</li>)}
+                </ul>
+              )}
+              <ALink to="/admin/fitur" className="mt-3 inline-block text-sm text-link hover:underline">Atur fitur dan pengumuman</ALink>
+            </Panel>
+          </div>
         </div>
-      </div>
+      </Section>
     </div>
   );
 }
