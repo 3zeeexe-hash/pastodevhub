@@ -44,7 +44,7 @@ export const DEV_NAV: NavGroup[] = [
     { to: "/studio/ai", label: "AI untuk repo", Icon: Bot, feature: "ai_editor" },
   ] },
   { group: "Akun", items: [
-    { to: "/studio/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck },
+    { to: "/studio/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck, feature: "verifikasi" },
     { to: "/settings", label: "Pengaturan", Icon: Settings },
   ] },
 ];
@@ -70,7 +70,7 @@ export const CLIENT_NAV: NavGroup[] = [
     { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
   ] },
   { group: "Akun", items: [
-    { to: "/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck },
+    { to: "/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck, feature: "verifikasi" },
     { to: "/settings", label: "Pengaturan", Icon: Settings },
   ] },
 ];
