@@ -51,7 +51,7 @@ async function signUpAdmin(client: SupabaseClient, username: string, email: stri
   const { data, error } = await client.auth.signUp({
     email,
     password,
-    options: { data: { username: username.toLowerCase(), full_name: "Admin Pastodev", account_type: "client" } },
+    options: { data: { username: username.toLowerCase(), full_name: "Admin GoBi", account_type: "client" } },
   });
   if (error) {
     if (/already|registered|exists/i.test(error.message)) throw accountMismatch();

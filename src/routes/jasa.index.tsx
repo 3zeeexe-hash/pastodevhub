@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/jasa/")({
   head: () => ({
     meta: [
-      { title: "Jasa developer & freelancer — Pastodev" },
+      { title: "Jasa developer & freelancer — GoBi" },
       { name: "description", content: "Pesan jasa pembuatan website, aplikasi, dan desain dari developer freelancer Indonesia." },
-      { property: "og:title", content: "Jasa developer & freelancer — Pastodev" },
+      { property: "og:title", content: "Jasa developer & freelancer — GoBi" },
       { property: "og:description", content: "Pembuatan website, aplikasi, desain, dan lainnya dari freelancer Nusantara." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

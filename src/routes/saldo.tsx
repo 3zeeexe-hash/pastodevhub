@@ -8,7 +8,7 @@ import { GobiLoader } from "@/components/gobi-loader";
 export const Route = createFileRoute("/saldo")({
   head: () => ({
     meta: [
-      { title: "Saldo client — Pastodev" },
+      { title: "Saldo client — GoBi" },
       { name: "description", content: "Saldo dari dana yang dikembalikan (lowongan atau jasa) dan penarikan ke rekening kamu." },
       { name: "robots", content: "noindex" },
     ],

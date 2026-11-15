@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/explore")({
   head: () => ({
     meta: [
-      { title: "Jelajahi repositori — Pastodev" },
-      { name: "description", content: "Temukan repositori publik terbaru dan terpopuler dari komunitas Pastodev." },
-      { property: "og:title", content: "Jelajahi repositori — Pastodev" },
-      { property: "og:description", content: "Repositori publik terpopuler dan terbaru di Pastodev." },
+      { title: "Jelajahi repositori — GoBi" },
+      { name: "description", content: "Temukan repositori publik terbaru dan terpopuler dari komunitas GoBi." },
+      { property: "og:title", content: "Jelajahi repositori — GoBi" },
+      { property: "og:description", content: "Repositori publik terpopuler dan terbaru di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

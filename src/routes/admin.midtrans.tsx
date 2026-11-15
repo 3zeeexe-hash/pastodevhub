@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/midtrans")({
-  head: () => ({ meta: [{ title: "Midtrans — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Midtrans — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: MidtransAdminPage,
 });
 

@@ -1,6 +1,6 @@
 // Sign in with GitHub, using the GitHub OAuth app the admin set in /admin/integrasi
 // (Client ID + Secret, or GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET on the server).
-// Works without SUPABASE_SERVICE_ROLE_KEY: the verified GitHub e-mail becomes a Pastodev session through
+// Works without SUPABASE_SERVICE_ROLE_KEY: the verified GitHub e-mail becomes a GoBi session through
 // src/lib/google-account.server.ts, exactly like Google sign-in.
 // Separate from the "connect GitHub" flow in github.functions.ts: login asks only for the profile and
 // e-mail, never for repo access, and stores no GitHub token.
@@ -63,7 +63,7 @@ async function githubGet<T>(token: string, path: string): Promise<T | null> {
 
 /**
  * Exchanges the GitHub code for the person's verified primary e-mail, then finds or creates the matching
- * Pastodev account and returns a session for the browser. Only an e-mail GitHub has verified is accepted.
+ * GoBi account and returns a session for the browser. Only an e-mail GitHub has verified is accepted.
  */
 export const githubSignIn = createServerFn({ method: "POST" })
   .inputValidator((input: { code: string; accountType?: string | undefined }) =>

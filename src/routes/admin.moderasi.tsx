@@ -13,7 +13,7 @@ import { useAskAdmin } from "@/lib/admin-ask";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/moderasi")({
-  head: () => ({ meta: [{ title: "Moderasi konten — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Moderasi konten — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: ModerationPage,
 });
 

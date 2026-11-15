@@ -63,7 +63,7 @@ export function RoleSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="font-normal">
-          <span className="block text-sm font-semibold">Pakai Pastodev sebagai</span>
+          <span className="block text-sm font-semibold">Pakai GoBi sebagai</span>
           <span className="block text-xs text-muted-foreground">Satu akun, ganti peran kapan saja.</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

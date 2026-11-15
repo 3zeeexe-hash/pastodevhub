@@ -23,10 +23,10 @@ export const Route = createFileRoute("/search")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Cari — Pastodev" },
-      { name: "description", content: "Cari repositori, developer, karya, lowongan freelance, dan diskusi di Pastodev." },
-      { property: "og:title", content: "Cari — Pastodev" },
-      { property: "og:description", content: "Cari repositori, developer, karya, dan lowongan di Pastodev." },
+      { title: "Cari — GoBi" },
+      { name: "description", content: "Cari repositori, developer, karya, lowongan freelance, dan diskusi di GoBi." },
+      { property: "og:title", content: "Cari — GoBi" },
+      { property: "og:description", content: "Cari repositori, developer, karya, dan lowongan di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

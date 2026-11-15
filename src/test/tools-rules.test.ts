@@ -14,7 +14,7 @@ describe("hosting", () => {
     expect(checkHostFile("file", { name: "a.zip", size: 51 * 1024 * 1024, type: "application/zip" })).not.toBeNull();
     expect(checkHostFile("file", { name: "a.zip", size: 49 * 1024 * 1024, type: "application/zip" })).toBeNull();
   });
-  it("serves hosted pages sandboxed so they cannot read the Pastodev login", () => {
+  it("serves hosted pages sandboxed so they cannot read the GoBi login", () => {
     expect(hostedHeaders("html", "text/html", "index.html")["Content-Security-Policy"]).toMatch(/^sandbox /);
     expect(hostedHeaders("html", "text/html", "index.html")["Content-Security-Policy"]).not.toContain("allow-same-origin");
     expect(hostedHeaders("image", "image/svg+xml", "a.svg")["Content-Security-Policy"]).toMatch(/^sandbox /);

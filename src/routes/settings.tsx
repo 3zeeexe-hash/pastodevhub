@@ -24,9 +24,9 @@ import { RolePicker } from "@/components/role-ui";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Pengaturan — Pastodev" },
+      { title: "Pengaturan — GoBi" },
       { name: "description", content: "Ubah profil, jenis akun, link, dan koneksi GitHub kamu." },
-      { property: "og:title", content: "Pengaturan — Pastodev" },
+      { property: "og:title", content: "Pengaturan — GoBi" },
       { property: "og:description", content: "Ubah profil, jenis akun, link, dan koneksi GitHub kamu." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

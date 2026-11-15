@@ -1,7 +1,7 @@
 import type { AccountType } from "@/lib/market";
 
 /**
- * Peran tampilan Pastodev. Satu akun bisa berganti peran kapan saja.
+ * Peran tampilan GoBi. Satu akun bisa berganti peran kapan saja.
  *
  * Database hanya mengenal dua jenis akun (client / developer), jadi tiap peran
  * dipetakan ke salah satu dari keduanya. Peran aktif disimpan di tabel

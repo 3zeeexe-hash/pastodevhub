@@ -10,7 +10,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { ChatBackdrop, ChatNotice, Composer, MessageList } from "@/components/chat-ui";
 
 export const Route = createFileRoute("/discuss/pesan/$id")({
-  head: () => ({ meta: [{ title: "Percakapan — GOBI" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Percakapan — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: ChatPage,
 });
 

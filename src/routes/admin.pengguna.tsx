@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/admin/pengguna")({
-  head: () => ({ meta: [{ title: "Pengguna — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Pengguna — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: UsersPage,
 });
 

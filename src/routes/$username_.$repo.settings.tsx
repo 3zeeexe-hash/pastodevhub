@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/$username_/$repo/settings")({
   head: ({ params }) => ({
     meta: [
-      { title: `Settings · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Settings · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: "Pengaturan repositori." },
       { property: "og:title", content: `Settings · ${params.username}/${params.repo}` },
       { property: "og:description", content: "Pengaturan repositori." },
@@ -121,7 +121,7 @@ function RepoSettings() {
   }
   async function doPull() {
     if (!r.github_full_name) return;
-    if (!confirm(`Tarik isi terbaru dari ${r.github_full_name}? File di Pastodev akan disamakan dengan GitHub.`)) return;
+    if (!confirm(`Tarik isi terbaru dari ${r.github_full_name}? File di GoBi akan disamakan dengan GitHub.`)) return;
     setJob({ label: "Mengunduh dari GitHub…", pct: 5 });
     try {
       const { files } = await downloadGithubRepo(r.github_full_name, (d, t) => setJob({ label: `Mengunduh dari GitHub… ${d}/${t}`, pct: (d / Math.max(t, 1)) * 70 }));
@@ -172,7 +172,7 @@ function RepoSettings() {
                   <Button variant="outline" onClick={doPull} disabled={!!job}><Download /> Tarik dari GitHub</Button>
                   <Button variant="ghost" onClick={unlink} disabled={!!job}>Lepas tautan</Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Push menyamakan isi branch {`"default"`} di GitHub dengan file di Pastodev (file yang tidak ada di sini akan dihapus di GitHub).</p>
+                <p className="text-xs text-muted-foreground">Push menyamakan isi branch {`"default"`} di GitHub dengan file di GoBi (file yang tidak ada di sini akan dihapus di GitHub).</p>
               </div>
             ) : (
               <div className="space-y-3 rounded-md border border-border p-4">

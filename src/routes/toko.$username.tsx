@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/toko/$username")({
   head: ({ params }) => ({
     meta: [
-      { title: `Toko ${params.username} — Pastodev` },
-      { name: "description", content: `Karya digital dan jasa dari ${params.username} di Pastodev.` },
-      { property: "og:title", content: `Toko ${params.username} — Pastodev` },
+      { title: `Toko ${params.username} — GoBi` },
+      { name: "description", content: `Karya digital dan jasa dari ${params.username} di GoBi.` },
+      { property: "og:title", content: `Toko ${params.username} — GoBi` },
       { property: "og:description", content: `Beli karya atau pesan jasa langsung dari ${params.username}.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

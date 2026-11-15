@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Atur ulang kata sandi — Pastodev" },
-      { name: "description", content: "Buat kata sandi baru untuk akun Pastodev kamu." },
-      { property: "og:title", content: "Atur ulang kata sandi — Pastodev" },
-      { property: "og:description", content: "Buat kata sandi baru untuk akun Pastodev." },
+      { title: "Atur ulang kata sandi — GoBi" },
+      { name: "description", content: "Buat kata sandi baru untuk akun GoBi kamu." },
+      { property: "og:title", content: "Atur ulang kata sandi — GoBi" },
+      { property: "og:description", content: "Buat kata sandi baru untuk akun GoBi." },
       { name: "robots", content: "noindex" },
     ],
   }),

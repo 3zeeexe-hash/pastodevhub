@@ -17,7 +17,7 @@ export const Route = createFileRoute("/$username_/$repo/pulls/new")({
   validateSearch: (s: Record<string, unknown>): { head?: string | undefined } => (typeof s["head"] === "string" ? { head: s["head"] } : {}),
   head: ({ params }) => ({
     meta: [
-      { title: `Pull request baru · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Pull request baru · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: "Ajukan perubahan dari fork kamu." },
       { property: "og:title", content: `Pull request baru · ${params.username}/${params.repo}` },
       { property: "og:description", content: "Ajukan perubahan dari fork kamu." },

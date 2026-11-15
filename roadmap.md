@@ -1,5 +1,5 @@
 # Roadmap
-- [x] Migrate Pastodev code + schema to Lovable Cloud
+- [x] Migrate GoBi code + schema to Lovable Cloud
 - [x] Logo + favicon from uploaded mascot
 - [x] GitHub-like repos: file tree, folders, README, commits/diff, issues, pull requests (from forks), forks, stars, settings, ZIP download, upload
 - [x] Sign in: email, Google, Lovable (GitHub sign-in is not supported by Lovable Cloud)
@@ -14,12 +14,12 @@
 - [ ] Developer profile shows headline, skills, links, portfolio, karya, jasa, store link
 - [ ] AI repo editor: chat/build/fix with the developer's own Gemini or OpenAI key
 - [x] Admin page (payment settings, verify payments, payouts)
-- [x] Import Pastodev ZIP into this project + new Lovable Cloud (schema, storage, sign-in)
+- [x] Import GoBi ZIP into this project + new Lovable Cloud (schema, storage, sign-in)
 - [x] Admin panel: admin login form (ADMIN_USERNAME/ADMIN_PASSWORD) + GitHub OAuth app form
 - [x] Community home page: big search box + lowongan, developer, karya, diskusi sections
 - [x] Automated tests for job rules and admin login
 - [ ] Verify GitHub import/export live — waiting on the owner's GitHub OAuth app Client ID/secret (enter in /admin)
-- [ ] Old Pastodev data (repos/posts) — waiting on CSV exports from the user, or skip
+- [ ] Old GoBi data (repos/posts) — waiting on CSV exports from the user, or skip
 - [ ] Real bank account / QRIS details + platform fee — waiting on the owner
 - [x] Admin: Google sign-in via the owner's own Firebase project (web config + service-account JSON upload)
 - [x] Repos work with real git over HTTPS: clone / pull / push from the terminal like GitHub (personal access tokens)

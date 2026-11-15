@@ -31,8 +31,8 @@ describe("jobPostingLd", () => {
 
 describe("seoHead for rows that do not exist", () => {
   it("keeps the fallback text and asks Google not to index", () => {
-    const head = seoHead({ title: "", description: "", type: "website", notFound: true }, { title: "Detail karya — Pastodev", description: "Lihat karya." });
-    expect(head.meta[0]).toEqual({ title: "Detail karya — Pastodev" });
+    const head = seoHead({ title: "", description: "", type: "website", notFound: true }, { title: "Detail karya — GoBi", description: "Lihat karya." });
+    expect(head.meta[0]).toEqual({ title: "Detail karya — GoBi" });
     expect(head.meta).toContainEqual({ name: "robots", content: "noindex" });
     expect(head.scripts).toEqual([]);
   });

@@ -41,7 +41,7 @@ export function FeatureGate({ children }: { children: ReactNode }) {
     <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 py-12 text-center">
       <PowerOff className="size-10 text-muted-foreground" />
       <h1 className="mt-4 text-xl font-bold">Fitur “{featureLabel(key)}” sedang dinonaktifkan</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Pengelola Pastodev menonaktifkan fitur ini untuk sementara. Coba lagi nanti.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Pengelola GoBi menonaktifkan fitur ini untuk sementara. Coba lagi nanti.</p>
       <Button asChild className="mt-6"><Link to="/">Ke beranda</Link></Button>
     </main>
   );

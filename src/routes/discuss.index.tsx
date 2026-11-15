@@ -26,7 +26,7 @@ export const Route = createFileRoute("/discuss/")({
     const t = s["tab"];
     return TABS.includes(t as Tab) ? { tab: t as Tab } : {};
   },
-  head: () => ({ meta: [{ title: "Diskusi — Pastodev" }, { name: "description", content: "Linimasa dan forum komunitas developer Pastodev." }, { property: "og:title", content: "Diskusi — Pastodev" }, { property: "og:description", content: "Posting, balas, repost, dan ikuti developer lain di Pastodev." }] }),
+  head: () => ({ meta: [{ title: "Diskusi — GoBi" }, { name: "description", content: "Linimasa dan forum komunitas developer GoBi." }, { property: "og:title", content: "Diskusi — GoBi" }, { property: "og:description", content: "Posting, balas, repost, dan ikuti developer lain di GoBi." }] }),
   component: Discuss,
 });
 

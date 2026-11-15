@@ -1,4 +1,4 @@
-// Server-only: turns a provider-verified e-mail (Google or GitHub) into a Pastodev session.
+// Server-only: turns a provider-verified e-mail (Google or GitHub) into a GoBi session.
 //
 // How: the account's real password is an HMAC of the e-mail with a server-only key
 // (APP_USER_CONNECTION_KEY_SECRET). Nobody can type it, only this server can derive it, and it is

@@ -1,6 +1,10 @@
 // Pure SEO helpers: page meta + structured data for Google (safe on server and client).
 
 export const SITE_NAME = "GoBi";
+/** Other spellings people type, so Google ties them all to the same site name. */
+export const SITE_ALT_NAMES = ["Gobi", "GOBI", "GoBi Indonesia"];
+/** Default share image for pages that have none of their own. */
+export const DEFAULT_OG_IMAGE_PATH = "/gobi-logo.png";
 export type SeoInfo = { title: string; description: string; image?: string | undefined; type: "website" | "article" | "product" | "profile"; /** Pre-serialized JSON-LD. */ jsonLd?: string | undefined; noindex?: boolean | undefined; /** The row does not exist (or is not public): keep the fallback title and ask Google not to index it. */ notFound?: boolean | undefined };
 
 /** Plain-text summary for meta descriptions: strips markdown/HTML and cuts at ~155 chars on a word. */
@@ -138,6 +142,7 @@ export function rootSeoHead(site: SiteInfo, leaf: { routeId?: string | undefined
   if (site?.siteUrl && !notFound) {
     const url = canonicalUrl(site.siteUrl, path);
     meta.push({ property: "og:url", content: url });
+    meta.push({ property: "og:image", content: `${site.siteUrl}${DEFAULT_OG_IMAGE_PATH}` }, { name: "twitter:image", content: `${site.siteUrl}${DEFAULT_OG_IMAGE_PATH}` });
     links.push({ rel: "canonical", href: url }, { rel: "alternate", hreflang: "id", href: url }, { rel: "alternate", hreflang: "x-default", href: url });
   }
   return { meta, links };
@@ -152,15 +157,17 @@ export function siteJsonLd(origin: string) {
         "@type": "Organization",
         "@id": `${origin}/#organization`,
         name: SITE_NAME,
+        alternateName: SITE_ALT_NAMES,
         url: `${origin}/`,
-        logo: `${origin}/favicon.png`,
-        description: "Komunitas developer Nusantara: repositori kode, lowongan freelance, karya digital, jasa, dan diskusi.",
+        logo: `${origin}/gobi-logo.png`,
+        description: "Komunitas developer Indonesia: repositori kode, lowongan freelance, karya digital, jasa, dan diskusi.",
       },
       {
         "@type": "WebSite",
         "@id": `${origin}/#website`,
         url: `${origin}/`,
         name: SITE_NAME,
+        alternateName: SITE_ALT_NAMES,
         inLanguage: "id-ID",
         publisher: { "@id": `${origin}/#organization` },
         potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${origin}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" },

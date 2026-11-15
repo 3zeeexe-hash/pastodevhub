@@ -18,9 +18,9 @@ export const Route = createFileRoute("/katalog")({
   },
   head: () => ({
     meta: [
-      { title: "Katalog karya & jasa — Pastodev" },
+      { title: "Katalog karya & jasa — GoBi" },
       { name: "description", content: "Katalog source code, template, dan jasa developer Indonesia dalam satu tempat." },
-      { property: "og:title", content: "Katalog karya & jasa — Pastodev" },
+      { property: "og:title", content: "Katalog karya & jasa — GoBi" },
       { property: "og:description", content: "Temukan karya siap pakai dan jasa developer Nusantara." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

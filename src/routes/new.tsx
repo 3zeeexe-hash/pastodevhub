@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/new")({
   head: () => ({
     meta: [
-      { title: "Repositori baru — Pastodev" },
-      { name: "description", content: "Buat repositori kode baru di Pastodev." },
-      { property: "og:title", content: "Repositori baru — Pastodev" },
+      { title: "Repositori baru — GoBi" },
+      { name: "description", content: "Buat repositori kode baru di GoBi." },
+      { property: "og:title", content: "Repositori baru — GoBi" },
       { property: "og:description", content: "Buat repositori kode baru." },
       { name: "robots", content: "noindex" },
     ],

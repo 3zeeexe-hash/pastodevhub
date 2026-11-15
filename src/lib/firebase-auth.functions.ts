@@ -18,7 +18,7 @@ export const getFirebasePublicConfig = createServerFn({ method: "GET" }).handler
 
 /**
  * Verifies a Firebase ID token from Google sign-in, finds or creates the matching
- * Pastodev account by verified email, and returns a session for the browser.
+ * GoBi account by verified email, and returns a session for the browser.
  */
 export const firebaseSignIn = createServerFn({ method: "POST" })
   .inputValidator((input: { idToken: string; accountType?: string | undefined }) =>

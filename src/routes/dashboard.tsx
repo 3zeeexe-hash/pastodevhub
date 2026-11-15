@@ -31,10 +31,10 @@ type ClientStats = { client: Record<string, number | null> };
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard client — Pastodev" },
-      { name: "description", content: "Kelola lowongan, pelamar, dan pesanan kamu di Pastodev." },
-      { property: "og:title", content: "Dashboard client — Pastodev" },
-      { property: "og:description", content: "Dashboard client Pastodev." },
+      { title: "Dashboard client — GoBi" },
+      { name: "description", content: "Kelola lowongan, pelamar, dan pesanan kamu di GoBi." },
+      { property: "og:title", content: "Dashboard client — GoBi" },
+      { property: "og:description", content: "Dashboard client GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

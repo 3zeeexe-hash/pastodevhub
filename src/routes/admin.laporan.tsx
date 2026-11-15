@@ -12,7 +12,7 @@ import { useAskAdmin } from "@/lib/admin-ask";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/laporan")({
-  head: () => ({ meta: [{ title: "Laporan Diskusi — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Laporan Diskusi — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: ReportsPage,
 });
 

@@ -32,7 +32,7 @@ export const Route = createFileRoute("/$username")({
   // Real title, description and structured data come from the database; the text below is the fallback.
   loader: ({ params }) => getSeoInfo({ data: { kind: "profile", id: params.username } }),
   staleTime: 300_000,
-  head: ({ loaderData, params }) => seoHead(loaderData, { title: `${params.username} — Pastodev`, description: `Profil developer ${params.username} di Pastodev: repositori, bintang, dan kontribusi.` }),
+  head: ({ loaderData, params }) => seoHead(loaderData, { title: `${params.username} — GoBi`, description: `Profil developer ${params.username} di GoBi: repositori, bintang, dan kontribusi.` }),
   component: Profile,
 });
 

@@ -7,7 +7,7 @@ import { Composer } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
 
 export const Route = createFileRoute("/discuss/status/$id")({
-  head: () => ({ meta: [{ title: "Post — Pastodev" }, { name: "description", content: "Baca dan balas post di Diskusi Pastodev." }, { property: "og:title", content: "Post — Pastodev" }, { property: "og:description", content: "Baca dan balas post di Diskusi Pastodev." }] }),
+  head: () => ({ meta: [{ title: "Post — GoBi" }, { name: "description", content: "Baca dan balas post di Diskusi GoBi." }, { property: "og:title", content: "Post — GoBi" }, { property: "og:description", content: "Baca dan balas post di Diskusi GoBi." }] }),
   component: StatusPage,
 });
 

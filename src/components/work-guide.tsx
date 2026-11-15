@@ -103,7 +103,7 @@ const CLIENT: Step[] = [
   { title: "Tinjau pelamar", body: "Buka lowongan, lihat penawaran dan profil pelamar, ajak obrolan, lalu terima yang paling cocok.", to: "/kerja/lamaran", cta: "Lihat lowongan saya" },
   { title: "Siapkan kontrak dan milestone", body: "Tulis ruang lingkup, nilai, dan pecah pekerjaan jadi milestone. Total milestone harus sama dengan nilai kontrak.", to: "/kerja/kontrak", cta: "Buka kontrak" },
   { title: "Kirim kontrak ke freelancer", body: "Freelancer menyetujui atau meminta perubahan. Kontrak aktif setelah kedua pihak setuju.", to: "/kerja/kontrak", cta: "Lihat status kontrak" },
-  { title: "Danai milestone", body: "Bayar lewat Midtrans. Dana ditahan escrow Pastodev, belum sampai ke freelancer.", to: "/kerja/pembayaran", cta: "Bayar milestone" },
+  { title: "Danai milestone", body: "Bayar lewat Midtrans. Dana ditahan escrow GoBi, belum sampai ke freelancer.", to: "/kerja/pembayaran", cta: "Bayar milestone" },
   { title: "Periksa hasil", body: "Setujui jika sudah sesuai, atau minta revisi dengan catatan yang jelas. Ada masalah? Ajukan sengketa ke admin.", to: "/kerja/kontrak", cta: "Periksa hasil" },
   { title: "Dana diteruskan dan beri ulasan", body: "Admin meneruskan dana ke freelancer. Setelah kontrak selesai, beri ulasan.", to: "/kerja/pembayaran", cta: "Lihat transaksi" },
 ];

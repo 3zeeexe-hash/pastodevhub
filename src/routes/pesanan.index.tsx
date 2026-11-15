@@ -14,10 +14,10 @@ import { GobiLoader } from "@/components/gobi-loader";
 export const Route = createFileRoute("/pesanan/")({
   head: () => ({
     meta: [
-      { title: "Pesanan — Pastodev" },
+      { title: "Pesanan — GoBi" },
       { name: "description", content: "Daftar pembelian karya dan pesanan jasa kamu." },
-      { property: "og:title", content: "Pesanan — Pastodev" },
-      { property: "og:description", content: "Pembelian dan pesanan jasa di Pastodev." },
+      { property: "og:title", content: "Pesanan — GoBi" },
+      { property: "og:description", content: "Pembelian dan pesanan jasa di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

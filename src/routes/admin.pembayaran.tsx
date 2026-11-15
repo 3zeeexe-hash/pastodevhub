@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/pembayaran")({
-  head: () => ({ meta: [{ title: "Pembayaran & pencairan — Admin Pastodev" }, { name: "description", content: "Pengaturan pembayaran, verifikasi pembayaran, dan pencairan dana developer." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Pembayaran & pencairan — Admin GoBi" }, { name: "description", content: "Pengaturan pembayaran, verifikasi pembayaran, dan pencairan dana developer." }, { name: "robots", content: "noindex" }] }),
   component: PaymentsPage,
 });
 

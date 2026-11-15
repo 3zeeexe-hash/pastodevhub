@@ -11,7 +11,7 @@ import { useAskAdmin } from "@/lib/admin-ask";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/escrow")({
-  head: () => ({ meta: [{ title: "Escrow — Admin Pastodev" }, { name: "description", content: "Dana escrow, pelepasan manual saldo ke developer, pembekuan, dan refund ke saldo client." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Escrow — Admin GoBi" }, { name: "description", content: "Dana escrow, pelepasan manual saldo ke developer, pembekuan, dan refund ke saldo client." }, { name: "robots", content: "noindex" }] }),
   component: EscrowPage,
 });
 

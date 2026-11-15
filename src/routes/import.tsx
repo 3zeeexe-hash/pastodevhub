@@ -19,10 +19,10 @@ import { SignInCta } from "@/components/sign-in-cta";
 export const Route = createFileRoute("/import")({
   head: () => ({
     meta: [
-      { title: "Impor dari GitHub — Pastodev" },
-      { name: "description", content: "Impor repositori GitHub kamu ke Pastodev lengkap dengan semua file kodenya." },
-      { property: "og:title", content: "Impor dari GitHub — Pastodev" },
-      { property: "og:description", content: "Pindahkan repositori GitHub ke Pastodev dalam sekali klik." },
+      { title: "Impor dari GitHub — GoBi" },
+      { name: "description", content: "Impor repositori GitHub kamu ke GoBi lengkap dengan semua file kodenya." },
+      { property: "og:title", content: "Impor dari GitHub — GoBi" },
+      { property: "og:description", content: "Pindahkan repositori GitHub ke GoBi dalam sekali klik." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -62,11 +62,11 @@ function ImportPage() {
       }).select().single();
       if (error) throw new Error(error.code === "23505" ? "Nama repositori sudah dipakai." : error.message);
       if (files.length) {
-        setJob({ name: fullName, done: 0, total: files.length, phase: "Menyimpan ke Pastodev…" });
+        setJob({ name: fullName, done: 0, total: files.length, phase: "Menyimpan ke GoBi…" });
         await commitChanges({
           repoId: repo.id, authorId: user!.id, message: `Impor dari GitHub ${fullName}`,
           changes: files.map((f) => ({ path: f.path, type: "add" as const, after: f.content })), storeContent: false,
-          onProgress: (done, total) => setJob({ name: fullName, done, total, phase: "Menyimpan ke Pastodev…" }),
+          onProgress: (done, total) => setJob({ name: fullName, done, total, phase: "Menyimpan ke GoBi…" }),
         });
       }
       toast.success(`${files.length} file diimpor${skipped ? `, ${skipped} file biner/besar dilewati` : ""}.`);
@@ -82,7 +82,7 @@ function ImportPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-bold">Impor repositori dari GitHub</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Semua file teks (kode, README, konfigurasi) disalin ke repositori baru di Pastodev. File biner seperti gambar dilewati.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Semua file teks (kode, README, konfigurasi) disalin ke repositori baru di GoBi. File biner seperti gambar dilewati.</p>
       <div className="mt-6"><GithubConnectCard /></div>
 
       {job && (

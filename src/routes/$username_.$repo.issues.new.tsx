@@ -12,7 +12,7 @@ import { MdEditor } from "@/components/repo/md-editor";
 export const Route = createFileRoute("/$username_/$repo/issues/new")({
   head: ({ params }) => ({
     meta: [
-      { title: `Issue baru · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Issue baru · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: "Laporkan bug atau usulkan ide." },
       { property: "og:title", content: `Issue baru · ${params.username}/${params.repo}` },
       { property: "og:description", content: "Laporkan bug atau usulkan ide." },
