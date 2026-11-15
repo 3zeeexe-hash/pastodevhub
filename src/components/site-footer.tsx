@@ -43,7 +43,7 @@ export function SiteFooter() {
           <nav aria-label="Jelajahi">
             <p className={heading}>Jelajahi</p>
             <ul className="flex flex-col gap-2.5">
-              <li><Link to="/explore" className={link}>Proyek</Link></li>
+              {on("explore") && <li><Link to="/explore" className={link}>Proyek</Link></li>}
               <li><Link to="/search" search={{ q: "", type: "users" }} className={link}>Talenta</Link></li>
               {on("jobs") && <li><Link to="/lowongan" className={link}>Lowongan</Link></li>}
               {on("jasa") && <li><Link to="/jasa" className={link}>Jasa</Link></li>}
@@ -66,7 +66,7 @@ export function SiteFooter() {
               {user ? (
                 <>
                   <li><Link to="/pesanan" className={link}>Pesanan</Link></li>
-                  <li><Link to="/verifikasi" className={link}>Verifikasi akun</Link></li>
+                  {on("verifikasi") && <li><Link to="/verifikasi" className={link}>Verifikasi akun</Link></li>}
                   <li><Link to="/settings" className={link}>Pengaturan</Link></li>
                 </>
               ) : (

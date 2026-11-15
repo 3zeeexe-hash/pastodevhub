@@ -53,7 +53,7 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
     const main: NavItem[] = [
       { to: "/", label: "Beranda", Icon: Home, exact: true },
       { to: "/search", search: { q: "", type: "users" }, label: "Cari", Icon: Search },
-      { to: "/explore", label: "Repositori", Icon: BookMarked, caps: ["repos"] },
+      { to: "/explore", label: "Repositori", Icon: BookMarked, caps: ["repos"], feature: "explore" },
       ...(signedIn && on("discuss")
         ? [
             { to: "/discuss/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge },
