@@ -19,7 +19,7 @@ export const FEATURES: FeatureDef[] = [
   { key: "git_http", group: "Kode", label: "Git lewat terminal", description: "git clone, pull, dan push lewat HTTPS dengan token git.", paths: [] },
   { key: "github", group: "Kode", label: "Hubungkan GitHub", description: "Menghubungkan akun GitHub, impor, dan ekspor repositori.", paths: ["/import"] },
   { key: "discuss", group: "Komunitas", label: "Diskusi", description: "Halaman diskusi, posting baru, dan komentar.", paths: ["/discuss"] },
-  { key: "jobs", group: "Komunitas", label: "Lowongan", description: "Memasang lowongan, melamar, dan halaman lowongan.", paths: ["/lowongan", "/studio/lamaran"] },
+  { key: "jobs", group: "Komunitas", label: "Lowongan & GOBI WORK", description: "Memasang lowongan, melamar, serta kontrak, pesan, dan pembayaran kerja (GOBI WORK).", paths: ["/lowongan", "/kerja", "/studio/lamaran"] },
   { key: "karya", group: "Marketplace", label: "Karya", description: "Menjual dan membeli karya (proyek siap pakai).", paths: ["/karya", "/studio/karya", "/katalog"] },
   { key: "jasa", group: "Marketplace", label: "Jasa & portofolio", description: "Membuka jasa, memesan jasa, dan portofolio developer.", paths: ["/jasa", "/studio/jasa", "/studio/portofolio"] },
   { key: "hosting", group: "Tools developer", label: "Hosting & berbagi file", description: "Hosting HTML, berbagi file, dan cloud gambar. Link /f/… ikut mati.", paths: ["/studio/hosting", "/studio/files", "/studio/images"] },

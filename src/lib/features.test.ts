@@ -14,6 +14,8 @@ describe("feature switches", () => {
     expect(featureForPath("/lowongan")).toBe("jobs");
     expect(featureForPath("/lowongan/baru")).toBe("jobs");
     expect(featureForPath("/studio/lamaran")).toBe("jobs");
+    expect(featureForPath("/kerja")).toBe("jobs");
+    expect(featureForPath("/kerja/kontrak/123")).toBe("jobs");
     expect(featureForPath("/discuss/abc")).toBe("discuss");
     expect(featureForPath("/studio/karya/baru")).toBe("karya");
     expect(featureForPath("/toko/budi")).toBe("toko");
@@ -28,6 +30,7 @@ describe("feature switches", () => {
     expect(featureForPath("/budi")).toBeNull();
     expect(featureForPath("/budi/proyek")).toBeNull();
     expect(featureForPath("/newsletter")).toBeNull();
+    expect(featureForPath("/kerjasama")).toBeNull();
     expect(featureForPath("/studio")).toBeNull();
   });
 });
