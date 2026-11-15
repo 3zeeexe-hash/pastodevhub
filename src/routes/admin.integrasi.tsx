@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAskAdmin } from "@/lib/admin-ask";
 
 export const Route = createFileRoute("/admin/integrasi")({
   head: () => ({ meta: [{ title: "Integrasi — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
@@ -63,7 +64,7 @@ function GithubSettingsForm() {
           Dipakai developer untuk menghubungkan akun GitHub, impor, dan ekspor repo. Buat di GitHub → Settings → Developer settings → OAuth Apps.
         </p>
         <p className="mt-2 text-sm">
-          Status: {isLoading ? "memuat…" : connected ? <b className="text-success">Aktif</b> : data?.envFallback ? <b>Memakai pengaturan server</b> : <b className="text-destructive">Belum diatur</b>}
+          Status: {isLoading ? <Loader2 className="inline size-3.5 animate-spin" aria-label="Memuat" /> : connected ? <b className="text-success">Aktif</b> : data?.envFallback ? <b>Memakai pengaturan server</b> : <b className="text-destructive">Belum diatur</b>}
           {data?.updatedAt && <span className="text-muted-foreground"> · diperbarui {timeAgo(data.updatedAt)}</span>}
         </p>
         {error && <p className="mt-2 text-sm text-destructive">{errMsg(error)}</p>}
@@ -90,6 +91,7 @@ function GithubSettingsForm() {
 function FirebaseSettingsForm() {
   const load = useServerFn(getAdminFirebaseSettings);
   const save = useServerFn(saveAdminFirebaseSettings);
+  const ask = useAskAdmin();
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["admin-firebase"], queryFn: () => load() });
   const [enabled, setEnabled] = useState(false);
@@ -126,7 +128,7 @@ function FirebaseSettingsForm() {
     } catch (err) { toast.error(errMsg(err)); } finally { setBusy(false); }
   }
   async function clearAll() {
-    if (!confirm("Hapus semua pengaturan Firebase? Login Google kembali ke bawaan.")) return;
+    if (!(await ask({ title: "Hapus semua pengaturan Firebase?", description: "Login Google kembali ke pengaturan bawaan.", confirmLabel: "Hapus pengaturan", destructive: true }))) return;
     setBusy(true);
     try {
       await save({ data: { enabled: false, configText: "", serviceAccountJson: "", clear: true } });
@@ -144,7 +146,7 @@ function FirebaseSettingsForm() {
           <h2 className="flex items-center gap-2 font-semibold"><Flame className="size-5 shrink-0 text-primary" /> Login Google (Firebase)</h2>
           <p className="mt-1 text-sm text-muted-foreground">Pakai project Firebase kamu sendiri untuk tombol “Continue with Google”. Kalau dimatikan, login Google memakai bawaan Pastodev.</p>
           <p className="mt-2 text-sm">
-            Status: {isLoading ? "memuat…" : data?.enabled ? <b className="text-success">Aktif — project {data.projectId}</b> : data?.config ? <b>Tersimpan, belum aktif</b> : <b className="text-muted-foreground">Belum diatur</b>}
+            Status: {isLoading ? <Loader2 className="inline size-3.5 animate-spin" aria-label="Memuat" /> : data?.enabled ? <b className="text-success">Aktif — project {data.projectId}</b> : data?.config ? <b>Tersimpan, belum aktif</b> : <b className="text-muted-foreground">Belum diatur</b>}
             {data?.updatedAt && <span className="text-muted-foreground"> · diperbarui {timeAgo(data.updatedAt)}</span>}
           </p>
           {error && <p className="mt-2 text-sm text-destructive">{errMsg(error)}</p>}
