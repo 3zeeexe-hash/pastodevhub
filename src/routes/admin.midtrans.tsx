@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useAskAdmin } from "@/lib/admin-ask";
 
 export const Route = createFileRoute("/admin/midtrans")({
   head: () => ({ meta: [{ title: "Midtrans — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/admin/midtrans")({
 });
 
 function MidtransAdminPage() {
+  const ask = useAskAdmin();
   const load = useServerFn(getAdminMidtransSettings);
   const save = useServerFn(saveAdminMidtransSettings);
   const test = useServerFn(testAdminMidtrans);
@@ -47,7 +49,7 @@ function MidtransAdminPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (enabled && mode === "production" && !confirm("Mode PRODUKSI memakai uang asli. Lanjutkan?")) return;
+    if (enabled && mode === "production" && !(await ask({ title: "Aktifkan mode produksi?", description: "Mode produksi memakai uang asli. Pastikan kunci produksi sudah benar.", confirmLabel: "Simpan mode produksi", destructive: true }))) return;
     setBusy(true);
     try {
       await save({ data: { enabled, mode, methods, sandboxServerKey: sbServer.trim(), sandboxClientKey: sbClient.trim(), productionServerKey: prodServer.trim(), productionClientKey: prodClient.trim() } });
@@ -88,7 +90,7 @@ function MidtransAdminPage() {
           <h2 className="flex items-center gap-2 font-semibold"><CreditCard className="size-5 shrink-0 text-primary" /> Pembayaran Midtrans (Core API)</h2>
           <p className="mt-1 text-sm text-muted-foreground">Client membayar lewat Virtual Account atau QRIS. Dana masuk escrow dan diteruskan ke developer oleh admin.</p>
           <p className="mt-2 text-sm">
-            Status: {isLoading ? "memuat…" : enabled && data?.schemaReady ? <b className="text-success">Aktif — mode {mode === "production" ? "produksi" : "sandbox"}</b> : <b className="text-muted-foreground">Nonaktif</b>}
+            Status: {isLoading ? <Loader2 className="inline size-3.5 animate-spin" aria-label="Memuat" /> : enabled && data?.schemaReady ? <b className="text-success">Aktif — mode {mode === "production" ? "produksi" : "sandbox"}</b> : <b className="text-muted-foreground">Nonaktif</b>}
             {data?.updatedAt && <span className="text-muted-foreground"> · diperbarui {timeAgo(data.updatedAt)}</span>}
           </p>
           {data?.envFallback && <p className="mt-1 text-xs text-muted-foreground">Server juga punya MIDTRANS_SERVER_KEY di environment; dipakai jika pengaturan di sini kosong.</p>}
