@@ -10,14 +10,18 @@ const ICON: Record<NotifGroup, LucideIcon> = { lamaran: FileText, kontrak: FileS
 const TONE = { ok: "bg-emerald-500/15 text-emerald-600", bad: "bg-red-500/15 text-red-600", info: "bg-primary/15 text-primary" } as const;
 
 /**
- * Daftar notifikasi GOBI WORK. Satu ketukan: menandai dibaca lalu membuka tujuan di dalam aplikasi
+ * Satu baris notifikasi GOBI WORK. Satu ketukan: menandai dibaca lalu membuka tujuan di dalam aplikasi
  * (tanpa muat ulang halaman). Notifikasi pesan membuka obrolan di chat mengambang tab GOBI Work.
+ * Dipakai oleh halaman gabungan /notifikasi dan oleh `WorkNotifList`.
  */
-export function WorkNotifList({ items }: { items: WorkNotif[] }) {
+export function WorkNotifRow({ n }: { n: WorkNotif }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const g = notifGroup(n.kind);
+  const Icon = ICON[g];
+  const unread = !n.read_at;
 
-  function open(n: WorkNotif) {
+  function open() {
     if (!n.read_at) void markWorkNotifRead(n.id).then(() => refreshWorkNotifs(qc));
     if (!n.link) return;
     let u: URL;
@@ -30,28 +34,28 @@ export function WorkNotifList({ items }: { items: WorkNotif[] }) {
   }
 
   return (
+    <button type="button" onClick={open} className={cn("flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition hover:border-primary/50", unread ? "border-primary/30 bg-primary/5" : "border-border bg-card")}>
+      <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", TONE[notifTone(n.kind)])}><Icon className="size-5" /></span>
+      <span className="min-w-0 flex-1">
+        <span className={cn("block text-sm", unread ? "font-semibold" : "text-muted-foreground")}>{n.title}</span>
+        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full bg-secondary px-2 py-0.5">{GROUP_LABEL[g]}</span>
+          {timeAgo(n.created_at)}
+        </span>
+      </span>
+      {unread && <span aria-label="Belum dibaca" className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500" />}
+      {n.link && <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />}
+    </button>
+  );
+}
+
+/** Daftar notifikasi GOBI WORK (kumpulan `WorkNotifRow`). */
+export function WorkNotifList({ items }: { items: WorkNotif[] }) {
+  return (
     <ul className="space-y-2">
-      {items.map((n) => {
-        const g = notifGroup(n.kind);
-        const Icon = ICON[g];
-        const unread = !n.read_at;
-        return (
-          <li key={n.id}>
-            <button type="button" onClick={() => open(n)} className={cn("flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition hover:border-primary/50", unread ? "border-primary/30 bg-primary/5" : "border-border bg-card")}>
-              <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", TONE[notifTone(n.kind)])}><Icon className="size-5" /></span>
-              <span className="min-w-0 flex-1">
-                <span className={cn("block text-sm", unread ? "font-semibold" : "text-muted-foreground")}>{n.title}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span className="rounded-full bg-secondary px-2 py-0.5">{GROUP_LABEL[g]}</span>
-                  {timeAgo(n.created_at)}
-                </span>
-              </span>
-              {unread && <span aria-label="Belum dibaca" className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500" />}
-              {n.link && <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />}
-            </button>
-          </li>
-        );
-      })}
+      {items.map((n) => (
+        <li key={n.id}><WorkNotifRow n={n} /></li>
+      ))}
     </ul>
   );
 }
