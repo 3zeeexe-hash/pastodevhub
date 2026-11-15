@@ -19,14 +19,15 @@ import { OrderStatusBadge } from "@/components/order-status";
 import { OrderProgress } from "@/components/order-progress";
 import { EscrowBox } from "@/components/escrow-box";
 import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
+import { ServiceOrderSummary } from "@/components/service-order-summary";
 
 export const Route = createFileRoute("/pesanan/$id")({
   head: () => ({
     meta: [
-      { title: "Detail pesanan — Pastodev" },
+      { title: "Detail pesanan — GoBi" },
       { name: "description", content: "Status pesanan, pembayaran, dan chat dengan developer." },
-      { property: "og:title", content: "Detail pesanan — Pastodev" },
-      { property: "og:description", content: "Status pesanan dan chat di Pastodev." },
+      { property: "og:title", content: "Detail pesanan — GoBi" },
+      { property: "og:description", content: "Status pesanan dan chat di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -56,6 +57,7 @@ function OrderPage() {
     qc.invalidateQueries({ queryKey: ["orders"] });
     qc.invalidateQueries({ queryKey: ["escrow", id] });
     qc.invalidateQueries({ queryKey: ["pay-active", id] });
+    qc.invalidateQueries({ queryKey: ["service-order-detail", id] });
   };
 
   if (loading) return null;
@@ -101,6 +103,7 @@ function OrderPage() {
         <div><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold text-primary">{o.amount ? formatRupiah(o.amount) : "Belum ditentukan"}</p></div>
       </div>
       {o.brief && <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Kebutuhan client</h2><p className="whitespace-pre-wrap break-words text-sm">{o.brief}</p></section>}
+      {o.kind === "service" && <ServiceOrderSummary orderId={o.id} />}
       {o.delivery_note && <section className="rounded-lg border border-success/50 bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Catatan hasil dari developer</h2><p className="whitespace-pre-wrap break-words text-sm">{o.delivery_note}</p></section>}
       {o.admin_note && <p className="rounded-md bg-muted p-3 text-sm"><b>Catatan admin:</b> {o.admin_note}</p>}
 
