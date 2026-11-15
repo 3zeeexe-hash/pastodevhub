@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
 import { cn } from "@/lib/utils";
+import { AttachImageButton, AttachmentPreview, MessageImage, useChatAttachment } from "@/components/chat-attachment";
 
 type ChatMessage = {
-  id: string; body: string; is_system: boolean; created_at: string; sender_id: string;
+  id: string; body: string; image_url: string | null; is_system: boolean; created_at: string; sender_id: string;
   sender: { username: string; avatar_url: string | null } | null;
 };
 
@@ -18,6 +19,7 @@ type ChatMessage = {
 export function OrderChat({ orderId, userId }: { orderId: string; userId: string }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
+  const attachment = useChatAttachment();
   const end = useRef<HTMLDivElement>(null);
 
   // Kunci diawali ["order", id] supaya ikut tersegarkan saat halaman pesanan memanggil refresh().
@@ -32,7 +34,7 @@ export function OrderChat({ orderId, userId }: { orderId: string; userId: string
 
   const { data: msgs = [], isLoading } = useQuery({
     queryKey: ["order-messages", orderId],
-    queryFn: async () => (await supabase.from("order_messages").select("id,body,is_system,created_at,sender_id, sender:profiles(username,avatar_url)").eq("order_id", orderId).order("created_at").limit(500)).data ?? [],
+    queryFn: async () => (await supabase.from("order_messages").select("id,body,image_url,is_system,created_at,sender_id, sender:profiles(username,avatar_url)").eq("order_id", orderId).order("created_at").limit(500)).data ?? [],
   });
 
   useEffect(() => {
@@ -51,10 +53,13 @@ export function OrderChat({ orderId, userId }: { orderId: string; userId: string
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const body = text.trim();
-    if (!body) return;
+    const image = attachment.image;
+    if ((!body && !image) || attachment.uploading) return;
     setText("");
-    const { error } = await supabase.from("order_messages").insert({ order_id: orderId, sender_id: userId, body: body.slice(0, 4000) });
-    if (error) { toast.error(error.message); setText(body); } else qc.invalidateQueries({ queryKey: ["order-messages", orderId] });
+    const { error } = await supabase.from("order_messages").insert({ order_id: orderId, sender_id: userId, body: body.slice(0, 4000), image_url: image });
+    if (error) { toast.error(error.message); setText(body); return; }
+    attachment.clear();
+    qc.invalidateQueries({ queryKey: ["order-messages", orderId] });
   }
 
   const list = msgs as unknown as ChatMessage[];
@@ -71,17 +76,22 @@ export function OrderChat({ orderId, userId }: { orderId: string; userId: string
           <div key={m.id} className={cn("flex gap-2", m.sender_id === userId && "flex-row-reverse")}>
             <AvatarMini name={m.sender?.username ?? "?"} url={m.sender?.avatar_url} size={26} />
             <div className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", m.sender_id === userId ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-secondary")}>
-              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+              {m.image_url && <MessageImage url={m.image_url} className="-mx-1 mb-1" />}
+              {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
               <p className="mt-0.5 text-[10px] opacity-70">{timeAgo(m.created_at)}</p>
             </div>
           </div>
         ))}
         <div ref={end} />
       </div>
-      <form onSubmit={send} className="flex gap-2 border-t border-border p-3">
+      <div className="border-t border-border">
+      {!closed && <AttachmentPreview attachment={attachment} />}
+      <form onSubmit={send} className="flex gap-2 p-3">
+        <AttachImageButton attachment={attachment} disabled={closed} className="size-9" />
         <Input aria-label="Tulis pesan" value={text} onChange={(e) => setText(e.target.value)} placeholder={closed ? "Pesanan ditutup" : "Tulis pesan…"} disabled={closed} maxLength={4000} />
-        <Button size="icon" aria-label="Kirim" disabled={closed || !text.trim()}><Send /></Button>
+        <Button size="icon" aria-label="Kirim" disabled={closed || attachment.uploading || (!text.trim() && !attachment.image)}><Send /></Button>
       </form>
+      </div>
     </div>
   );
 }

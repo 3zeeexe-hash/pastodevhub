@@ -123,8 +123,8 @@ export function nextRankedCursor(i: { personal: boolean; fetched: number; limit:
 
 export const MAX_DM_LENGTH = 2000;
 
-export function dmBodyError(body: string): string | null {
-  if (body.trim().length === 0) return "Pesan tidak boleh kosong.";
+export function dmBodyError(body: string, hasImage = false): string | null {
+  if (body.trim().length === 0 && !hasImage) return "Pesan tidak boleh kosong.";
   if (body.length > MAX_DM_LENGTH) return `Pesan maksimal ${MAX_DM_LENGTH} karakter.`;
   return null;
 }

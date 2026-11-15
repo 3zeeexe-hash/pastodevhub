@@ -10,19 +10,21 @@ import type { WorkConversation } from "@/lib/work-chat";
 import { AvatarMini } from "@/components/avatar-mini";
 import { ChatBackdrop, ChatNotice, Composer, MessageList, type ChatMessage } from "@/components/chat-ui";
 import { ReportButton } from "@/components/work-ui";
+import { useChatAttachment } from "@/components/chat-attachment";
 
 const MAX_WORK_MESSAGE = 4000;
 
 export function WorkChatPane({ applicationId, userId, conv }: { applicationId: string; userId: string; conv?: WorkConversation | undefined }) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const attachment = useChatAttachment();
   const endRef = useRef<HTMLDivElement>(null);
 
   const messages = useQuery({
     queryKey: ["wa-job-messages", applicationId],
     refetchInterval: 8000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("job_messages").select("id,body,created_at,sender_id").eq("application_id", applicationId).order("created_at");
+      const { data, error } = await supabase.from("job_messages").select("id,body,created_at,sender_id,image_url").eq("application_id", applicationId).order("created_at");
       if (error) throw new Error(error.message);
       return (data ?? []) as ChatMessage[];
     },
@@ -40,11 +42,12 @@ export function WorkChatPane({ applicationId, userId, conv }: { applicationId: s
 
   const send = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("job_messages").insert({ application_id: applicationId, sender_id: userId, body: body.trim().slice(0, MAX_WORK_MESSAGE) });
+      const { error } = await supabase.from("job_messages").insert({ application_id: applicationId, sender_id: userId, body: body.trim().slice(0, MAX_WORK_MESSAGE), image_url: attachment.image });
       if (error) throw new Error("Pesan gagal dikirim.");
     },
     onSuccess: async () => {
       setBody("");
+      attachment.clear();
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["wa-job-messages", applicationId] }),
         qc.invalidateQueries({ queryKey: ["work-convs-v2"] }),
@@ -85,7 +88,7 @@ export function WorkChatPane({ applicationId, userId, conv }: { applicationId: s
         </div>
       </ChatBackdrop>
 
-      <Composer value={body} onChange={setBody} onSend={() => send.mutate()} pending={send.isPending} disabled={!body.trim()} maxLength={MAX_WORK_MESSAGE} />
+      <Composer value={body} onChange={setBody} onSend={() => send.mutate()} pending={send.isPending} disabled={!body.trim() && !attachment.image} maxLength={MAX_WORK_MESSAGE} attachment={attachment} />
     </div>
   );
 }

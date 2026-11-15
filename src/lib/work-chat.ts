@@ -11,7 +11,7 @@ type AppRow = {
   job: { id: string; title: string; client_id: string } | null;
   developer: { username: string; display_name: string | null; avatar_url: string | null } | null;
 };
-type LastMsg = { application_id: string; body: string; created_at: string; sender_id: string };
+type LastMsg = { application_id: string; body: string; created_at: string; sender_id: string; image_url: string | null };
 
 export type WorkConversation = {
   id: string;
@@ -50,7 +50,7 @@ export async function fetchWorkConversations(uid: string): Promise<WorkConversat
   }
 
   const last = new Map<string, LastMsg>();
-  const m = await looseDb.from("job_messages").select("application_id,body,created_at,sender_id").in("application_id", ids).order("created_at", { ascending: false }).limit(1000);
+  const m = await looseDb.from("job_messages").select("application_id,body,created_at,sender_id,image_url").in("application_id", ids).order("created_at", { ascending: false }).limit(1000);
   if (!m.error) for (const r of (m.data ?? []) as LastMsg[]) if (!last.has(r.application_id)) last.set(r.application_id, r);
 
   // read_at ada setelah SQL 002; jika belum, penanda belum dibaca tidak ditampilkan.
@@ -71,7 +71,7 @@ export async function fetchWorkConversations(uid: string): Promise<WorkConversat
         otherName: other?.display_name || other?.username || (iAmDeveloper ? "Client" : "Pelamar"),
         otherUsername: other?.username ?? null,
         otherAvatar: other?.avatar_url ?? null,
-        lastBody: lm?.body ?? null,
+        lastBody: lm ? (lm.image_url ? (lm.body.trim() ? `📷 ${lm.body}` : "📷 Foto") : lm.body) : null,
         lastSender: lm?.sender_id ?? null,
         lastAt: lm?.created_at ?? r.created_at,
         unread: unread[r.id] ?? 0,
