@@ -57,6 +57,7 @@ import { Route as KaryaIndexRouteImport } from './routes/karya.index'
 import { Route as KaryaIdRouteImport } from './routes/karya.$id'
 import { Route as KerjaIndexRouteImport } from './routes/kerja.index'
 import { Route as KerjaLamaranRouteImport } from './routes/kerja.lamaran'
+import { Route as KerjaNotifikasiRouteImport } from './routes/kerja.notifikasi'
 import { Route as KerjaPembayaranRouteImport } from './routes/kerja.pembayaran'
 import { Route as KerjaPesanRouteImport } from './routes/kerja.pesan'
 import { Route as KerjaProfilRouteImport } from './routes/kerja.profil'
@@ -346,6 +347,11 @@ const KerjaLamaranRoute = KerjaLamaranRouteImport.update({
   path: '/lamaran',
   getParentRoute: () => KerjaRoute,
 } as any)
+const KerjaNotifikasiRoute = KerjaNotifikasiRouteImport.update({
+  id: '/notifikasi',
+  path: '/notifikasi',
+  getParentRoute: () => KerjaRoute,
+} as any)
 const KerjaPembayaranRoute = KerjaPembayaranRouteImport.update({
   id: '/pembayaran',
   path: '/pembayaran',
@@ -627,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -720,6 +727,7 @@ export interface FileRoutesByTo {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -818,6 +826,7 @@ export interface FileRoutesById {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -917,6 +926,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -1010,6 +1020,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -1107,6 +1118,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -1546,6 +1558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KerjaLamaranRouteImport
       parentRoute: typeof KerjaRoute
     }
+    '/kerja/notifikasi': {
+      id: '/kerja/notifikasi'
+      path: '/notifikasi'
+      fullPath: '/kerja/notifikasi'
+      preLoaderRoute: typeof KerjaNotifikasiRouteImport
+      parentRoute: typeof KerjaRoute
+    }
     '/kerja/pembayaran': {
       id: '/kerja/pembayaran'
       path: '/pembayaran'
@@ -1914,6 +1933,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface KerjaRouteChildren {
   KerjaLamaranRoute: typeof KerjaLamaranRoute
+  KerjaNotifikasiRoute: typeof KerjaNotifikasiRoute
   KerjaPembayaranRoute: typeof KerjaPembayaranRoute
   KerjaPesanRoute: typeof KerjaPesanRoute
   KerjaProfilRoute: typeof KerjaProfilRoute
@@ -1925,6 +1945,7 @@ interface KerjaRouteChildren {
 
 const KerjaRouteChildren: KerjaRouteChildren = {
   KerjaLamaranRoute: KerjaLamaranRoute,
+  KerjaNotifikasiRoute: KerjaNotifikasiRoute,
   KerjaPembayaranRoute: KerjaPembayaranRoute,
   KerjaPesanRoute: KerjaPesanRoute,
   KerjaProfilRoute: KerjaProfilRoute,
