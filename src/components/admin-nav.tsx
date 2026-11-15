@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BadgeCheck, Briefcase, CreditCard, Flag, Home, Landmark, LayoutDashboard, MessageSquareWarning, Plug, Settings, ToggleRight, Users, Wallet } from "lucide-react";
+import { Activity, BadgeCheck, Briefcase, CreditCard, Flag, Home, Landmark, LayoutDashboard, MessageSquareWarning, Plug, Settings, Store, ToggleRight, Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isActive, type NavItem } from "@/components/nav-list";
 
@@ -22,7 +22,13 @@ async function count(table: string, apply?: (q: any) => any): Promise<number> {
   return n ?? 0;
 }
 
-type AdminBadges = { verifikasi: number; pembayaran: number; escrow: number; kerja: number };
+/** Jasa yang menunggu moderasi. Dibaca lewat fungsi admin (bukan tabel) supaya tidak bergantung pada RLS tabel services; 0 bila SQL GOBI SERVICES belum diterapkan. */
+async function pendingServices(): Promise<number> {
+  const { data } = await sb.rpc("service_admin_stats");
+  return Number(data?.pending_review ?? 0) || 0;
+}
+
+type AdminBadges = { verifikasi: number; pembayaran: number; escrow: number; kerja: number; jasa: number };
 
 /** Jumlah pekerjaan yang menunggu admin, untuk lencana merah di sidebar. Kunci kuerinya dipakai bersama sehingga hanya satu permintaan. */
 function useAdminBadges() {
@@ -31,15 +37,16 @@ function useAdminBadges() {
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async (): Promise<AdminBadges> => {
-      const [verifikasi, review, payouts, refunds, reports, disputes] = await Promise.all([
+      const [verifikasi, review, payouts, refunds, reports, disputes, jasa] = await Promise.all([
         count("verification_requests", (q) => q.eq("status", "pending")),
         count("orders", (q) => q.eq("status", "payment_review")),
         count("payouts", (q) => q.eq("status", "requested")),
         count("payments", (q) => q.eq("needs_refund", true)),
         count("work_reports", (q) => q.eq("status", "open")),
         count("work_disputes", (q) => q.neq("status", "resolved")),
+        pendingServices(),
       ]);
-      return { verifikasi, pembayaran: review + payouts, escrow: refunds, kerja: reports + disputes };
+      return { verifikasi, pembayaran: review + payouts, escrow: refunds, kerja: reports + disputes, jasa };
     },
   });
 }
@@ -54,6 +61,7 @@ const VerifBadge = () => <Count k="verifikasi" />;
 const PayBadge = () => <Count k="pembayaran" />;
 const EscrowBadge = () => <Count k="escrow" />;
 const WorkBadge = () => <Count k="kerja" />;
+const ServiceBadge = () => <Count k="jasa" />;
 
 export const ADMIN_NAV: AdminNavGroup[] = [
   { group: "Utama", items: [
@@ -69,6 +77,9 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   ] },
   { group: "GOBI WORK", items: [
     { to: "/admin/kerja", label: "Lowongan, kontrak & sengketa", title: "GOBI WORK", desc: "Kelola lowongan, kontrak, sengketa, dan laporan pekerjaan.", Icon: Briefcase, Badge: WorkBadge },
+  ] },
+  { group: "GOBI SERVICES", items: [
+    { to: "/admin/jasa", label: "Moderasi jasa", title: "GOBI SERVICES", desc: "Antrean moderasi jasa: setujui, tolak, minta perbaikan, atau tahan jasa. Setiap keputusan beralasan dan tercatat.", Icon: Store, Badge: ServiceBadge },
   ] },
   { group: "Keuangan", items: [
     { to: "/admin/escrow", label: "Escrow & saldo", title: "Escrow & saldo", desc: "Dana yang ditahan, siap diteruskan, atau perlu refund.", Icon: Landmark, Badge: EscrowBadge },
