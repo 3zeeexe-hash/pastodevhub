@@ -30,7 +30,7 @@ function Applications() {
     queryFn: async () => {
       // work_stage ada setelah SQL 002; jika belum dijalankan, ambil tanpa kolom itu.
       let res = await looseDb.from("job_applications").select("id,status,bid_amount,est_days,created_at,work_stage,job:jobs(id,title)").eq("developer_id", uid).order("created_at", { ascending: false });
-      if (res.error) res = await looseDb.from("job_applications").select("id,status,bid_amount,est_days,created_at,job:jobs(id,title)").eq("developer_id", uid).order("created_at", { ascending: false });
+      if (res.error) res = (await looseDb.from("job_applications").select("id,status,bid_amount,est_days,created_at,job:jobs(id,title)").eq("developer_id", uid).order("created_at", { ascending: false })) as unknown as typeof res;
       if (res.error) throw new Error(errMsg(res.error));
       const rows = (res.data ?? []) as unknown as AppRow[];
       const ids = rows.filter((r) => r.status === "accepted").map((r) => r.id);
@@ -47,7 +47,7 @@ function Applications() {
     queryKey: ["work-my-jobs", uid],
     queryFn: async () => {
       let res = await looseDb.from("jobs").select("id,title,status,moderation_status,applications_count,deadline,created_at").eq("client_id", uid).order("created_at", { ascending: false });
-      if (res.error) res = await looseDb.from("jobs").select("id,title,status,applications_count,deadline,created_at").eq("client_id", uid).order("created_at", { ascending: false });
+      if (res.error) res = (await looseDb.from("jobs").select("id,title,status,applications_count,deadline,created_at").eq("client_id", uid).order("created_at", { ascending: false })) as unknown as typeof res;
       if (res.error) throw new Error(errMsg(res.error));
       return (res.data ?? []) as MyJob[];
     },

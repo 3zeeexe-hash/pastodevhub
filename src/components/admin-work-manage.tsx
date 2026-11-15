@@ -39,7 +39,7 @@ export function UsersTab() {
       let res = await find(`${COLS},is_verified`);
       if (res.error) res = await find(COLS); // kolom verifikasi belum diterapkan di database
       if (res.error) throw new Error(errMsg(res.error));
-      const rows = (res.data ?? []) as UserRow[];
+      const rows = (res.data ?? []) as unknown as UserRow[];
       const bans = new Map<string, string>();
       if (rows.length) {
         const b = (await must<{ user_id: string; reason: string | null }[]>(looseDb.from("user_bans").select("user_id,reason").in("user_id", rows.map((r) => r.id)))) ?? [];

@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/kerja/pesan")({
-  validateSearch: (s: Record<string, unknown>) => ({ application: typeof s.application === "string" ? s.application : undefined }),
+  validateSearch: (s: Record<string, unknown>): { application?: string } => (typeof s.application === "string" ? { application: s.application } : {}),
   component: WorkMessages,
 });
 
