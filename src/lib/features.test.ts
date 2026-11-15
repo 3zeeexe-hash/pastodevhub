@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { featureForPath, isFeatureOn } from "@/lib/features";
+import { FEATURES, featureForPath, isFeatureOn } from "@/lib/features";
 
 describe("feature switches", () => {
   it("treats a feature without a stored switch as on", () => {
@@ -23,6 +23,19 @@ describe("feature switches", () => {
     expect(featureForPath("/budi/proyek/ai")).toBe("ai_editor");
     expect(featureForPath("/new")).toBe("repos");
     expect(featureForPath("/import")).toBe("github");
+    expect(featureForPath("/gobifeed")).toBe("linimasa");
+    expect(featureForPath("/explore")).toBe("explore");
+    expect(featureForPath("/verifikasi")).toBe("verifikasi");
+    expect(featureForPath("/studio/verifikasi")).toBe("verifikasi");
+  });
+  it("keeps every feature key unique and matches the database key format", () => {
+    const keys = FEATURES.map((f) => f.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const k of keys) expect(k).toMatch(/^[a-z_]{2,40}$/);
+  });
+  it("does not close the work chat tab when direct messages are off", () => {
+    expect(featureForPath("/discuss/pesan")).toBe("discuss");
+    expect(isFeatureOn({ dm: false }, "discuss")).toBe(true);
   });
   it("leaves pages without a feature alone", () => {
     expect(featureForPath("/")).toBeNull();

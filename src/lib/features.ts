@@ -1,8 +1,8 @@
 // Feature switches the admin can turn on/off. A feature without a stored switch is on.
 
 export type FeatureKey =
-  | "signup" | "repos" | "git_http" | "github" | "discuss" | "jobs"
-  | "karya" | "jasa" | "hosting" | "toko" | "ai_editor";
+  | "signup" | "verifikasi" | "repos" | "git_http" | "github" | "explore" | "dm" | "linimasa" | "discuss" | "jobs"
+  | "karya" | "jasa" | "pencairan" | "hosting" | "toko" | "ai_editor";
 
 export type FeatureDef = {
   key: FeatureKey;
@@ -15,13 +15,18 @@ export type FeatureDef = {
 
 export const FEATURES: FeatureDef[] = [
   { key: "signup", group: "Akun", label: "Pendaftaran akun baru", description: "Kalau mati, orang baru tidak bisa membuat akun. Akun yang sudah ada tetap bisa masuk.", paths: [] },
+  { key: "verifikasi", group: "Akun", label: "Verifikasi developer", description: "Pengajuan centang biru dan halaman verifikasi. Akun yang sudah terverifikasi tetap terverifikasi.", paths: ["/verifikasi", "/studio/verifikasi"] },
   { key: "repos", group: "Kode", label: "Repositori", description: "Membuat repositori baru, issue, dan pull request. Repositori yang ada tetap bisa dilihat.", paths: ["/new"] },
   { key: "git_http", group: "Kode", label: "Git lewat terminal", description: "git clone, pull, dan push lewat HTTPS dengan token git.", paths: [] },
   { key: "github", group: "Kode", label: "Hubungkan GitHub", description: "Menghubungkan akun GitHub, impor, dan ekspor repositori.", paths: ["/import"] },
+  { key: "explore", group: "Kode", label: "Jelajah proyek", description: "Halaman /explore yang menampilkan daftar repositori publik.", paths: ["/explore"] },
+  { key: "dm", group: "Komunitas", label: "Pesan langsung", description: "Obrolan pribadi antar pengguna (tab Pesan). Obrolan lamaran/kerja mengikuti fitur Lowongan.", paths: [] },
+  { key: "linimasa", group: "Komunitas", label: "Linimasa GOBI", description: "Halaman /gobifeed serta status, cerita, dan polling baru di linimasa.", paths: ["/gobifeed"] },
   { key: "discuss", group: "Komunitas", label: "Diskusi", description: "Halaman diskusi, posting baru, dan komentar.", paths: ["/discuss"] },
   { key: "jobs", group: "Komunitas", label: "Lowongan & GOBI WORK", description: "Memasang lowongan, melamar, serta kontrak, pesan, dan pembayaran kerja (GOBI WORK).", paths: ["/lowongan", "/kerja", "/studio/lamaran"] },
   { key: "karya", group: "Marketplace", label: "Karya", description: "Menjual dan membeli karya (proyek siap pakai).", paths: ["/karya", "/studio/karya", "/katalog"] },
   { key: "jasa", group: "Marketplace", label: "Jasa & portofolio", description: "Membuka jasa, memesan jasa, dan portofolio developer.", paths: ["/jasa", "/studio/jasa", "/studio/portofolio"] },
+  { key: "pencairan", group: "Marketplace", label: "Pencairan dana", description: "Permintaan pencairan saldo developer dan client. Saldo tetap aman dan bisa dilihat; hanya permintaan baru yang ditolak.", paths: [] },
   { key: "hosting", group: "Tools developer", label: "Hosting & berbagi file", description: "Hosting HTML, berbagi file, dan cloud gambar. Link /f/… ikut mati.", paths: ["/studio/hosting", "/studio/files", "/studio/images"] },
   { key: "toko", group: "Tools developer", label: "Toko developer", description: "Halaman toko /toko/… dan desain toko kustom.", paths: ["/toko", "/studio/toko"] },
   { key: "ai_editor", group: "Tools developer", label: "AI untuk repo", description: "Editor AI di repositori dengan kunci Gemini/OpenAI milik developer.", paths: ["/studio/ai"] },
