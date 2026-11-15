@@ -54,7 +54,7 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
       { to: "/", label: "Beranda", Icon: Home, exact: true },
       { to: "/search", search: { q: "", type: "users" }, label: "Cari", Icon: Search },
       { to: "/explore", label: "Repositori", Icon: BookMarked, caps: ["repos"], feature: "explore" },
-      ...(signedIn && on("discuss") ? [{ to: "/discuss/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge }] : []),
+      ...(signedIn && on("discuss") ? [{ to: "/gobifeed/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge }] : []),
       ...(signedIn && (on("discuss") || on("jobs")) ? [{ to: "/notifikasi", search: {}, label: "Notifikasi", Icon: Bell, Badge: NotifBadge }] : []),
       ...(signedIn && username ? [{ to: "/$username", params: { username }, match: `/${username}`, label: "Profil", Icon: User }] : []),
     ];
@@ -63,8 +63,8 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
       ...(on("jobs") ? [{ to: "/lowongan", label: "Lowongan", Icon: Briefcase, caps: ["lamaran", "post_job"] as const }] : []),
       ...(on("jasa") ? [{ to: "/jasa", label: "Jasa", Icon: Wrench }] : []),
       ...(on("karya") ? [{ to: "/katalog", label: "Katalog", Icon: Package }] : []),
-      ...(on("discuss") ? [{ to: "/discuss", search: { tab: "forum" }, label: "Forum", Icon: MessageSquare, exact: true }] : []),
-      ...(signedIn && on("discuss") ? [{ to: "/discuss/tersimpan", label: "Tersimpan", Icon: Bookmark }] : []),
+      ...(on("discuss") ? [{ to: "/gobifeed", search: { tab: "forum" }, label: "Forum", Icon: MessageSquare, exact: true }] : []),
+      ...(signedIn && on("discuss") ? [{ to: "/gobifeed/tersimpan", label: "Tersimpan", Icon: Bookmark }] : []),
     ];
 
     const seen = new Set<string>();

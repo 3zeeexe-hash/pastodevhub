@@ -30,7 +30,7 @@ export type FeedPostBase = {
   author: FeedAuthor;
 };
 /** Yang melekat pada post untuk pembaca ini: status suka/simpan, polling, dan asal otomatis dari repo. */
-export type PostMeta = { viewer: ViewerState; poll: PollData | null; autopost: AutopostInfo | null };
+export type PostMeta = { viewer: ViewerState; poll: PollData | null; autopost: AutopostInfo | null; image: string | null };
 export type FeedPost = FeedPostBase &
   PostMeta & {
     ref: (FeedPostBase & PostMeta) | null;
@@ -160,6 +160,7 @@ async function withViewer(rows: RawPost[], userId: string | undefined): Promise<
     viewer: userId ? { liked: liked.has(id), bookmarked: marked.has(id), reposted: reposted.has(id) } : NO_VIEWER,
     poll: extras.polls.get(id) ?? null,
     autopost: extras.autoposts.get(id) ?? null,
+    image: extras.images.get(id) ?? null,
   });
   return rows.map((r) => ({
     ...r,
@@ -313,14 +314,20 @@ export async function fetchReplies(id: string, userId: string | undefined): Prom
 
 // ---------- Aksi ----------
 
-export async function createPost(userId: string, input: { kind: "post" | "reply" | "quote"; body: string; parentId?: string; refId?: string }) {
-  const { error } = await db.from("feed_posts").insert({
+export const POST_IMAGE_NOT_READY = "Post bergambar belum aktif di database. Minta admin menerapkan docs/sql/gobi-feed/001_post_gambar.sql lewat Lovable.";
+
+export async function createPost(userId: string, input: { kind: "post" | "reply" | "quote"; body: string; parentId?: string; refId?: string; imageUrl?: string | null }) {
+  const row: Record<string, unknown> = {
     author_id: userId,
     kind: input.kind,
     body: input.body.trim(),
     parent_id: input.parentId ?? null,
     ref_id: input.refId ?? null,
-  });
+  };
+  // image_url hanya dikirim kalau ada gambar, supaya post biasa tetap jalan sebelum SQL gambar diterapkan.
+  if (input.imageUrl) row["image_url"] = input.imageUrl;
+  const { error } = await db.from("feed_posts").insert(row);
+  if (error && input.imageUrl && /image_url/.test(error.message ?? "")) throw new Error(POST_IMAGE_NOT_READY);
   fail(error);
 }
 

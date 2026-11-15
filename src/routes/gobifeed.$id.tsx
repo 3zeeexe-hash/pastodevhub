@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarMini } from "@/components/avatar-mini";
 import { SignInCta } from "@/components/sign-in-cta";
 
-export const Route = createFileRoute("/discuss/$id")({
-  head: () => ({ meta: [{ title: "Diskusi — GoBi" }, { name: "description", content: "Baca dan balas diskusi di GoBi." }, { property: "og:title", content: "Diskusi — GoBi" }, { property: "og:description", content: "Baca dan balas diskusi di GoBi." }] }),
+export const Route = createFileRoute("/gobifeed/$id")({
+  head: () => ({ meta: [{ title: "GobiFeed — GoBi" }, { name: "description", content: "Baca dan balas forum di GobiFeed." }, { property: "og:title", content: "GobiFeed — GoBi" }, { property: "og:description", content: "Baca dan balas diskusi di GoBi." }] }),
   component: PostPage,
 });
 
@@ -36,7 +36,7 @@ function PostPage() {
     },
   });
   if (isLoading) return <main className="mx-auto max-w-3xl px-4 py-12 text-muted-foreground">Memuat…</main>;
-  if (!data) return <main className="mx-auto max-w-3xl px-4 py-12">Diskusi tidak ditemukan.</main>;
+  if (!data) return <main className="mx-auto max-w-3xl px-4 py-12">Forum tidak ditemukan.</main>;
   const { post, comments } = data;
   async function reply(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +54,7 @@ function PostPage() {
     if (!confirm("Hapus diskusi ini?")) return;
     await supabase.from("posts").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["posts"] });
-    navigate({ to: "/discuss" });
+    navigate({ to: "/gobifeed" });
   }
   async function delComment(cid: string) {
     await supabase.from("comments").delete().eq("id", cid);
@@ -62,7 +62,7 @@ function PostPage() {
   }
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link to="/discuss" className="text-sm text-muted-foreground hover:text-primary">← Semua diskusi</Link>
+      <Link to="/gobifeed" className="text-sm text-muted-foreground hover:text-primary">← Semua diskusi</Link>
       <h1 className="mt-3 text-3xl font-bold">{post.title}</h1>
       <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
         <AvatarMini name={post.author?.username ?? "?"} url={post.author?.avatar_url} size={22} />

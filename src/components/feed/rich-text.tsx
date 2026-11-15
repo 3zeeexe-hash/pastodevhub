@@ -9,7 +9,7 @@ export function RichText({ body, className }: { body: string; className?: string
       {tokenizeBody(body).map((t, i) => {
         switch (t.type) {
           case "hashtag":
-            return <Link key={i} to="/discuss/tag/$tag" params={{ tag: t.tag }} className="text-primary hover:underline">{t.value}</Link>;
+            return <Link key={i} to="/gobifeed/tag/$tag" params={{ tag: t.tag }} className="text-primary hover:underline">{t.value}</Link>;
           case "mention":
             return <Link key={i} to="/$username" params={{ username: t.username }} className="text-primary hover:underline">{t.value}</Link>;
           case "url":

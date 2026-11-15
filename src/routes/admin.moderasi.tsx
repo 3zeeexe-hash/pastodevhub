@@ -48,7 +48,7 @@ const KINDS: Kind[] = [
     select: "id,title,created_at, author:profiles!posts_author_id_fkey(username)",
     title: (r) => r.title,
     meta: (r) => `oleh @${r.author?.username ?? "?"}`,
-    href: (r) => `/discuss/${r.id}`,
+    href: (r) => `/gobifeed/${r.id}`,
   },
   {
     key: "jobs", label: "Lowongan", table: "jobs", titleCol: "title",

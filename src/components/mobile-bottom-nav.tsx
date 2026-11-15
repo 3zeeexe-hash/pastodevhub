@@ -17,7 +17,7 @@ export function useMobileNavVisible() {
   const { pathname } = useLocation();
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return false;
   if (pathname === "/auth" || pathname === "/reset-password") return false;
-  if (/^\/discuss\/pesan\/[^/]+/.test(pathname)) return false;
+  if (/^\/gobifeed\/pesan\/[^/]+/.test(pathname)) return false;
   return true;
 }
 
@@ -86,7 +86,7 @@ export function MobileBottomNav() {
                 </span>
               </button>
               {on("discuss") ? (
-                <Link to="/discuss/pesan" search={{}} className={tab}>
+                <Link to="/gobifeed/pesan" search={{}} className={tab}>
                   {({ isActive }) => <TabInner active={isActive} Icon={MessageSquare} label="Pesan" fill badge={dm.data ?? 0} />}
                 </Link>
               ) : (
@@ -116,7 +116,7 @@ export function MobileBottomNav() {
           <SheetContent side="bottom" className="rounded-t-2xl bg-card pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <SheetHeader><SheetTitle>Buat baru</SheetTitle></SheetHeader>
             <div className="mt-3 flex flex-col">
-              {on("discuss") && <Link to="/discuss" search={{}} hash="tulis" onClick={close} className={sheetItem}><MessageSquare className="size-5 text-primary" /> Tulis post</Link>}
+              {on("discuss") && <Link to="/gobifeed" search={{}} hash="tulis" onClick={close} className={sheetItem}><MessageSquare className="size-5 text-primary" /> Tulis di GobiFeed</Link>}
               {roleCan(role, "post_job") && on("jobs") && <Link to="/lowongan/baru" onClick={close} className={sheetItem}><Briefcase className="size-5 text-primary" /> Pasang lowongan</Link>}
               {roleCan(role, "jasa") && on("jasa") && <Link to="/studio/jasa" onClick={close} className={sheetItem}><Pencil className="size-5 text-primary" /> Kelola jasa</Link>}
               {roleCan(role, "karya") && on("karya") && <Link to="/studio/karya/$id" params={{ id: "baru" }} onClick={close} className={sheetItem}><Package className="size-5 text-primary" /> Unggah karya</Link>}

@@ -6,8 +6,8 @@ import { fetchPost, fetchReplies } from "@/lib/feed";
 import { Composer } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
 
-export const Route = createFileRoute("/discuss/status/$id")({
-  head: () => ({ meta: [{ title: "Post — GoBi" }, { name: "description", content: "Baca dan balas post di Diskusi GoBi." }, { property: "og:title", content: "Post — GoBi" }, { property: "og:description", content: "Baca dan balas post di Diskusi GoBi." }] }),
+export const Route = createFileRoute("/gobifeed/status/$id")({
+  head: () => ({ meta: [{ title: "Post — GoBi" }, { name: "description", content: "Baca dan balas post di GobiFeed." }, { property: "og:title", content: "Post — GoBi" }, { property: "og:description", content: "Baca dan balas post di GobiFeed." }] }),
   component: StatusPage,
 });
 
@@ -26,7 +26,7 @@ function StatusPage() {
   return (
     <main className="mx-auto max-w-2xl border-x border-border">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Link to="/discuss" aria-label="Kembali ke Diskusi" className="rounded-md p-1.5 hover:bg-accent"><ArrowLeft className="size-5" /></Link>
+        <Link to="/gobifeed" aria-label="Kembali ke GobiFeed" className="rounded-md p-1.5 hover:bg-accent"><ArrowLeft className="size-5" /></Link>
         <h1 className="text-lg font-bold">Post</h1>
       </div>
 

@@ -25,7 +25,7 @@ export function MessageButton({
 }) {
   return (
     <Button asChild variant={variant} size={size} className={cn("rounded-full", className)}>
-      <Link to="/discuss/pesan" search={messengerSearch({ username, application, order })}><MessageCircle /> {label}</Link>
+      <Link to="/gobifeed/pesan" search={messengerSearch({ username, application, order })}><MessageCircle /> {label}</Link>
     </Button>
   );
 }

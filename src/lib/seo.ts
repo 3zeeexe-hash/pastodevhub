@@ -98,7 +98,7 @@ export function robotsForPath(pathname: string): string | null {
   if (PRIVATE_PREFIXES.some((p) => under(path, p))) return "noindex, nofollow";
   if (path === "/search") return "noindex, follow";
   const parts = path.split("/").filter(Boolean);
-  const reserved = ["karya", "jasa", "lowongan", "discuss", "toko", "f", "api", "explore", "katalog"];
+  const reserved = ["karya", "jasa", "lowongan", "gobifeed", "toko", "f", "api", "explore", "katalog"];
   if (parts.length >= 3 && !reserved.includes(parts[0] ?? "")) return "noindex, follow";
   return null;
 }

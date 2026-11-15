@@ -138,7 +138,7 @@ function SearchPage() {
                 {!!tags.data?.length && (
                   <div className="flex flex-wrap gap-2 border-b border-border p-3" aria-label="Tagar yang cocok">
                     {tags.data.map((t) => (
-                      <Link key={t.tag} to="/discuss/tag/$tag" params={{ tag: t.tag }} className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent">
+                      <Link key={t.tag} to="/gobifeed/tag/$tag" params={{ tag: t.tag }} className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent">
                         #{t.tag} <span className="text-xs text-muted-foreground">{t.posts}</span>
                       </Link>
                     ))}
@@ -149,7 +149,7 @@ function SearchPage() {
             ) : (
               <>
                 <TrendingTags />
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Ketik kata kunci untuk mencari post di Diskusi.</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Ketik kata kunci untuk mencari post di GobiFeed.</p>
               </>
             )}
           </div>

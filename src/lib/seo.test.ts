@@ -40,7 +40,7 @@ describe("seoHead for rows that do not exist", () => {
 
 describe("robotsForPath", () => {
   it("indexes public pages", () => {
-    for (const p of ["/", "/karya", "/karya/abc", "/lowongan/abc", "/discuss/abc", "/budi", "/budi/my-repo", "/toko/budi", "/katalog"]) expect(robotsForPath(p), p).toBeNull();
+    for (const p of ["/", "/karya", "/karya/abc", "/lowongan/abc", "/gobifeed/abc", "/budi", "/budi/my-repo", "/toko/budi", "/katalog"]) expect(robotsForPath(p), p).toBeNull();
   });
   it("keeps private and form pages out", () => {
     for (const p of ["/admin", "/auth", "/dashboard", "/settings", "/studio", "/studio/karya/1", "/new", "/import", "/pesanan/1", "/reset-password", "/lowongan/baru"]) expect(robotsForPath(p), p).toBe("noindex, nofollow");

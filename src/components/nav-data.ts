@@ -67,7 +67,7 @@ export const CLIENT_NAV: NavGroup[] = [
     { to: "/katalog", label: "Katalog", Icon: LibraryBig, feature: "karya" },
   ] },
   { group: "Komunitas", items: [
-    { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+    { to: "/gobifeed", label: "GobiFeed", Icon: MessageSquare, feature: "discuss" },
   ] },
   { group: "Akun", items: [
     { to: "/verifikasi", label: "Verifikasi (centang biru)", Icon: BadgeCheck, feature: "verifikasi" },
@@ -87,7 +87,7 @@ const PERSONAL_NAV: NavGroup[] = [
   { group: "Tools", items: devGroup("Tools").items.filter((i) => i.to !== "/studio/toko") },
   { group: "Jelajah", items: [
     { to: "/katalog", label: "Katalog karya", Icon: LibraryBig, feature: "karya" },
-    { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+    { to: "/gobifeed", label: "GobiFeed", Icon: MessageSquare, feature: "discuss" },
     { to: "/pesanan", label: "Pesanan", Icon: Receipt },
   ] },
   devGroup("Akun"),

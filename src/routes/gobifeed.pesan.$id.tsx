@@ -10,12 +10,12 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { ChatBackdrop, ChatNotice, Composer, MessageList } from "@/components/chat-ui";
 import { useChatAttachment } from "@/components/chat-attachment";
 
-export const Route = createFileRoute("/discuss/pesan/$id")({
+export const Route = createFileRoute("/gobifeed/pesan/$id")({
   head: () => ({ meta: [{ title: "Percakapan — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: ChatPage,
 });
 
-/** Panel kanan di /discuss/pesan (layout induk yang menangani masuk/keluar akun dan daftar percakapan). */
+/** Panel kanan di /gobifeed/pesan (layout induk yang menangani masuk/keluar akun dan daftar percakapan). */
 function ChatPage() {
   const { id } = Route.useParams();
   const { user } = useAuth();
@@ -61,7 +61,7 @@ function ChatPage() {
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/discuss/pesan" search={{}} aria-label="Kembali ke daftar pesan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
+        <Link to="/gobifeed/pesan" search={{}} aria-label="Kembali ke daftar pesan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
           <ArrowLeft className="size-5" />
         </Link>
         {p ? (

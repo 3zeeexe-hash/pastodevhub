@@ -16,7 +16,7 @@ export function TrendingTags({ hours = 72, limit = 10 }: { hours?: number; limit
         <ol className="mt-1 pb-2">
           {q.data.map((t, i) => (
             <li key={t.tag}>
-              <Link to="/discuss/tag/$tag" params={{ tag: t.tag }} className="flex items-baseline gap-3 px-4 py-2 hover:bg-accent/40">
+              <Link to="/gobifeed/tag/$tag" params={{ tag: t.tag }} className="flex items-baseline gap-3 px-4 py-2 hover:bg-accent/40">
                 <span className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate font-semibold">#{t.tag}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{t.posts} post · {t.authors} penulis</span>

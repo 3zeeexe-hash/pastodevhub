@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export const CHAT_IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
 /** Menyimpan satu gambar terlampir: diunggah begitu dipilih, lalu dikirim bersama pesan. */
-export function useChatAttachment() {
+export function useChatAttachment(folder = "chat") {
   const { user } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function useChatAttachment() {
     setPreview(local);
     setUploading(true);
     try {
-      setImage(await uploadMedia(user.id, file, "chat"));
+      setImage(await uploadMedia(user.id, file, folder));
     } catch (e) {
       toast.error(errMsg(e));
       setPreview(null);

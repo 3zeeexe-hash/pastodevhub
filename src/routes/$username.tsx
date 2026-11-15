@@ -209,7 +209,7 @@ function Profile() {
                     {data.isFollowing
                       ? <button type="button" onClick={toggleFollow} className={softBtn}>Berhenti follow</button>
                       : <button type="button" onClick={toggleFollow} className={primaryBtn}><UserPlus className="size-5" /> Follow</button>}
-                    {user && <Link to="/discuss/pesan" search={{ u: p.username }} className={softBtn}><Mail className="size-5" /> Kirim pesan</Link>}
+                    {user && <Link to="/gobifeed/pesan" search={{ u: p.username }} className={softBtn}><Mail className="size-5" /> Kirim pesan</Link>}
                     {isDev && <Link to="/toko/$username" params={{ username: p.username }} className={softBtn}><Store className="size-5" /> Kunjungi toko</Link>}
                   </>
                 )}
@@ -234,7 +234,7 @@ function Profile() {
                     <span className="flex-1">Riwayat Transaksi</span>
                     <ChevronRight className="size-5 text-muted-foreground transition group-hover:translate-x-0.5" />
                   </Link>
-                  <Link to="/discuss/pesan" search={{}} className={MENU_ROW}>
+                  <Link to="/gobifeed/pesan" search={{}} className={MENU_ROW}>
                     <IconBox><MessageSquare /></IconBox>
                     <span className="flex-1">Pesan</span>
                     <ChevronRight className="size-5 text-muted-foreground transition group-hover:translate-x-0.5" />

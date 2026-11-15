@@ -14,6 +14,7 @@ import { workRpc } from "@/lib/work-db";
 import { AvatarMini } from "@/components/avatar-mini";
 import { ApplicationThread } from "@/components/application-thread";
 import { OrderChat } from "@/components/order-chat";
+import { AttachImageButton, AttachmentPreview, MessageImage, useChatAttachment } from "@/components/chat-attachment";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 type View = { kind: "inbox" } | { kind: "order" } | { kind: "work" } | { kind: "dm"; id: string } | { kind: "workthread"; id: string };
 
 // Halaman yang sudah punya layar chat sendiri atau bukan tempat chat.
-const HIDDEN = ["/admin", "/auth", "/reset-password", "/discuss/pesan"];
+const HIDDEN = ["/admin", "/auth", "/reset-password", "/gobifeed/pesan"];
 const ORDER_PATH = /^\/pesanan\/([^/]+)\/?$/;
 const WORK_PATH = /^\/(lowongan|kerja)(\/|$)/;
 
@@ -188,7 +189,7 @@ function Inbox({ userId, onOpen, onNavigate }: { userId: string; onOpen: (id: st
           ))}
         </ul>
       )}
-      <Link to="/discuss/pesan" search={{}} onClick={onNavigate} className="border-t border-border px-4 py-2.5 text-center text-xs font-medium text-link hover:bg-accent/40">Buka halaman pesan</Link>
+      <Link to="/gobifeed/pesan" search={{}} onClick={onNavigate} className="border-t border-border px-4 py-2.5 text-center text-xs font-medium text-link hover:bg-accent/40">Buka halaman pesan</Link>
     </div>
   );
 }
@@ -268,6 +269,7 @@ function WorkThread({ id, userId, onBack, onClose }: { id: string; userId: strin
 function DmThread({ id, userId, onBack, onClose }: { id: string; userId: string; onBack: () => void; onClose: () => void }) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const attachment = useChatAttachment();
   const endRef = useRef<HTMLDivElement>(null);
   const partner = useQuery({ queryKey: ["dm-partner", id], queryFn: () => fetchPartner(id, userId) });
   const messages = useQuery({ queryKey: ["dm-messages", id], queryFn: () => fetchMessages(id), refetchInterval: 8_000 });
@@ -282,12 +284,12 @@ function DmThread({ id, userId, onBack, onClose }: { id: string; userId: string;
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [lastId]);
 
   const send = useMutation({
-    mutationFn: () => sendMessage(userId, id, body),
-    onSuccess: async () => { setBody(""); await qc.invalidateQueries({ queryKey: ["dm-messages", id] }); },
+    mutationFn: () => sendMessage(userId, id, body, attachment.image),
+    onSuccess: async () => { setBody(""); attachment.clear(); await qc.invalidateQueries({ queryKey: ["dm-messages", id] }); },
     onError: (e: Error) => toast.error(e.message),
   });
-  const err = dmBodyError(body);
-  const submit = () => { if (!err && !send.isPending) send.mutate(); };
+  const err = dmBodyError(body, !!attachment.image);
+  const submit = () => { if (!err && !send.isPending && !attachment.uploading) send.mutate(); };
   const p = partner.data;
   const failed = messages.error ?? partner.error;
 
@@ -322,7 +324,8 @@ function DmThread({ id, userId, onBack, onClose }: { id: string; userId: string;
             return (
               <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", mine ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-secondary")}>
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  {m.image_url && <MessageImage url={m.image_url} className={cn("-mx-1 -mt-0.5", m.body.trim() ? "mb-1" : "mb-0")} />}
+                  {m.body.trim() && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   <p className={cn("mt-1 text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>{timeAgo(m.created_at)}</p>
                 </div>
               </div>
@@ -332,19 +335,27 @@ function DmThread({ id, userId, onBack, onClose }: { id: string; userId: string;
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-end gap-2 border-t border-border p-3">
-        <Textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-          rows={1}
-          maxLength={MAX_DM_LENGTH}
-          placeholder="Tulis pesan…"
-          aria-label="Isi pesan"
-          className="min-h-9 resize-none"
-        />
-        <Button type="submit" size="icon" disabled={!!err || send.isPending} aria-label="Kirim pesan"><Send /></Button>
-      </form>
+      <div className="border-t border-border">
+        <AttachmentPreview attachment={attachment} />
+        <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-end gap-2 p-3">
+          <AttachImageButton attachment={attachment} className="size-9" />
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+            onPaste={(e) => {
+              const f = [...e.clipboardData.files].find((x) => x.type.startsWith("image/"));
+              if (f) { e.preventDefault(); void attachment.pick(f); }
+            }}
+            rows={1}
+            maxLength={MAX_DM_LENGTH}
+            placeholder={attachment.image ? "Tambahkan keterangan…" : "Tulis pesan…"}
+            aria-label="Isi pesan"
+            className="min-h-9 resize-none"
+          />
+          <Button type="submit" size="icon" disabled={!!err || send.isPending || attachment.uploading} aria-label="Kirim pesan"><Send /></Button>
+        </form>
+      </div>
     </>
   );
 }

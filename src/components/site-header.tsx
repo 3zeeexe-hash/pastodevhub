@@ -27,7 +27,7 @@ const NAV = [
   { to: "/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
   { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
   { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
-  { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+  { to: "/gobifeed", label: "GobiFeed", Icon: MessageSquare, feature: "discuss" },
 ] as const;
 
 const WORKSPACE_SHORT: Record<Role, string> = { developer: "Studio", freelancer: "Freelance", client: "Dashboard", personal: "Ruang saya" };
@@ -129,7 +129,7 @@ export function SiteHeader() {
                   {roleCan(role, "jasa") && on("jasa") && <DropdownMenuItem asChild><Link to="/studio/jasa"><Wrench /> Kelola jasa</Link></DropdownMenuItem>}
                   {roleCan(role, "repos") && on("repos") && <DropdownMenuItem asChild><Link to="/new"><BookMarked /> Repositori baru</Link></DropdownMenuItem>}
                   {roleCan(role, "github") && on("github") && <DropdownMenuItem asChild><Link to="/import"><Download /> Impor dari GitHub</Link></DropdownMenuItem>}
-                  {on("discuss") && <DropdownMenuItem asChild><Link to="/discuss"><MessageSquare /> Diskusi baru</Link></DropdownMenuItem>}
+                  {on("discuss") && <DropdownMenuItem asChild><Link to="/gobifeed"><MessageSquare /> Tulis di GobiFeed</Link></DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
