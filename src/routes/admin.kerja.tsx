@@ -17,6 +17,7 @@ import { ApplicationsTab, AuditTab, PayoutsTab, TransactionsTab } from "@/compon
 import { CasesTab, DisputesTab2, ReportsTab2 } from "@/components/admin-work-cases";
 import { ClientWithdrawalsTab } from "@/components/admin-client-withdrawals";
 import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
+import { useAskAdmin } from "@/lib/admin-ask";
 
 export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
 
@@ -140,10 +141,11 @@ const None = () => <p className="text-sm text-muted-foreground">Belum ada data.<
 /* ---------- Rekonsiliasi ---------- */
 type Rec = { kind: string; ref_id: string; detail: string };
 function ReconcileTab() {
+  const ask = useAskAdmin();
   const [rows, setRows] = useState<Rec[] | null>(null);
   const [busy, setBusy] = useState(false);
   async function run(apply: boolean) {
-    if (apply && !confirm("Perbaiki item yang aman diperbaiki? Aksi ini tercatat di audit log.")) return;
+    if (apply && !(await ask({ title: "Perbaiki item yang aman?", description: "Hanya item yang aman diperbaiki yang diubah. Aksi ini tercatat di audit log.", confirmLabel: "Perbaiki" }))) return;
     setBusy(true);
     try { setRows(await workRpc<Rec[]>("work_admin_reconcile", { _apply: apply })); if (apply) toast.success("Rekonsiliasi dijalankan"); } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   }
