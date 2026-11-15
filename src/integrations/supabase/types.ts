@@ -420,13 +420,15 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
+          image_url: string | null
           sender_id: string
         }
         Insert: {
-          body: string
+          body?: string
           conversation_id: string
           created_at?: string
           id?: string
+          image_url?: string | null
           sender_id: string
         }
         Update: {
@@ -434,6 +436,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -1487,14 +1490,16 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_url: string | null
           read_at: string | null
           sender_id: string
         }
         Insert: {
           application_id: string
-          body: string
+          body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           read_at?: string | null
           sender_id: string
         }
@@ -1503,6 +1508,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           read_at?: string | null
           sender_id?: string
         }
@@ -1623,14 +1629,16 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_url: string | null
           is_system: boolean
           order_id: string
           sender_id: string
         }
         Insert: {
-          body: string
+          body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_system?: boolean
           order_id: string
           sender_id: string
@@ -1639,6 +1647,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_system?: boolean
           order_id?: string
           sender_id?: string
