@@ -1,5 +1,6 @@
 // Pesan langsung 1-lawan-1 (Fase 4). Tabel dm_* dan fungsi dm_* dibuat lewat docs/sql/0007_diskusi_fase4.sql.
 import { db, fail, isMissingSchemaError } from "@/lib/feed-db";
+import { looseDb } from "@/lib/escrow-db";
 import { dmBodyError } from "@/lib/feed-rules";
 
 export const DM_NOT_READY = "Pesan langsung belum aktif di database. Minta admin menerapkan docs/sql/0007_diskusi_fase4.sql lewat Lovable.";
@@ -29,11 +30,24 @@ export async function fetchInbox(): Promise<Conversation[]> {
   return ((data ?? []) as (Omit<Conversation, "unread"> & { unread: number | string })[]).map((c) => ({ ...c, unread: Number(c.unread) }));
 }
 
-/** Jumlah percakapan yang punya pesan belum dibaca. 0 kalau belum masuk atau fiturnya belum ada. */
+/** Jumlah obrolan kerja (lamaran) yang punya pesan belum dibaca. 0 jika SQL 002 (kolom read_at) belum dijalankan. */
+async function fetchWorkUnreadConversations(userId: string): Promise<number> {
+  const r = await looseDb.from("job_messages").select("application_id").is("read_at", null).neq("sender_id", userId).limit(1000);
+  if (r.error) return 0;
+  return new Set(((r.data ?? []) as { application_id: string }[]).map((x) => x.application_id)).size;
+}
+
+/**
+ * Jumlah percakapan yang punya pesan belum dibaca di halaman Pesan: pesan pribadi + obrolan kerja. 0 kalau belum masuk atau fiturnya belum ada.
+ * Halaman Pesan menggabungkan keduanya, jadi satu angka ini dipakai semua lencana (menu, header, menu bawah) lewat kunci kueri "dm-unread".
+ */
 export async function fetchDmUnread(userId: string | undefined): Promise<number> {
   if (!userId) return 0;
-  const { data, error } = await db.rpc("dm_unread_count");
-  return error ? 0 : Number(data ?? 0);
+  const [dm, work] = await Promise.all([
+    db.rpc("dm_unread_count").then(({ data, error }) => (error ? 0 : Number(data ?? 0))),
+    fetchWorkUnreadConversations(userId),
+  ]);
+  return dm + work;
 }
 
 /** Membuka (atau membuat) percakapan dengan seorang pengguna dan mengembalikan id percakapan. */
