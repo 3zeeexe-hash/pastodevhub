@@ -80,3 +80,12 @@ describe("pesan dan laporan", () => {
     expect(reportReasonLabel("tidak-dikenal")).toBe("tidak-dikenal");
   });
 });
+
+describe("pesan bergambar", () => {
+  it("menolak pesan kosong tanpa gambar", () => {
+    expect(dmBodyError("   ")).toBe("Pesan tidak boleh kosong.");
+  });
+  it("menerima pesan berisi gambar saja", () => {
+    expect(dmBodyError("", true)).toBeNull();
+  });
+});

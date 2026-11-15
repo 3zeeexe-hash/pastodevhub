@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { GobiLoader } from "@/components/gobi-loader";
 import { cn } from "@/lib/utils";
+import { AttachImageButton, AttachmentPreview, MessageImage, useChatAttachment } from "@/components/chat-attachment";
 
 /**
  * Obrolan pribadi antara client dan satu pelamar.
@@ -19,13 +20,14 @@ export function ApplicationThread({ applicationId, fill = false, onRead }: { app
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const attachment = useChatAttachment();
   const endRef = useRef<HTMLDivElement>(null);
   const readRef = useRef(onRead);
   readRef.current = onRead;
   const { data = [], isLoading } = useQuery({
     queryKey: ["job-messages", applicationId],
     refetchInterval: 8000,
-    queryFn: async () => (await supabase.from("job_messages").select("id,body,created_at,sender_id, sender:profiles!job_messages_sender_id_fkey(username)").eq("application_id", applicationId).order("created_at")).data ?? [],
+    queryFn: async () => (await supabase.from("job_messages").select("id,body,created_at,sender_id,image_url, sender:profiles!job_messages_sender_id_fkey(username)").eq("application_id", applicationId).order("created_at")).data ?? [],
   });
   const lastId = (data[data.length - 1] as { id?: string } | undefined)?.id;
   useEffect(() => {
@@ -37,12 +39,14 @@ export function ApplicationThread({ applicationId, fill = false, onRead }: { app
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const text = body.trim();
-    if (!text || !user) return;
+    const image = attachment.image;
+    if ((!text && !image) || !user || attachment.uploading) return;
     setBusy(true);
-    const { error } = await supabase.from("job_messages").insert({ application_id: applicationId, sender_id: user.id, body: text.slice(0, 4000) });
+    const { error } = await supabase.from("job_messages").insert({ application_id: applicationId, sender_id: user.id, body: text.slice(0, 4000), image_url: image });
     setBusy(false);
     if (error) { toast.error("Pesan gagal dikirim."); return; }
     setBody("");
+    attachment.clear();
     qc.invalidateQueries({ queryKey: ["job-messages", applicationId] });
   }
   return (
@@ -55,7 +59,8 @@ export function ApplicationThread({ applicationId, fill = false, onRead }: { app
             return (
               <li key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[85%] rounded-2xl px-3 py-2 text-sm", mine ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-secondary text-secondary-foreground")}>
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  {m.image_url && <MessageImage url={m.image_url} className="-mx-1 mb-1" />}
+                  {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   <p className={cn("mt-1 text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>@{m.sender?.username} · {timeAgo(m.created_at)}</p>
                 </div>
               </li>
@@ -64,11 +69,15 @@ export function ApplicationThread({ applicationId, fill = false, onRead }: { app
           <div ref={endRef} />
         </ul>
       )}
-      <form onSubmit={send} className="flex items-end gap-2 border-t border-border p-2">
+      <div className="border-t border-border">
+      <AttachmentPreview attachment={attachment} />
+      <form onSubmit={send} className="flex items-end gap-2 p-2">
+        <AttachImageButton attachment={attachment} className="size-9" />
         <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Tulis pesan…" rows={1} className="min-h-9 flex-1 resize-none"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); (e.currentTarget.form as HTMLFormElement).requestSubmit(); } }} />
-        <Button size="icon" disabled={busy || !body.trim()} aria-label="Kirim pesan">{busy ? <Loader2 className="animate-spin" /> : <Send />}</Button>
+        <Button size="icon" disabled={busy || attachment.uploading || (!body.trim() && !attachment.image)} aria-label="Kirim pesan">{busy ? <Loader2 className="animate-spin" /> : <Send />}</Button>
       </form>
+      </div>
     </div>
   );
 }

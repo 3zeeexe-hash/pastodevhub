@@ -134,6 +134,124 @@ export type Database = {
         }
         Relationships: []
       }
+      client_wallet_entries: {
+        Row: {
+          amount: number
+          client_id: string
+          contract_id: string | null
+          created_at: string
+          dispute_id: string | null
+          id: string
+          kind: string
+          note: string | null
+          order_id: string | null
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          contract_id?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          order_id?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          contract_id?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_wallet_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_wallet_entries_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_wallet_entries_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "work_disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_wallet_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_withdrawals: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_name: string
+          client_id: string
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_name: string
+          client_id: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_withdrawals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string
@@ -218,6 +336,7 @@ export type Database = {
       contract_milestones: {
         Row: {
           amount: number
+          auto_approved_at: string | null
           contract_id: string
           created_at: string
           deadline: string | null
@@ -231,6 +350,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          auto_approved_at?: string | null
           contract_id: string
           created_at?: string
           deadline?: string | null
@@ -244,6 +364,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          auto_approved_at?: string | null
           contract_id?: string
           created_at?: string
           deadline?: string | null
@@ -299,13 +420,15 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
+          image_url: string | null
           sender_id: string
         }
         Insert: {
-          body: string
+          body?: string
           conversation_id: string
           created_at?: string
           id?: string
+          image_url?: string | null
           sender_id: string
         }
         Update: {
@@ -313,6 +436,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -1286,6 +1410,7 @@ export type Database = {
           created_at: string
           developer_id: string
           est_days: number
+          finish_date: string | null
           id: string
           job_id: string
           status: string
@@ -1298,6 +1423,7 @@ export type Database = {
           created_at?: string
           developer_id: string
           est_days?: number
+          finish_date?: string | null
           id?: string
           job_id: string
           status?: string
@@ -1310,6 +1436,7 @@ export type Database = {
           created_at?: string
           developer_id?: string
           est_days?: number
+          finish_date?: string | null
           id?: string
           job_id?: string
           status?: string
@@ -1363,14 +1490,16 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_url: string | null
           read_at: string | null
           sender_id: string
         }
         Insert: {
           application_id: string
-          body: string
+          body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           read_at?: string | null
           sender_id: string
         }
@@ -1379,6 +1508,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           read_at?: string | null
           sender_id?: string
         }
@@ -1404,6 +1534,7 @@ export type Database = {
           applications_count: number
           budget_max: number
           budget_min: number
+          cancellation_terms: string
           category: string
           client_id: string
           created_at: string
@@ -1419,16 +1550,19 @@ export type Database = {
           payment_type: string
           positions: number
           requirements: string | null
+          revision_limit: number | null
           skills: string[]
           status: string
           title: string
           updated_at: string
+          usage_rights: string
           work_mode: string
         }
         Insert: {
           applications_count?: number
           budget_max?: number
           budget_min?: number
+          cancellation_terms?: string
           category?: string
           client_id: string
           created_at?: string
@@ -1444,16 +1578,19 @@ export type Database = {
           payment_type?: string
           positions?: number
           requirements?: string | null
+          revision_limit?: number | null
           skills?: string[]
           status?: string
           title: string
           updated_at?: string
+          usage_rights?: string
           work_mode?: string
         }
         Update: {
           applications_count?: number
           budget_max?: number
           budget_min?: number
+          cancellation_terms?: string
           category?: string
           client_id?: string
           created_at?: string
@@ -1469,10 +1606,12 @@ export type Database = {
           payment_type?: string
           positions?: number
           requirements?: string | null
+          revision_limit?: number | null
           skills?: string[]
           status?: string
           title?: string
           updated_at?: string
+          usage_rights?: string
           work_mode?: string
         }
         Relationships: [
@@ -1490,14 +1629,16 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_url: string | null
           is_system: boolean
           order_id: string
           sender_id: string
         }
         Insert: {
-          body: string
+          body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_system?: boolean
           order_id: string
           sender_id: string
@@ -1506,6 +1647,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_system?: boolean
           order_id?: string
           sender_id?: string
@@ -1746,6 +1888,44 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at: string
+          id: string
+          is_default: boolean
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2271,56 +2451,1097 @@ export type Database = {
         }
         Relationships: []
       }
+      service_addons: {
+        Row: {
+          created_at: string
+          description: string
+          extra_days: number
+          extra_revisions: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          extra_days?: number
+          extra_revisions?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          extra_days?: number
+          extra_revisions?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_addons_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          group_label: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          group_label: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          group_label?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      service_dispute_evidence: {
+        Row: {
+          attachments: Json
+          author_id: string
+          created_at: string
+          dispute_id: string
+          id: string
+          note: string
+        }
+        Insert: {
+          attachments?: Json
+          author_id: string
+          created_at?: string
+          dispute_id: string
+          id?: string
+          note?: string
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string
+          created_at?: string
+          dispute_id?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_dispute_evidence_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_dispute_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "service_disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_disputes: {
+        Row: {
+          considered: Json
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_note: string | null
+          id: string
+          opened_by: string
+          order_id: string
+          prev_stage: string | null
+          reason: string
+          refund_amount: number | null
+          status: string
+        }
+        Insert: {
+          considered?: Json
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_note?: string | null
+          id?: string
+          opened_by: string
+          order_id: string
+          prev_stage?: string | null
+          reason: string
+          refund_amount?: number | null
+          status?: string
+        }
+        Update: {
+          considered?: Json
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_note?: string | null
+          id?: string
+          opened_by?: string
+          order_id?: string
+          prev_stage?: string | null
+          reason?: string
+          refund_amount?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_faqs: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          position: number
+          question: string
+          service_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          position?: number
+          question: string
+          service_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          position?: number
+          question?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_faqs_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_favorites: {
+        Row: {
+          created_at: string
+          service_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          service_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          service_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_favorites_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_gallery: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          portfolio_item_id: string | null
+          position: number
+          service_id: string
+          url: string | null
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          id?: string
+          portfolio_item_id?: string | null
+          position?: number
+          service_id: string
+          url?: string | null
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          portfolio_item_id?: string | null
+          position?: number
+          service_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_gallery_portfolio_item_id_fkey"
+            columns: ["portfolio_item_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_gallery_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_moderation_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          from_status: string | null
+          id: number
+          note: string | null
+          service_id: string
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: never
+          note?: string | null
+          service_id: string
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: never
+          note?: string | null
+          service_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_moderation_events_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_notifications: {
+        Row: {
+          created_at: string
+          dedupe_key: string | null
+          id: number
+          kind: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key?: string | null
+          id?: never
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string | null
+          id?: never
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event: string
+          from_stage: string | null
+          id: number
+          order_id: string
+          to_stage: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          from_stage?: string | null
+          id?: never
+          order_id: string
+          to_stage?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          from_stage?: string | null
+          id?: never
+          order_id?: string
+          to_stage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_order_items: {
+        Row: {
+          addon_id: string | null
+          created_at: string
+          extra_days: number
+          extra_revisions: number
+          id: string
+          kind: string
+          name: string
+          order_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          addon_id?: string | null
+          created_at?: string
+          extra_days?: number
+          extra_revisions?: number
+          id?: string
+          kind: string
+          name: string
+          order_id: string
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          addon_id?: string | null
+          created_at?: string
+          extra_days?: number
+          extra_revisions?: number
+          id?: string
+          kind?: string
+          name?: string
+          order_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_items_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "service_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_orders: {
+        Row: {
+          accepted_at: string | null
+          auto_complete_at: string | null
+          cancel_reason: string | null
+          cancel_requested_by: string | null
+          completed_at: string | null
+          created_at: string
+          delivery_days: number
+          due_at: string | null
+          is_custom: boolean
+          order_id: string
+          package_id: string | null
+          package_snapshot: Json
+          prev_stage: string | null
+          revisions_included: number
+          revisions_used: number
+          stage: string
+          started_at: string | null
+          submitted_at: string | null
+          terms_accepted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          auto_complete_at?: string | null
+          cancel_reason?: string | null
+          cancel_requested_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delivery_days?: number
+          due_at?: string | null
+          is_custom?: boolean
+          order_id: string
+          package_id?: string | null
+          package_snapshot?: Json
+          prev_stage?: string | null
+          revisions_included?: number
+          revisions_used?: number
+          stage?: string
+          started_at?: string | null
+          submitted_at?: string | null
+          terms_accepted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          auto_complete_at?: string | null
+          cancel_reason?: string | null
+          cancel_requested_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delivery_days?: number
+          due_at?: string | null
+          is_custom?: boolean
+          order_id?: string
+          package_id?: string | null
+          package_snapshot?: Json
+          prev_stage?: string | null
+          revisions_included?: number
+          revisions_used?: number
+          stage?: string
+          started_at?: string | null
+          submitted_at?: string | null
+          terms_accepted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_cancel_requested_by_fkey"
+            columns: ["cancel_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "service_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_packages: {
+        Row: {
+          created_at: string
+          delivery_days: number
+          description: string
+          features: string[]
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          revisions: number
+          service_id: string
+          tier: string
+          updated_at: string
+          work_limit: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_days: number
+          description?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+          revisions?: number
+          service_id: string
+          tier: string
+          updated_at?: string
+          work_limit?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          revisions?: number
+          service_id?: string
+          tier?: string
+          updated_at?: string
+          work_limit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          detail: string
+          id: string
+          reason: string
+          reporter_id: string
+          resolved_by: string | null
+          status: string
+          target_id: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          resolved_by?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          detail?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_by?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requirements: {
+        Row: {
+          attachments: Json
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          order_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_id: string
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          order_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requirements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requirements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          buyer_id: string
+          comment: string
+          created_at: string
+          id: string
+          is_visible: boolean
+          order_id: string
+          rating: number
+          replied_at: string | null
+          seller_id: string
+          seller_reply: string | null
+          service_id: string
+        }
+        Insert: {
+          buyer_id: string
+          comment?: string
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_id: string
+          rating: number
+          replied_at?: string | null
+          seller_id: string
+          seller_reply?: string | null
+          service_id: string
+        }
+        Update: {
+          buyer_id?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_id?: string
+          rating?: number
+          replied_at?: string | null
+          seller_id?: string
+          seller_reply?: string | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_revisions: {
+        Row: {
+          buyer_id: string
+          counted: boolean
+          created_at: string
+          id: string
+          note: string
+          order_id: string
+          submission_id: string | null
+        }
+        Insert: {
+          buyer_id: string
+          counted?: boolean
+          created_at?: string
+          id?: string
+          note: string
+          order_id: string
+          submission_id?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          counted?: boolean
+          created_at?: string
+          id?: string
+          note?: string
+          order_id?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_revisions_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_revisions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_revisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "service_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_seller_profiles: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          is_active: boolean
+          response_time_hours: number | null
+          suspended_at: string | null
+          suspended_reason: string | null
+          tagline: string
+          terms_accepted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          is_active?: boolean
+          response_time_hours?: number | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          tagline?: string
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          is_active?: boolean
+          response_time_hours?: number | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          tagline?: string
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_seller_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      service_subcategories: {
+        Row: {
+          active: boolean
+          category_slug: string
+          created_at: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          category_slug: string
+          created_at?: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          category_slug?: string
+          created_at?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_subcategories_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      service_submissions: {
+        Row: {
+          attachments: Json
+          created_at: string
+          demo_url: string | null
+          id: string
+          links: string[]
+          note: string
+          order_id: string
+          repo_url: string | null
+          revision_no: number
+          seller_id: string
+        }
+        Insert: {
+          attachments?: Json
+          created_at?: string
+          demo_url?: string | null
+          id?: string
+          links?: string[]
+          note: string
+          order_id: string
+          repo_url?: string | null
+          revision_no?: number
+          seller_id: string
+        }
+        Update: {
+          attachments?: Json
+          created_at?: string
+          demo_url?: string | null
+          id?: string
+          links?: string[]
+          note?: string
+          order_id?: string
+          repo_url?: string | null
+          revision_no?: number
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_submissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_submissions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
+          admin_hold: boolean
+          buyer_requirements: string
           category: string
+          category_slug: string | null
           cover_url: string | null
           created_at: string
           delivery_days: number
           description: string
           id: string
           is_active: boolean
+          moderation_note: string | null
+          orders_completed: number
           owner_id: string
           price_from: number
+          published_at: string | null
+          rating_avg: number
+          rating_count: number
+          revision_terms: string
+          scope_limits: string
+          skills: string[]
+          status: string
+          subcategory_slug: string | null
           summary: string
           title: string
           updated_at: string
         }
         Insert: {
+          admin_hold?: boolean
+          buyer_requirements?: string
           category?: string
+          category_slug?: string | null
           cover_url?: string | null
           created_at?: string
           delivery_days?: number
           description?: string
           id?: string
           is_active?: boolean
+          moderation_note?: string | null
+          orders_completed?: number
           owner_id: string
           price_from?: number
+          published_at?: string | null
+          rating_avg?: number
+          rating_count?: number
+          revision_terms?: string
+          scope_limits?: string
+          skills?: string[]
+          status?: string
+          subcategory_slug?: string | null
           summary?: string
           title: string
           updated_at?: string
         }
         Update: {
+          admin_hold?: boolean
+          buyer_requirements?: string
           category?: string
+          category_slug?: string | null
           cover_url?: string | null
           created_at?: string
           delivery_days?: number
           description?: string
           id?: string
           is_active?: boolean
+          moderation_note?: string | null
+          orders_completed?: number
           owner_id?: string
           price_from?: number
+          published_at?: string | null
+          rating_avg?: number
+          rating_count?: number
+          revision_terms?: string
+          scope_limits?: string
+          skills?: string[]
+          status?: string
+          subcategory_slug?: string | null
           summary?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "services_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "services_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_subcategory_slug_fkey"
+            columns: ["subcategory_slug"]
+            isOneToOne: false
+            referencedRelation: "service_subcategories"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -2552,7 +3773,10 @@ export type Database = {
           job_id: string
           payment_terms: string
           payment_type: string
+          revision_limit: number | null
           revision_terms: string
+          revisions_used: number
+          schedule_mode: boolean
           scope: string
           status: string
           title: string
@@ -2576,7 +3800,10 @@ export type Database = {
           job_id: string
           payment_terms?: string
           payment_type: string
+          revision_limit?: number | null
           revision_terms?: string
+          revisions_used?: number
+          schedule_mode?: boolean
           scope: string
           status?: string
           title: string
@@ -2600,7 +3827,10 @@ export type Database = {
           job_id?: string
           payment_terms?: string
           payment_type?: string
+          revision_limit?: number | null
           revision_terms?: string
+          revisions_used?: number
+          schedule_mode?: boolean
           scope?: string
           status?: string
           title?: string
@@ -2940,6 +4170,114 @@ export type Database = {
           },
         ]
       }
+      work_schedule_changes: {
+        Row: {
+          contract_id: string
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          id: string
+          new_date: string
+          new_end: string
+          new_start: string
+          note: string
+          requested_by: string
+          slot_id: string
+          status: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          new_date: string
+          new_end: string
+          new_start: string
+          note?: string
+          requested_by: string
+          slot_id: string
+          status?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          new_date?: string
+          new_end?: string
+          new_start?: string
+          note?: string
+          requested_by?: string
+          slot_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedule_changes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedule_changes_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedule_changes_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedule_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_schedule_slots: {
+        Row: {
+          contract_id: string
+          created_at: string
+          end_time: string
+          hours: number
+          id: string
+          start_time: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          end_time: string
+          hours: number
+          id?: string
+          start_time: string
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          end_time?: string
+          hours?: number
+          id?: string
+          start_time?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedule_slots_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "work_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_settings: {
         Row: {
           key: string
@@ -3023,10 +4361,12 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decision_note: string | null
+          end_time: string | null
           freelancer_id: string
           hours: number
           id: string
           note: string
+          start_time: string | null
           status: string
           work_date: string
         }
@@ -3036,10 +4376,12 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decision_note?: string | null
+          end_time?: string | null
           freelancer_id: string
           hours: number
           id?: string
           note?: string
+          start_time?: string | null
           status?: string
           work_date: string
         }
@@ -3049,10 +4391,12 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decision_note?: string | null
+          end_time?: string | null
           freelancer_id?: string
           hours?: number
           id?: string
           note?: string
+          start_time?: string | null
           status?: string
           work_date?: string
         }
@@ -3099,7 +4443,123 @@ export type Database = {
         Args: { _client: string; _moderation: string }
         Returns: boolean
       }
+      _refund_order_to_client_wallet: {
+        Args: { _note: string; _order_id: string }
+        Returns: number
+      }
       _require_server_proof: { Args: never; Returns: undefined }
+      _service_guard: { Args: never; Returns: undefined }
+      _service_int: {
+        Args: {
+          _key: string
+          _label: string
+          _max: number
+          _min: number
+          _v: Json
+        }
+        Returns: number
+      }
+      _service_legacy_category: { Args: { _slug: string }; Returns: string }
+      _service_move_stage: {
+        Args: { _detail?: Json; _event: string; _order: string; _to: string }
+        Returns: undefined
+      }
+      _service_notify: {
+        Args: {
+          _dedupe?: string
+          _kind: string
+          _link?: string
+          _title: string
+          _user: string
+        }
+        Returns: undefined
+      }
+      _service_own: {
+        Args: { _id: string }
+        Returns: {
+          admin_hold: boolean
+          buyer_requirements: string
+          category: string
+          category_slug: string | null
+          cover_url: string | null
+          created_at: string
+          delivery_days: number
+          description: string
+          id: string
+          is_active: boolean
+          moderation_note: string | null
+          orders_completed: number
+          owner_id: string
+          price_from: number
+          published_at: string | null
+          rating_avg: number
+          rating_count: number
+          revision_terms: string
+          scope_limits: string
+          skills: string[]
+          status: string
+          subcategory_slug: string | null
+          summary: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "services"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _service_owner_move_ok: {
+        Args: {
+          _from: string
+          _hold: boolean
+          _moderated: boolean
+          _to: string
+          _was_published: boolean
+        }
+        Returns: boolean
+      }
+      _service_readiness: { Args: { _id: string }; Returns: string[] }
+      _service_require_seller: { Args: never; Returns: undefined }
+      _service_stage_ok: {
+        Args: { _from: string; _to: string }
+        Returns: boolean
+      }
+      _service_text: {
+        Args: {
+          _key: string
+          _label: string
+          _max: number
+          _min: number
+          _v: Json
+        }
+        Returns: string
+      }
+      _service_text_array: {
+        Args: { _label: string; _max_items: number; _max_len: number; _v: Json }
+        Returns: string[]
+      }
+      _service_url: { Args: { _label: string; _s: string }; Returns: string }
+      _work_auto_release: { Args: { _contract_id?: string }; Returns: number }
+      _work_check_slot: {
+        Args: {
+          _cid: string
+          _date: string
+          _end: string
+          _exclude?: string
+          _start: string
+        }
+        Returns: number
+      }
+      _work_close_contract: {
+        Args: { _contract_id: string; _note: string; _refund_funded: boolean }
+        Returns: undefined
+      }
+      _work_contract_missing: {
+        Args: { _contract_id: string }
+        Returns: string[]
+      }
       _work_event: {
         Args: { _contract: string; _detail?: Json; _event: string }
         Returns: undefined
@@ -3113,7 +4573,24 @@ export type Database = {
         Args: { _kind: string; _link?: string; _title: string; _user: string }
         Returns: undefined
       }
+      _work_recalc_schedule: { Args: { _cid: string }; Returns: undefined }
       _work_refresh_contract: { Args: { _cid: string }; Returns: undefined }
+      _work_refund_to_client_wallet: {
+        Args: {
+          _contract_id: string
+          _dispute_id: string
+          _note: string
+          _order_id: string
+        }
+        Returns: number
+      }
+      _work_release_due_at: { Args: { _milestone_id: string }; Returns: string }
+      _work_release_order_escrow: {
+        Args: { _by: string; _note: string; _order_id: string }
+        Returns: boolean
+      }
+      _work_schedule_locked: { Args: { _cid: string }; Returns: boolean }
+      _work_text_len: { Args: { _t: string }; Returns: number }
       admin_clear_refund_flag: {
         Args: { _note?: string; _payment_id: string }
         Returns: undefined
@@ -3125,6 +4602,10 @@ export type Database = {
           _target_id: string
           _target_type: string
         }
+        Returns: undefined
+      }
+      admin_process_client_withdrawal: {
+        Args: { _action: string; _id: string; _note?: string }
         Returns: undefined
       }
       admin_register_server_proof: {
@@ -3168,6 +4649,15 @@ export type Database = {
         Returns: undefined
       }
       claim_admin_role: { Args: { _code: string }; Returns: undefined }
+      client_wallet: {
+        Args: never
+        Returns: {
+          available: number
+          paid_out: number
+          requested: number
+          total_in: number
+        }[]
+      }
       complete_order: { Args: { _order_id: string }; Returns: undefined }
       count_hosted_view: { Args: { _slug: string }; Returns: undefined }
       create_order_from_application: {
@@ -3315,6 +4805,15 @@ export type Database = {
         Returns: undefined
       }
       record_download: { Args: { _product_id: string }; Returns: undefined }
+      request_client_withdrawal: {
+        Args: {
+          _account_name: string
+          _account_number: string
+          _amount: number
+          _bank_name: string
+        }
+        Returns: string
+      }
       request_payout: {
         Args: {
           _account_name: string
@@ -3355,6 +4854,80 @@ export type Database = {
         Returns: undefined
       }
       server_proof_ok: { Args: never; Returns: boolean }
+      service_activate_seller: {
+        Args: {
+          _accept_terms: boolean
+          _response_hours: number
+          _tagline: string
+        }
+        Returns: undefined
+      }
+      service_admin_clear_commission: {
+        Args: { _note: string }
+        Returns: undefined
+      }
+      service_admin_detail: { Args: { _id: string }; Returns: Json }
+      service_admin_list: {
+        Args: {
+          _category?: string
+          _limit?: number
+          _offset?: number
+          _q?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      service_admin_moderate: {
+        Args: { _action: string; _note?: string; _service_id: string }
+        Returns: string
+      }
+      service_admin_set_category: {
+        Args: {
+          _active?: boolean
+          _group: string
+          _label: string
+          _slug: string
+          _sort?: number
+        }
+        Returns: undefined
+      }
+      service_admin_set_setting: {
+        Args: { _key: string; _note: string; _value: Json }
+        Returns: undefined
+      }
+      service_admin_set_subcategory: {
+        Args: {
+          _active?: boolean
+          _category_slug: string
+          _label: string
+          _slug: string
+          _sort?: number
+        }
+        Returns: undefined
+      }
+      service_admin_stats: { Args: never; Returns: Json }
+      service_can_manage: { Args: { _service_id: string }; Returns: boolean }
+      service_commission_percent: { Args: never; Returns: number }
+      service_delete_draft: { Args: { _id: string }; Returns: undefined }
+      service_mark_notifications_read: { Args: never; Returns: undefined }
+      service_public_config: { Args: never; Returns: Json }
+      service_save: {
+        Args: {
+          _addons?: Json
+          _core: Json
+          _faqs?: Json
+          _gallery?: Json
+          _id: string
+          _packages?: Json
+        }
+        Returns: string
+      }
+      service_set_status: {
+        Args: { _id: string; _to: string }
+        Returns: string
+      }
+      service_submit: { Args: { _id: string }; Returns: string }
+      service_visible: { Args: { _service_id: string }; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       submit_payment: {
@@ -3364,6 +4937,10 @@ export type Database = {
       withdraw_job_application: {
         Args: { _application_id: string }
         Returns: undefined
+      }
+      work_accept_application: {
+        Args: { _application_id: string }
+        Returns: Json
       }
       work_add_milestone: {
         Args: {
@@ -3375,13 +4952,40 @@ export type Database = {
         }
         Returns: string
       }
+      work_add_slot: {
+        Args: {
+          _contract_id: string
+          _date: string
+          _end: string
+          _start: string
+        }
+        Returns: string
+      }
       work_admin_analytics: { Args: never; Returns: Json }
       work_admin_clear_commission: {
         Args: { _note?: string }
         Returns: undefined
       }
+      work_admin_close_contract: {
+        Args: {
+          _contract_id: string
+          _note: string
+          _refund_funded?: boolean
+          _report_id?: string
+        }
+        Returns: undefined
+      }
       work_admin_decide_dispute: {
-        Args: { _decision: string; _dispute_id: string; _note: string }
+        Args: {
+          _close_contract?: boolean
+          _decision: string
+          _dispute_id: string
+          _note: string
+        }
+        Returns: undefined
+      }
+      work_admin_finish_milestone: {
+        Args: { _milestone_id: string; _note: string }
         Returns: undefined
       }
       work_admin_moderate_job: {
@@ -3395,6 +4999,10 @@ export type Database = {
           kind: string
           ref_id: string
         }[]
+      }
+      work_admin_refund_milestone: {
+        Args: { _close?: boolean; _milestone_id: string; _note: string }
+        Returns: undefined
       }
       work_admin_set_category: {
         Args: {
@@ -3422,6 +5030,10 @@ export type Database = {
         Args: { _contract_id: string; _reason: string }
         Returns: undefined
       }
+      work_cancel_slot_change: {
+        Args: { _change_id: string }
+        Returns: undefined
+      }
       work_complete_hourly_contract: {
         Args: { _contract_id: string }
         Returns: undefined
@@ -3447,6 +5059,10 @@ export type Database = {
         Returns: string
       }
       work_dashboard_stats: { Args: never; Returns: Json }
+      work_decide_slot_change: {
+        Args: { _accept: boolean; _change_id: string; _note?: string }
+        Returns: undefined
+      }
       work_decide_timesheet: {
         Args: { _approve: boolean; _note?: string; _timesheet_id: string }
         Returns: undefined
@@ -3491,9 +5107,20 @@ export type Database = {
         Args: { _milestone_id: string }
         Returns: undefined
       }
+      work_remove_slot: { Args: { _slot_id: string }; Returns: undefined }
       work_request_revision: {
         Args: { _milestone_id: string; _note: string }
         Returns: undefined
+      }
+      work_request_slot_change: {
+        Args: {
+          _new_date: string
+          _new_end: string
+          _new_start: string
+          _note?: string
+          _slot_id: string
+        }
+        Returns: string
       }
       work_respond_application: {
         Args: { _accept: boolean; _application_id: string }
@@ -3504,6 +5131,10 @@ export type Database = {
         Returns: undefined
       }
       work_send_contract: { Args: { _contract_id: string }; Returns: undefined }
+      work_send_schedule_contract: {
+        Args: { _contract_id: string }
+        Returns: undefined
+      }
       work_set_application_stage: {
         Args: { _application_id: string; _stage: string }
         Returns: undefined
@@ -3533,6 +5164,29 @@ export type Database = {
           _work_date: string
         }
         Returns: string
+      }
+      work_submit_timesheet_range: {
+        Args: {
+          _contract_id: string
+          _end: string
+          _note: string
+          _start: string
+          _work_date: string
+        }
+        Returns: string
+      }
+      work_sweep_due: { Args: never; Returns: number }
+      work_update_contract_terms: {
+        Args: {
+          _cancellation_terms: string
+          _contract_id: string
+          _deadline?: string
+          _payment_terms: string
+          _revision_terms: string
+          _scope: string
+          _usage_rights: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

@@ -16,7 +16,7 @@ export type Conversation = {
   unread: number;
 };
 
-export type DmMessage = { id: string; sender_id: string; body: string; created_at: string };
+export type DmMessage = { id: string; sender_id: string; body: string; created_at: string; image_url: string | null };
 export type DmPartner = { id: string; username: string; display_name: string | null; avatar_url: string | null };
 
 function dmError(error: { code?: string; message: string }): Error {
@@ -61,7 +61,7 @@ export async function fetchPartner(conversationId: string, userId: string): Prom
 export async function fetchMessages(conversationId: string): Promise<DmMessage[]> {
   const { data, error } = await db
     .from("dm_messages")
-    .select("id,sender_id,body,created_at")
+    .select("id,sender_id,body,created_at,image_url")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(150);
@@ -69,10 +69,10 @@ export async function fetchMessages(conversationId: string): Promise<DmMessage[]
   return ((data ?? []) as DmMessage[]).reverse();
 }
 
-export async function sendMessage(userId: string, conversationId: string, body: string) {
-  const bad = dmBodyError(body);
+export async function sendMessage(userId: string, conversationId: string, body: string, imageUrl: string | null = null) {
+  const bad = dmBodyError(body, !!imageUrl);
   if (bad) throw new Error(bad);
-  const { error } = await db.from("dm_messages").insert({ conversation_id: conversationId, sender_id: userId, body: body.trim() });
+  const { error } = await db.from("dm_messages").insert({ conversation_id: conversationId, sender_id: userId, body: body.trim(), image_url: imageUrl });
   if (error) throw dmError(error);
 }
 

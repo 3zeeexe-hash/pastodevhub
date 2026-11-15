@@ -8,6 +8,7 @@ import { deleteMessage, fetchMessages, fetchPartner, markConversationRead, sendM
 import { MAX_DM_LENGTH, dmBodyError } from "@/lib/feed-rules";
 import { AvatarMini } from "@/components/avatar-mini";
 import { ChatBackdrop, ChatNotice, Composer, MessageList } from "@/components/chat-ui";
+import { useChatAttachment } from "@/components/chat-attachment";
 
 export const Route = createFileRoute("/discuss/pesan/$id")({
   head: () => ({ meta: [{ title: "Percakapan — GoBi" }, { name: "robots", content: "noindex" }] }),
@@ -20,6 +21,7 @@ function ChatPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const attachment = useChatAttachment();
   const endRef = useRef<HTMLDivElement>(null);
 
   const partner = useQuery({ queryKey: ["dm-partner", id], queryFn: () => fetchPartner(id, user!.id), enabled: !!user });
@@ -36,9 +38,10 @@ function ChatPage() {
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [lastId, id]);
 
   const send = useMutation({
-    mutationFn: () => sendMessage(user!.id, id, body),
+    mutationFn: () => sendMessage(user!.id, id, body, attachment.image),
     onSuccess: async () => {
       setBody("");
+      attachment.clear();
       await Promise.all([qc.invalidateQueries({ queryKey: ["dm-messages", id] }), qc.invalidateQueries({ queryKey: ["dm-inbox"] })]);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -51,7 +54,7 @@ function ChatPage() {
 
   if (!user) return null;
 
-  const err = dmBodyError(body);
+  const err = dmBodyError(body, !!attachment.image);
   const p = partner.data;
   const failed = messages.error ?? partner.error;
 
@@ -93,7 +96,7 @@ function ChatPage() {
         </div>
       </ChatBackdrop>
 
-      <Composer value={body} onChange={setBody} onSend={() => send.mutate()} pending={send.isPending} disabled={!!err} maxLength={MAX_DM_LENGTH} />
+      <Composer value={body} onChange={setBody} onSend={() => send.mutate()} pending={send.isPending} disabled={!!err} maxLength={MAX_DM_LENGTH} attachment={attachment} />
     </div>
   );
 }

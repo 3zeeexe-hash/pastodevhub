@@ -19,10 +19,10 @@ import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
 
 type Names = Record<string, string>;
 
-export async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
+export async function must<T>(p: PromiseLike<{ data: unknown; error: unknown }>): Promise<T | null> {
   const { data, error } = await p;
   if (error) throw new Error(errMsg(error));
-  return data;
+  return (data ?? null) as T | null;
 }
 
 async function usernameMap(ids: (string | null | undefined)[]): Promise<Names> {

@@ -20,6 +20,7 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as KatalogRouteImport } from './routes/katalog'
 import { Route as KerjaRouteImport } from './routes/kerja'
 import { Route as NewRouteImport } from './routes/new'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SaldoRouteImport } from './routes/saldo'
@@ -28,12 +29,14 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapChar123nameChar125DotxmlRouteImport } from './routes/sitemap-{$name}[.]xml'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifikasiRouteImport } from './routes/verifikasi'
 import { Route as UsernameRepoRouteImport } from './routes/$username_.$repo'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEscrowRouteImport } from './routes/admin.escrow'
 import { Route as AdminFiturRouteImport } from './routes/admin.fitur'
 import { Route as AdminIntegrasiRouteImport } from './routes/admin.integrasi'
+import { Route as AdminJasaRouteImport } from './routes/admin.jasa'
 import { Route as AdminKerjaRouteImport } from './routes/admin.kerja'
 import { Route as AdminLaporanRouteImport } from './routes/admin.laporan'
 import { Route as AdminMidtransRouteImport } from './routes/admin.midtrans'
@@ -54,6 +57,7 @@ import { Route as KaryaIndexRouteImport } from './routes/karya.index'
 import { Route as KaryaIdRouteImport } from './routes/karya.$id'
 import { Route as KerjaIndexRouteImport } from './routes/kerja.index'
 import { Route as KerjaLamaranRouteImport } from './routes/kerja.lamaran'
+import { Route as KerjaNotifikasiRouteImport } from './routes/kerja.notifikasi'
 import { Route as KerjaPembayaranRouteImport } from './routes/kerja.pembayaran'
 import { Route as KerjaPesanRouteImport } from './routes/kerja.pesan'
 import { Route as KerjaProfilRouteImport } from './routes/kerja.profil'
@@ -157,6 +161,11 @@ const NewRoute = NewRouteImport.update({
   path: '/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -198,6 +207,11 @@ const StudioRoute = StudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifikasiRoute = VerifikasiRouteImport.update({
   id: '/verifikasi',
   path: '/verifikasi',
@@ -226,6 +240,11 @@ const AdminFiturRoute = AdminFiturRouteImport.update({
 const AdminIntegrasiRoute = AdminIntegrasiRouteImport.update({
   id: '/integrasi',
   path: '/integrasi',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminJasaRoute = AdminJasaRouteImport.update({
+  id: '/jasa',
+  path: '/jasa',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminKerjaRoute = AdminKerjaRouteImport.update({
@@ -326,6 +345,11 @@ const KerjaIndexRoute = KerjaIndexRouteImport.update({
 const KerjaLamaranRoute = KerjaLamaranRouteImport.update({
   id: '/lamaran',
   path: '/lamaran',
+  getParentRoute: () => KerjaRoute,
+} as any)
+const KerjaNotifikasiRoute = KerjaNotifikasiRouteImport.update({
+  id: '/notifikasi',
+  path: '/notifikasi',
   getParentRoute: () => KerjaRoute,
 } as any)
 const KerjaPembayaranRoute = KerjaPembayaranRouteImport.update({
@@ -577,6 +601,7 @@ export interface FileRoutesByFullPath {
   '/katalog': typeof KatalogRoute
   '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/saldo': typeof SaldoRoute
@@ -585,11 +610,13 @@ export interface FileRoutesByFullPath {
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
+  '/terms': typeof TermsRoute
   '/verifikasi': typeof VerifikasiRoute
   '/$username/$repo': typeof UsernameRepoRouteWithChildren
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/jasa': typeof AdminJasaRoute
   '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
@@ -606,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -669,6 +697,7 @@ export interface FileRoutesByTo {
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/saldo': typeof SaldoRoute
@@ -676,10 +705,12 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/verifikasi': typeof VerifikasiRoute
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/jasa': typeof AdminJasaRoute
   '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
@@ -696,6 +727,7 @@ export interface FileRoutesByTo {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -762,6 +794,7 @@ export interface FileRoutesById {
   '/katalog': typeof KatalogRoute
   '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/saldo': typeof SaldoRoute
@@ -770,11 +803,13 @@ export interface FileRoutesById {
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRouteWithChildren
+  '/terms': typeof TermsRoute
   '/verifikasi': typeof VerifikasiRoute
   '/$username_/$repo': typeof UsernameRepoRouteWithChildren
   '/admin/escrow': typeof AdminEscrowRoute
   '/admin/fitur': typeof AdminFiturRoute
   '/admin/integrasi': typeof AdminIntegrasiRoute
+  '/admin/jasa': typeof AdminJasaRoute
   '/admin/kerja': typeof AdminKerjaRoute
   '/admin/laporan': typeof AdminLaporanRoute
   '/admin/midtrans': typeof AdminMidtransRoute
@@ -791,6 +826,7 @@ export interface FileRoutesById {
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
+  '/kerja/notifikasi': typeof KerjaNotifikasiRoute
   '/kerja/pembayaran': typeof KerjaPembayaranRoute
   '/kerja/pesan': typeof KerjaPesanRoute
   '/kerja/profil': typeof KerjaProfilRoute
@@ -858,6 +894,7 @@ export interface FileRouteTypes {
     | '/katalog'
     | '/kerja'
     | '/new'
+    | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/saldo'
@@ -866,11 +903,13 @@ export interface FileRouteTypes {
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
     | '/studio'
+    | '/terms'
     | '/verifikasi'
     | '/$username/$repo'
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/jasa'
     | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
@@ -887,6 +926,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -950,6 +990,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/katalog'
     | '/new'
+    | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/saldo'
@@ -957,10 +998,12 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
+    | '/terms'
     | '/verifikasi'
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/jasa'
     | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
@@ -977,6 +1020,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -1042,6 +1086,7 @@ export interface FileRouteTypes {
     | '/katalog'
     | '/kerja'
     | '/new'
+    | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/saldo'
@@ -1050,11 +1095,13 @@ export interface FileRouteTypes {
     | '/sitemap-{$name}.xml'
     | '/sitemap.xml'
     | '/studio'
+    | '/terms'
     | '/verifikasi'
     | '/$username_/$repo'
     | '/admin/escrow'
     | '/admin/fitur'
     | '/admin/integrasi'
+    | '/admin/jasa'
     | '/admin/kerja'
     | '/admin/laporan'
     | '/admin/midtrans'
@@ -1071,6 +1118,7 @@ export interface FileRouteTypes {
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
+    | '/kerja/notifikasi'
     | '/kerja/pembayaran'
     | '/kerja/pesan'
     | '/kerja/profil'
@@ -1137,6 +1185,7 @@ export interface RootRouteChildren {
   KatalogRoute: typeof KatalogRoute
   KerjaRoute: typeof KerjaRouteWithChildren
   NewRoute: typeof NewRoute
+  PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SaldoRoute: typeof SaldoRoute
@@ -1145,6 +1194,7 @@ export interface RootRouteChildren {
   SitemapChar123nameChar125DotxmlRoute: typeof SitemapChar123nameChar125DotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StudioRoute: typeof StudioRouteWithChildren
+  TermsRoute: typeof TermsRoute
   VerifikasiRoute: typeof VerifikasiRoute
   UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
   DiscussIdRoute: typeof DiscussIdRoute
@@ -1249,6 +1299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1305,6 +1362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verifikasi': {
       id: '/verifikasi'
       path: '/verifikasi'
@@ -1345,6 +1409,13 @@ declare module '@tanstack/react-router' {
       path: '/integrasi'
       fullPath: '/admin/integrasi'
       preLoaderRoute: typeof AdminIntegrasiRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jasa': {
+      id: '/admin/jasa'
+      path: '/jasa'
+      fullPath: '/admin/jasa'
+      preLoaderRoute: typeof AdminJasaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/kerja': {
@@ -1485,6 +1556,13 @@ declare module '@tanstack/react-router' {
       path: '/lamaran'
       fullPath: '/kerja/lamaran'
       preLoaderRoute: typeof KerjaLamaranRouteImport
+      parentRoute: typeof KerjaRoute
+    }
+    '/kerja/notifikasi': {
+      id: '/kerja/notifikasi'
+      path: '/notifikasi'
+      fullPath: '/kerja/notifikasi'
+      preLoaderRoute: typeof KerjaNotifikasiRouteImport
       parentRoute: typeof KerjaRoute
     }
     '/kerja/pembayaran': {
@@ -1823,6 +1901,7 @@ interface AdminRouteChildren {
   AdminEscrowRoute: typeof AdminEscrowRoute
   AdminFiturRoute: typeof AdminFiturRoute
   AdminIntegrasiRoute: typeof AdminIntegrasiRoute
+  AdminJasaRoute: typeof AdminJasaRoute
   AdminKerjaRoute: typeof AdminKerjaRoute
   AdminLaporanRoute: typeof AdminLaporanRoute
   AdminMidtransRoute: typeof AdminMidtransRoute
@@ -1838,6 +1917,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEscrowRoute: AdminEscrowRoute,
   AdminFiturRoute: AdminFiturRoute,
   AdminIntegrasiRoute: AdminIntegrasiRoute,
+  AdminJasaRoute: AdminJasaRoute,
   AdminKerjaRoute: AdminKerjaRoute,
   AdminLaporanRoute: AdminLaporanRoute,
   AdminMidtransRoute: AdminMidtransRoute,
@@ -1853,6 +1933,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface KerjaRouteChildren {
   KerjaLamaranRoute: typeof KerjaLamaranRoute
+  KerjaNotifikasiRoute: typeof KerjaNotifikasiRoute
   KerjaPembayaranRoute: typeof KerjaPembayaranRoute
   KerjaPesanRoute: typeof KerjaPesanRoute
   KerjaProfilRoute: typeof KerjaProfilRoute
@@ -1864,6 +1945,7 @@ interface KerjaRouteChildren {
 
 const KerjaRouteChildren: KerjaRouteChildren = {
   KerjaLamaranRoute: KerjaLamaranRoute,
+  KerjaNotifikasiRoute: KerjaNotifikasiRoute,
   KerjaPembayaranRoute: KerjaPembayaranRoute,
   KerjaPesanRoute: KerjaPesanRoute,
   KerjaProfilRoute: KerjaProfilRoute,
@@ -1976,6 +2058,7 @@ const rootRouteChildren: RootRouteChildren = {
   KatalogRoute: KatalogRoute,
   KerjaRoute: KerjaRouteWithChildren,
   NewRoute: NewRoute,
+  PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SaldoRoute: SaldoRoute,
@@ -1984,6 +2067,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapChar123nameChar125DotxmlRoute: SitemapChar123nameChar125DotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StudioRoute: StudioRouteWithChildren,
+  TermsRoute: TermsRoute,
   VerifikasiRoute: VerifikasiRoute,
   UsernameRepoRoute: UsernameRepoRouteWithChildren,
   DiscussIdRoute: DiscussIdRoute,
