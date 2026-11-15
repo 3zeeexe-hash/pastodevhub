@@ -117,7 +117,10 @@ function KerjaOverview() {
         <section id="notif" aria-labelledby="notif-title" className="min-w-0 scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex items-center justify-between gap-2 px-4 pt-3">
             <h2 id="notif-title" className="flex items-center gap-2 text-base font-bold"><Bell className="size-4 text-primary" /> Notifikasi{s ? ` (${s.unread_notifications} baru)` : ""}</h2>
-            <Button size="sm" variant="ghost" onClick={markAll} disabled={!s || s.unread_notifications === 0}>Tandai dibaca</Button>
+            <div className="flex items-center gap-1">
+              <Link to="/notifikasi" search={{}} className="px-2 text-xs font-semibold text-primary hover:underline">Lihat semua</Link>
+              <Button size="sm" variant="ghost" onClick={markAll} disabled={!s || s.unread_notifications === 0}>Tandai dibaca</Button>
+            </div>
           </div>
           <div className="p-3">
             {notifs.isLoading && <Skeleton className="h-24 rounded-xl" />}
