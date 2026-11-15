@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Bell, Bookmark, BookMarked, Briefcase, Home, Mail, MessageSquare, Package, Search, User, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchDmUnread } from "@/lib/dm";
-import { fetchUnreadCount } from "@/lib/feed";
 import { isFeatureOn, type FeatureKey } from "@/lib/features";
+import { useNotifUnreadTotal } from "@/lib/use-all-notifs";
 import { useRole } from "@/lib/use-role";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { navForRole } from "@/components/nav-data";
@@ -25,10 +25,10 @@ function DmBadge() {
   return <CountBadge n={data ?? 0} />;
 }
 
+// Menu Notifikasi membuka halaman gabungan /notifikasi, jadi angkanya jumlah semua yang belum dibaca (aktivitas, kerja, pesan).
 function NotifBadge() {
-  const { user } = useAuth();
-  const { data } = useQuery({ queryKey: ["feed-unread", user?.id ?? null], queryFn: () => fetchUnreadCount(user!.id), enabled: !!user, refetchInterval: 60_000 });
-  return <CountBadge n={data ?? 0} />;
+  const total = useNotifUnreadTotal();
+  return <CountBadge n={total} />;
 }
 
 /**
@@ -54,12 +54,8 @@ export function useRailGroups(pageNav?: NavGroup[]): NavGroup[] {
       { to: "/", label: "Beranda", Icon: Home, exact: true },
       { to: "/search", search: { q: "", type: "users" }, label: "Cari", Icon: Search },
       { to: "/explore", label: "Repositori", Icon: BookMarked, caps: ["repos"], feature: "explore" },
-      ...(signedIn && on("discuss")
-        ? [
-            { to: "/discuss/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge },
-            { to: "/discuss/notifikasi", label: "Notifikasi", Icon: Bell, Badge: NotifBadge },
-          ]
-        : []),
+      ...(signedIn && on("discuss") ? [{ to: "/discuss/pesan", search: {}, label: "Pesan", Icon: Mail, Badge: DmBadge }] : []),
+      ...(signedIn && (on("discuss") || on("jobs")) ? [{ to: "/notifikasi", search: {}, label: "Notifikasi", Icon: Bell, Badge: NotifBadge }] : []),
       ...(signedIn && username ? [{ to: "/$username", params: { username }, match: `/${username}`, label: "Profil", Icon: User }] : []),
     ];
 

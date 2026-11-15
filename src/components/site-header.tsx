@@ -4,13 +4,12 @@ import {
   Plus, Search, BookMarked, LogOut, Settings, User, Download, MessageSquare, Star, LayoutDashboard, Receipt, ShieldCheck, Store,
   Menu, Briefcase, LayoutGrid, Package, Bell, Wrench, BadgeCheck, ChevronDown,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ROLE_INFO, roleCan, workspacePath, type Role } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
 import { isFeatureOn } from "@/lib/features";
-import { fetchUnreadCount } from "@/lib/feed";
+import { useNotifUnreadTotal } from "@/lib/use-all-notifs";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +38,7 @@ const ctl = "text-white/80 hover:bg-white/10 hover:text-white";
 /**
  * Navbar atas GOBI: bar biru tua (gradasi) membulat dan mengambang, berisi logo, garis pemisah, pencarian pil dengan petunjuk Ctrl + K,
  * tautan menu, lonceng notifikasi, dan avatar dengan panah menu akun. Warnanya biru tua di semua halaman.
+ * Lonceng membuka halaman gabungan /notifikasi (aktivitas, kerja, dan pesan); angkanya jumlah semua yang belum dibaca.
  * Tinggi total tetap 3,5rem supaya elemen lengket lain (top-14) tidak bergeser.
  * Lebar isinya sama dengan beranda (max-w-6xl, xl: max-w-7xl) supaya tepi kiri/kanan sejajar.
  * Tombol menu di kiri (di bawah lg) membuka laci menu utama (`MainMenuDrawer`): menu sesuai peran + GOBI WORK, dengan pencarian
@@ -53,12 +53,7 @@ export function SiteHeader() {
   const { flags } = useSiteConfig();
   const on = (key: Parameters<typeof isFeatureOn>[1]) => isFeatureOn(flags, key);
   const nav = NAV.filter((n) => !n.feature || on(n.feature));
-  const unread = useQuery({
-    queryKey: ["feed-unread", user?.id ?? null],
-    queryFn: () => fetchUnreadCount(user!.id),
-    enabled: !!user && on("discuss"),
-    refetchInterval: 60_000,
-  });
+  const unread = useNotifUnreadTotal();
   const dashTo = workspacePath(profile?.account_type);
   const workspaceLabel = ROLE_INFO[role].workspaceLabel;
   const doSearch = (e: React.FormEvent) => { e.preventDefault(); navigate({ to: "/search", search: { q, type: "users" } }); };
@@ -116,10 +111,10 @@ export function SiteHeader() {
           <Link to="/search" search={{ q: "", type: "users" }} aria-label="Cari" className={`rounded-full p-2 md:hidden ${ctl}`}><Search className="size-5" /></Link>
           {user && profile ? (
             <>
-              {on("discuss") && (
-                <Link to="/discuss/notifikasi" aria-label="Notifikasi" className={`relative rounded-full p-2 ${ctl}`}>
+              {(on("discuss") || on("jobs")) && (
+                <Link to="/notifikasi" search={{}} aria-label="Notifikasi" className={`relative rounded-full p-2 ${ctl}`}>
                   <Bell className="size-5" />
-                  {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-500 px-1 text-center font-mono text-[10px] leading-4 text-white ring-2 ring-navy">{unread.data > 99 ? "99+" : unread.data}</span>}
+                  {unread > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-500 px-1 text-center font-mono text-[10px] leading-4 text-white ring-2 ring-navy">{unread > 99 ? "99+" : unread}</span>}
                 </Link>
               )}
               <Button asChild size="sm" variant="ghost" className={`hidden rounded-full xl:inline-flex ${ctl}`}><Link to={dashTo}><LayoutDashboard /> {WORKSPACE_SHORT[role]}</Link></Button>
