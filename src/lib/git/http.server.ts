@@ -14,7 +14,7 @@ const bin = (b: Uint8Array) => b as unknown as BodyInit;
 function text(status: number, body: string, extra: Record<string, string> = {}) {
   return new Response(`${body}\n`, { status, headers: { "content-type": "text/plain; charset=utf-8", ...extra } });
 }
-const unauthorized = () => text(401, "Butuh autentikasi. Pakai username Pastodev dan token git (Pengaturan → Token git) sebagai kata sandi.", { "WWW-Authenticate": 'Basic realm="Pastodev"' });
+const unauthorized = () => text(401, "Butuh autentikasi. Pakai username GoBi dan token git (Pengaturan → Token git) sebagai kata sandi.", { "WWW-Authenticate": 'Basic realm="GoBi"' });
 
 async function readBody(request: Request) {
   const raw = new Uint8Array(await request.arrayBuffer());
@@ -75,7 +75,7 @@ export async function handleGit(request: Request): Promise<Response> {
 
     const db = await getDb();
     const { data: gitOn } = await (db as any).rpc("feature_enabled", { _key: "git_http" });
-    if (gitOn === false) return text(503, "Git lewat terminal sedang dinonaktifkan admin Pastodev.");
+    if (gitOn === false) return text(503, "Git lewat terminal sedang dinonaktifkan admin GoBi.");
     if (!(await serverProofAccepted(db))) return text(503, SETUP_HINT);
     const repo = await findRepo(db, owner, name);
     const userId = await authUser(request, db);
@@ -85,7 +85,7 @@ export async function handleGit(request: Request): Promise<Response> {
     if (service === "git-receive-pack" && !isOwner) return userId ? text(403, "Kamu tidak punya izin push ke repositori ini.") : unauthorized();
     if (service === "git-receive-pack" && userId) {
       const { data: ban } = await db.from("user_bans").select("user_id").eq("user_id", userId).maybeSingle();
-      if (ban) return text(403, "Akun ini diblokir admin Pastodev, push tidak diizinkan.");
+      if (ban) return text(403, "Akun ini diblokir admin GoBi, push tidak diizinkan.");
     }
 
     const { head, store } = await ensureSynced(db, repo);

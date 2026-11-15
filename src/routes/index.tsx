@@ -36,10 +36,11 @@ export const Route = createFileRoute("/")({
     return {
       scripts: origin ? [{ type: "application/ld+json", children: siteJsonLd(origin) }] : [],
       meta: [
-        { title: "GOBI — Komunitas Developer Indonesia" },
-        { name: "description", content: "Belajar, berbagi, dan tumbuh bersama: cari developer, ambil proyek freelance, pamerkan karya, dan ikut diskusi di komunitas GOBI." },
-        { property: "og:title", content: "GOBI — Komunitas Developer Indonesia" },
-        { property: "og:description", content: "Developer, freelancer, dan client bekerja bareng di satu tempat." },
+        { title: "GoBi — Komunitas Developer, Freelance & Karya Digital" },
+        { name: "description", content: "GoBi adalah komunitas developer Indonesia: cari developer, ambil proyek freelance, pamerkan karya, jual jasa, dan ikut diskusi bersama." },
+        { property: "og:title", content: "GoBi — Komunitas Developer, Freelance & Karya Digital" },
+        { property: "og:description", content: "Developer, freelancer, dan client bekerja bareng di satu tempat: repositori, lowongan, karya, jasa, dan diskusi." },
+        { name: "twitter:title", content: "GoBi — Komunitas Developer, Freelance & Karya Digital" },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
@@ -120,7 +121,7 @@ function GobiHome() {
     <main className="min-h-screen bg-background pb-10 text-foreground">
       <GobiHeader on={on} />
       <div className={WRAP}>
-        <h1 className="sr-only">GOBI — Komunitas Developer Indonesia</h1>
+        <h1 className="sr-only">GoBi — Komunitas Developer, Freelance & Karya Digital</h1>
         <div className="relative z-10 -mt-12 lg:grid lg:grid-cols-12 lg:items-stretch lg:gap-6">
           <HeroBanner signedIn={signedIn} on={on} />
           <QuickMenu on={on} />

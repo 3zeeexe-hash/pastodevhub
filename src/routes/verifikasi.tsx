@@ -7,7 +7,7 @@ import { VerificationPage } from "@/components/verification-page";
 export const Route = createFileRoute("/verifikasi")({
   head: () => ({
     meta: [
-      { title: "Verifikasi akun — Pastodev" },
+      { title: "Verifikasi akun — GoBi" },
       { name: "description", content: "Ajukan centang biru untuk akun Developer, Freelancer, Client, atau Pribadi." },
       { name: "robots", content: "noindex" },
     ],

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/studio/saldo")({
-  head: () => ({ meta: [{ title: "Saldo & penarikan — Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Saldo & penarikan — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: SaldoPage,
 });
 

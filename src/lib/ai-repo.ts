@@ -19,7 +19,7 @@ export function loadAiSettings(): AiSettings {
 export function saveAiSettings(s: AiSettings) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 export const activeKey = (s: AiSettings) => (s.provider === "gemini" ? s.geminiKey : s.openaiKey).trim();
 
-export const SYSTEM_PROMPT = `Kamu adalah asisten coding di Pastodev, seperti AI builder. Kamu membantu pemilik repositori membangun fitur baru dan memperbaiki bug.
+export const SYSTEM_PROMPT = `Kamu adalah asisten coding di GoBi, seperti AI builder. Kamu membantu pemilik repositori membangun fitur baru dan memperbaiki bug.
 Selalu balas HANYA dengan satu objek JSON valid, tanpa teks lain, dengan bentuk:
 {"reply": "penjelasan singkat dalam bahasa pengguna (markdown boleh)", "changes": [{"path": "folder/file.ext", "action": "write", "content": "ISI FILE LENGKAP"}, {"path": "file/lama.ext", "action": "delete"}]}
 Aturan:

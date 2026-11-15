@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/$username_/$repo/ai")({
   head: ({ params }) => ({
     meta: [
-      { title: `AI · ${params.username}/${params.repo} — Pastodev` },
+      { title: `AI · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: "Bangun dan perbaiki kode repositori dengan AI milikmu sendiri." },
       { property: "og:title", content: `AI · ${params.username}/${params.repo}` },
       { property: "og:description", content: "Chat dengan Gemini atau OpenAI untuk mengubah kode repo." },

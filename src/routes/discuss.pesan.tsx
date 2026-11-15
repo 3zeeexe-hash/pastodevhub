@@ -26,7 +26,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/discuss/pesan")({
   validateSearch: searchSchema,
-  head: () => ({ meta: [{ title: "Pesan — GOBI" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Pesan — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: PesanLayout,
 });
 

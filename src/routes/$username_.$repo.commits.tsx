@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/$username_/$repo/commits")({
   head: ({ params }) => ({
     meta: [
-      { title: `Commits · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Commits · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Riwayat commit ${params.username}/${params.repo}.` },
       { property: "og:title", content: `Commits · ${params.username}/${params.repo}` },
       { property: "og:description", content: `Riwayat perubahan ${params.repo}.` },

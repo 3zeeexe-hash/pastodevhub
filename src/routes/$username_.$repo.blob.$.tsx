@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$username_/$repo/blob/$")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params._splat} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `${params._splat} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `File ${params._splat} di repositori ${params.username}/${params.repo}.` },
       { property: "og:title", content: `${params.username}/${params.repo}/${params._splat}` },
-      { property: "og:description", content: `Lihat file ${params._splat} di Pastodev.` },
+      { property: "og:description", content: `Lihat file ${params._splat} di GoBi.` },
     ],
   }),
   component: BlobPage,

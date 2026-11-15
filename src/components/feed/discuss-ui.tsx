@@ -136,7 +136,7 @@ export function WelcomeBanner() {
           <div className="pr-28 sm:pr-52">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground"><Megaphone className="size-4" /></span>
-              Selamat Datang di GOBI!
+              Selamat Datang di GoBi!
             </p>
             <h2 className="mt-3 text-xl font-extrabold leading-tight sm:text-2xl">
               Bergabung, Berbagi, dan Tumbuh Bersama Komunitas Developer <span className="text-primary-glow">Indonesia</span>

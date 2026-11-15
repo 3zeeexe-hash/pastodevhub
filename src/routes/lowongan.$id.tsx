@@ -36,7 +36,7 @@ export const Route = createFileRoute("/lowongan/$id")({
   // Real title, description and structured data come from the database; the text below is the fallback.
   loader: ({ params }) => getSeoInfo({ data: { kind: "job", id: params.id } }),
   staleTime: 300_000,
-  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail lowongan — Pastodev", description: "Detail proyek freelance dari client. Lamar dengan penawaran harga dan waktu kerja." }),
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail lowongan — GoBi", description: "Detail proyek freelance dari client. Lamar dengan penawaran harga dan waktu kerja." }),
   component: JobDetail,
 });
 

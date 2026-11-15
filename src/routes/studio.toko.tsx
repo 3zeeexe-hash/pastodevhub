@@ -57,7 +57,7 @@ function StoreEditor() {
         <div><Label htmlFor="st">Nama toko</Label><Input id="st" value={title} maxLength={120} placeholder={`Toko ${profile.display_name || profile.username}`} onChange={(e) => setTitle(e.target.value)} /></div>
         <label className="flex items-center gap-3 rounded-lg border border-border p-3">
           <Switch checked={custom} onCheckedChange={setCustom} />
-          <span className="text-sm"><b>Pakai desain HTML sendiri</b><br /><span className="text-muted-foreground">Kalau mati, toko memakai tampilan bawaan Pastodev.</span></span>
+          <span className="text-sm"><b>Pakai desain HTML sendiri</b><br /><span className="text-muted-foreground">Kalau mati, toko memakai tampilan bawaan GoBi.</span></span>
         </label>
       </div>
       <div className="grid gap-3 xl:grid-cols-2">
@@ -67,7 +67,7 @@ function StoreEditor() {
             <Button size="sm" variant="ghost" onClick={() => { if (confirm("Ganti kode dengan template awal?")) setHtml(DEFAULT_STORE_TEMPLATE); }}><RotateCcw /> Template awal</Button>
           </div>
           <Textarea id="sh" value={html} onChange={(e) => setHtml(e.target.value)} spellCheck={false} className="min-h-[520px] font-mono text-xs" />
-          <p className="text-xs text-muted-foreground">Data tokomu tersedia di <code>window.PASTODEV</code>: developer, products, services, links. Tautan otomatis membuka halaman Pastodev.</p>
+          <p className="text-xs text-muted-foreground">Data tokomu tersedia di <code>window.PASTODEV</code>: developer, products, services, links. Tautan otomatis membuka halaman GoBi.</p>
         </div>
         <div className="space-y-2">
           <Label>Pratinjau</Label>

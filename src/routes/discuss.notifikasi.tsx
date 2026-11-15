@@ -9,7 +9,7 @@ import { SignInCta } from "@/components/sign-in-cta";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/discuss/notifikasi")({
-  head: () => ({ meta: [{ title: "Notifikasi — Diskusi — Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Notifikasi — Diskusi — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: NotificationsPage,
 });
 

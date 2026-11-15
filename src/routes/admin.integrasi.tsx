@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/integrasi")({
-  head: () => ({ meta: [{ title: "Integrasi — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Integrasi — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: IntegrationsPage,
 });
 
@@ -142,7 +142,7 @@ function FirebaseSettingsForm() {
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 font-semibold"><Flame className="size-5 shrink-0 text-primary" /> Login Google (Firebase)</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Pakai project Firebase kamu sendiri untuk tombol “Continue with Google”. Kalau dimatikan, login Google memakai bawaan Pastodev.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Pakai project Firebase kamu sendiri untuk tombol “Continue with Google”. Kalau dimatikan, login Google memakai bawaan GoBi.</p>
           <p className="mt-2 text-sm">
             Status: {isLoading ? "memuat…" : data?.enabled ? <b className="text-success">Aktif — project {data.projectId}</b> : data?.config ? <b>Tersimpan, belum aktif</b> : <b className="text-muted-foreground">Belum diatur</b>}
             {data?.updatedAt && <span className="text-muted-foreground"> · diperbarui {timeAgo(data.updatedAt)}</span>}

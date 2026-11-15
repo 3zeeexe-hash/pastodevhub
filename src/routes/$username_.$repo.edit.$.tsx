@@ -9,7 +9,7 @@ import { FileEditor } from "@/components/repo/file-editor";
 export const Route = createFileRoute("/$username_/$repo/edit/$")({
   head: ({ params }) => ({
     meta: [
-      { title: `Edit ${params._splat} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Edit ${params._splat} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Edit file ${params._splat}.` },
       { property: "og:title", content: `Edit ${params._splat}` },
       { property: "og:description", content: `Edit file di ${params.username}/${params.repo}.` },

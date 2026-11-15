@@ -99,12 +99,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { charSet: "utf-8" },
         // viewport-fit=cover supaya menu bawah dan tombol chat bisa memakai env(safe-area-inset-bottom) di iPhone.
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-        { title: "GoBi — Komunitas Developer" },
-        { name: "description", content: "Rumah kode developer Nusantara: repositori, issue, pull request, dan sinkron dengan GitHub." },
+        { title: "GoBi — Komunitas Developer, Freelance & Karya Digital" },
+        { name: "description", content: "GoBi adalah komunitas developer Indonesia: simpan kode di repositori, cari proyek freelance, jual karya dan jasa, serta ikut diskusi." },
         { name: "author", content: "GoBi" },
         // Biru tua yang sama dengan header dan menu bawah.
         { name: "theme-color", content: "#0a1a45" },
         { property: "og:site_name", content: "GoBi" },
+        { name: "application-name", content: "GoBi" },
+        { name: "apple-mobile-web-app-title", content: "GoBi" },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
       ],

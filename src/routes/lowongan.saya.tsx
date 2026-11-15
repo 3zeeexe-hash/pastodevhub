@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/lowongan/saya")({
   head: () => ({
     meta: [
-      { title: "Lowongan saya — Pastodev" },
+      { title: "Lowongan saya — GoBi" },
       { name: "description", content: "Semua lowongan yang kamu pasang, status peninjauan, dan jumlah pelamarnya." },
       { name: "robots", content: "noindex" },
     ],

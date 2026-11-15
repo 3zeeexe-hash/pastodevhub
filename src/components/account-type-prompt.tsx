@@ -57,7 +57,7 @@ export function AccountTypePrompt() {
       >
         <DialogHeader>
           <DialogTitle>Selamat datang, {profile.display_name || profile.username}!</DialogTitle>
-          <DialogDescription>Kamu mau pakai Pastodev sebagai apa? Bisa diganti nanti di Pengaturan.</DialogDescription>
+          <DialogDescription>Kamu mau pakai GoBi sebagai apa? Bisa diganti nanti di Pengaturan.</DialogDescription>
         </DialogHeader>
         <RolePicker value={v} onChange={setV} />
         <Button onClick={() => v && save(v)} disabled={!v || busy} className="w-full">

@@ -10,10 +10,10 @@ import { DiffView } from "@/components/diff-view";
 export const Route = createFileRoute("/$username_/$repo/commit/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Commit ${params.id.slice(0, 7)} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Commit ${params.id.slice(0, 7)} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Perubahan pada commit di ${params.username}/${params.repo}.` },
       { property: "og:title", content: `Commit · ${params.username}/${params.repo}` },
-      { property: "og:description", content: `Lihat perubahan commit di Pastodev.` },
+      { property: "og:description", content: `Lihat perubahan commit di GoBi.` },
     ],
   }),
   component: CommitPage,

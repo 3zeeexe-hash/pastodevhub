@@ -187,7 +187,7 @@ export async function createCharge(cfg: ActiveConfig, input: ChargeInput, notify
   const amount = Math.round(input.amount);
   const body: Obj = {
     transaction_details: { order_id: input.midtransOrderId, gross_amount: amount },
-    item_details: [{ id: "pesanan", price: amount, quantity: 1, name: input.itemName.slice(0, 50) || "Pesanan Pastodev" }],
+    item_details: [{ id: "pesanan", price: amount, quantity: 1, name: input.itemName.slice(0, 50) || "Pesanan GoBi" }],
     customer_details: { first_name: input.customerName.slice(0, 50) || "Pelanggan", ...(input.customerEmail ? { email: input.customerEmail } : {}) },
   };
   let minutes = 24 * 60;

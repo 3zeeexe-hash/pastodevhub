@@ -23,10 +23,10 @@ import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
 export const Route = createFileRoute("/pesanan/$id")({
   head: () => ({
     meta: [
-      { title: "Detail pesanan — Pastodev" },
+      { title: "Detail pesanan — GoBi" },
       { name: "description", content: "Status pesanan, pembayaran, dan chat dengan developer." },
-      { property: "og:title", content: "Detail pesanan — Pastodev" },
-      { property: "og:description", content: "Status pesanan dan chat di Pastodev." },
+      { property: "og:title", content: "Detail pesanan — GoBi" },
+      { property: "og:description", content: "Status pesanan dan chat di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

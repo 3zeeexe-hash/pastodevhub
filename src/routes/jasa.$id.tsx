@@ -25,7 +25,7 @@ export const Route = createFileRoute("/jasa/$id")({
   // Real title, description and structured data come from the database; the text below is the fallback.
   loader: ({ params }) => getSeoInfo({ data: { kind: "service", id: params.id } }),
   staleTime: 300_000,
-  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail jasa — Pastodev", description: "Lihat detail jasa developer dan kirim permintaan pesanan di Pastodev." }),
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail jasa — GoBi", description: "Lihat detail jasa developer dan kirim permintaan pesanan di GoBi." }),
   component: JasaDetail,
 });
 
@@ -149,7 +149,7 @@ function JasaDetail() {
           {s.description ? <Markdown>{s.description}</Markdown> : <p className="text-sm text-muted-foreground">Belum ada deskripsi.</p>}
         </div>
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Cara pesan di Pastodev</h2>
+          <h2 className="text-lg font-semibold">Cara pesan di GoBi</h2>
           <ol className="mt-4 space-y-4">
             {STEPS.map((st, i) => (
               <li key={st.title} className="flex gap-3">

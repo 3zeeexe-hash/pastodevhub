@@ -77,7 +77,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/60 sm:flex-row">
-          <span>© {new Date().getFullYear()} GOBI — rumah kode developer Nusantara</span>
+          <span>© {new Date().getFullYear()} GoBi — rumah kode developer Nusantara</span>
           <span className="inline-flex items-center gap-1.5"><Code2 className="size-3.5 text-primary" /> Dibuat untuk developer Indonesia</span>
         </div>
       </div>

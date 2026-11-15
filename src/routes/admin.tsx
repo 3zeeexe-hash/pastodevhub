@@ -16,10 +16,10 @@ import { GobiLoader } from "@/components/gobi-loader";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — Pastodev" },
-      { name: "description", content: "Dasbor admin Pastodev: pengguna, verifikasi, fitur, moderasi, dan pembayaran." },
-      { property: "og:title", content: "Admin — Pastodev" },
-      { property: "og:description", content: "Panel admin Pastodev." },
+      { title: "Admin — GoBi" },
+      { name: "description", content: "Dasbor admin GoBi: pengguna, verifikasi, fitur, moderasi, dan pembayaran." },
+      { property: "og:title", content: "Admin — GoBi" },
+      { property: "og:description", content: "Panel admin GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -70,7 +70,7 @@ function AdminLogin({ signedInAs }: { signedInAs: string | null }) {
         <div className="text-center">
           <ShieldCheck className="mx-auto size-10 text-primary" />
           <h1 className="mt-3 text-2xl font-bold">Login admin</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Khusus pengelola Pastodev.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Khusus pengelola GoBi.</p>
         </div>
         {signedInAs && (
           <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">

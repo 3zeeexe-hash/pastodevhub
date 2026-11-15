@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Timeline } from "@/components/feed/timeline";
 
 export const Route = createFileRoute("/discuss/tag/$tag")({
-  head: ({ params }) => ({ meta: [{ title: `#${params.tag} — Diskusi — Pastodev` }, { name: "description", content: `Post dengan tagar #${params.tag} di Diskusi Pastodev.` }, { property: "og:title", content: `#${params.tag} — Pastodev` }, { property: "og:description", content: `Post dengan tagar #${params.tag} di Diskusi Pastodev.` }] }),
+  head: ({ params }) => ({ meta: [{ title: `#${params.tag} — Diskusi — GoBi` }, { name: "description", content: `Post dengan tagar #${params.tag} di Diskusi GoBi.` }, { property: "og:title", content: `#${params.tag} — GoBi` }, { property: "og:description", content: `Post dengan tagar #${params.tag} di Diskusi GoBi.` }] }),
   component: TagPage,
 });
 

@@ -28,7 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
-## Project rules (Pastodev)
+## Project rules (GoBi)
 
 - Repo contents live as rows in `repo_files` (current state of the single default branch); every write goes through `commitChanges` in `src/lib/repo-data.ts` so history stays in `commits.changes`. Why: one code path keeps file state and commit history consistent.
 - Repo access rules sit in the database (`can_read_repo` / `can_write_repo`); client writes rely on them instead of server checks. Why: private repos must stay hidden on every query path.

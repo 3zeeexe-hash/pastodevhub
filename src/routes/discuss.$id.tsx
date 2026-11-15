@@ -10,7 +10,7 @@ import { AvatarMini } from "@/components/avatar-mini";
 import { SignInCta } from "@/components/sign-in-cta";
 
 export const Route = createFileRoute("/discuss/$id")({
-  head: () => ({ meta: [{ title: "Diskusi — Pastodev" }, { name: "description", content: "Baca dan balas diskusi di Pastodev." }, { property: "og:title", content: "Diskusi — Pastodev" }, { property: "og:description", content: "Baca dan balas diskusi di Pastodev." }] }),
+  head: () => ({ meta: [{ title: "Diskusi — GoBi" }, { name: "description", content: "Baca dan balas diskusi di GoBi." }, { property: "og:title", content: "Diskusi — GoBi" }, { property: "og:description", content: "Baca dan balas diskusi di GoBi." }] }),
   component: PostPage,
 });
 

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$username_/$repo/issues/")({
   head: ({ params }) => ({
     meta: [
-      { title: `Issues · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Issues · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Daftar issue di ${params.username}/${params.repo}.` },
       { property: "og:title", content: `Issues · ${params.username}/${params.repo}` },
       { property: "og:description", content: `Laporan bug dan ide untuk ${params.repo}.` },

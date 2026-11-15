@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$username_/$repo")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params.username}/${params.repo} — Pastodev` },
-      { name: "description", content: `Repositori ${params.repo} oleh ${params.username} di Pastodev: kode, issue, dan pull request.` },
+      { title: `${params.username}/${params.repo} — GoBi` },
+      { name: "description", content: `Repositori ${params.repo} oleh ${params.username} di GoBi: kode, issue, dan pull request.` },
       { property: "og:title", content: `${params.username}/${params.repo}` },
-      { property: "og:description", content: `Lihat kode ${params.repo} oleh ${params.username} di Pastodev.` },
+      { property: "og:description", content: `Lihat kode ${params.repo} oleh ${params.username} di GoBi.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

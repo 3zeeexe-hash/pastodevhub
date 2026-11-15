@@ -15,9 +15,9 @@ type Price = "all" | "free" | "paid";
 export const Route = createFileRoute("/karya/")({
   head: () => ({
     meta: [
-      { title: "Karya developer — Pastodev" },
+      { title: "Karya developer — GoBi" },
       { name: "description", content: "Unduh template, source code, dan proyek karya developer Indonesia. Gratis atau berbayar." },
-      { property: "og:title", content: "Karya developer — Pastodev" },
+      { property: "og:title", content: "Karya developer — GoBi" },
       { property: "og:description", content: "Template, source code, dan proyek dari developer Nusantara." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -47,7 +47,7 @@ function KaryaList() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Karya</h1>
-          <p className="text-muted-foreground">Template, source code, dan proyek siap pakai dari developer Pastodev.</p>
+          <p className="text-muted-foreground">Template, source code, dan proyek siap pakai dari developer GoBi.</p>
         </div>
         {profile?.account_type === "developer" && <Button asChild><Link to="/studio/karya/$id" params={{ id: "baru" }}><Plus /> Unggah karya</Link></Button>}
       </div>

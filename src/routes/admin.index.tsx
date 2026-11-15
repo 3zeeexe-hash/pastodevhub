@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Ringkasan admin — Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Ringkasan admin — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: OverviewPage,
 });
 

@@ -12,10 +12,10 @@ import { useRole } from "@/lib/use-role";
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
-      { title: "Ruang kerja — Pastodev" },
+      { title: "Ruang kerja — GoBi" },
       { name: "description", content: "Kelola karya, jasa, portofolio, hosting file, toko, dan AI kamu." },
-      { property: "og:title", content: "Ruang kerja — Pastodev" },
-      { property: "og:description", content: "Semua tools developer Pastodev dalam satu tempat." },
+      { property: "og:title", content: "Ruang kerja — GoBi" },
+      { property: "og:description", content: "Semua tools developer GoBi dalam satu tempat." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

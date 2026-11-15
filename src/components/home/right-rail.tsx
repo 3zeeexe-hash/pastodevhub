@@ -48,7 +48,7 @@ function SearchCard() {
     >
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari di Pastodev" aria-label="Kata kunci pencarian" className="h-10 rounded-full bg-background pl-9" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari di GoBi" aria-label="Kata kunci pencarian" className="h-10 rounded-full bg-background pl-9" />
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {SEARCH_TYPES.map(([t, label, Icon]) => (

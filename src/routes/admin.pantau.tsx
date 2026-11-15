@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/pantau")({
-  head: () => ({ meta: [{ title: "Pantau aktivitas — Admin Pastodev" }, { name: "description", content: "Pantau semua pesanan, chat, lowongan, lamaran, jasa, karya, pembayaran, dan tindakan admin." }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Pantau aktivitas — Admin GoBi" }, { name: "description", content: "Pantau semua pesanan, chat, lowongan, lamaran, jasa, karya, pembayaran, dan tindakan admin." }, { name: "robots", content: "noindex" }] }),
   component: MonitorPage,
 });
 

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/$username_/$repo/new")({
   }),
   head: ({ params }) => ({
     meta: [
-      { title: `File baru · ${params.username}/${params.repo} — Pastodev` },
+      { title: `File baru · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: "Buat atau upload file ke repositori." },
       { property: "og:title", content: `File baru · ${params.username}/${params.repo}` },
       { property: "og:description", content: "Buat atau upload file ke repositori." },

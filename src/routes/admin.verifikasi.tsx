@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/verifikasi")({
-  head: () => ({ meta: [{ title: "Verifikasi developer — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Verifikasi developer — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: VerificationQueuePage,
 });
 

@@ -23,7 +23,7 @@ const STARTER_HTML = `<!doctype html>
 </head>
 <body>
   <h1>Halo dunia 👋</h1>
-  <p>Halaman ini di-hosting di Pastodev.</p>
+  <p>Halaman ini di-hosting di GoBi.</p>
 </body>
 </html>
 `;

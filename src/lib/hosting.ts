@@ -35,7 +35,7 @@ export function formatBytes(n: number) {
 /**
  * Headers for serving user content from our own domain. The CSP sandbox gives the page
  * its own isolated origin, so uploaded HTML/SVG can run scripts but can never read the
- * visitor's Pastodev login.
+ * visitor's GoBi login.
  */
 export function hostedHeaders(kind: HostKind, contentType: string, name: string): Record<string, string> {
   const type = kind === "html" ? "text/html; charset=utf-8" : contentType || "application/octet-stream";

@@ -5,7 +5,7 @@ import { SignInCta } from "@/components/sign-in-cta";
 import { Timeline } from "@/components/feed/timeline";
 
 export const Route = createFileRoute("/discuss/tersimpan")({
-  head: () => ({ meta: [{ title: "Tersimpan — Diskusi — Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Tersimpan — Diskusi — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: SavedPage,
 });
 

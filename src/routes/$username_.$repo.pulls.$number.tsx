@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$username_/$repo/pulls/$number")({
   head: ({ params }) => ({
     meta: [
-      { title: `Pull request #${params.number} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Pull request #${params.number} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Pull request #${params.number} di ${params.username}/${params.repo}.` },
       { property: "og:title", content: `PR #${params.number} · ${params.username}/${params.repo}` },
       { property: "og:description", content: `Tinjau perubahan pull request #${params.number}.` },

@@ -27,9 +27,9 @@ import { SignInCta } from "@/components/sign-in-cta";
 export const Route = createFileRoute("/lowongan/baru")({
   head: () => ({
     meta: [
-      { title: "Pasang lowongan — Pastodev" },
-      { name: "description", content: "Pasang kebutuhan proyek freelance dan terima lamaran dari developer Pastodev." },
-      { property: "og:title", content: "Pasang lowongan — Pastodev" },
+      { title: "Pasang lowongan — GoBi" },
+      { name: "description", content: "Pasang kebutuhan proyek freelance dan terima lamaran dari developer GoBi." },
+      { property: "og:title", content: "Pasang lowongan — GoBi" },
       { property: "og:description", content: "Cari developer freelance untuk proyek kamu." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -188,7 +188,7 @@ function NewJob() {
         {v.requirements.trim() && <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Persyaratan tambahan</h2><Markdown>{v.requirements.trim()}</Markdown></section>}
         <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Hak penggunaan hasil pekerjaan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.usageRights.trim()}</p></section>
         <section className="mt-3 rounded-xl border border-border bg-card p-5"><h2 className="mb-2 text-sm font-semibold">Ketentuan pembatalan</h2><p className="whitespace-pre-wrap break-words text-sm">{f.cancellationTerms.trim()}</p></section>
-        {v.jobType === "internship" && <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Lowongan magang: pastikan pelamar memenuhi batas usia dan ketentuan hukum setempat. Pastodev tidak memfasilitasi pekerjaan yang melanggar kebijakan platform.</p>}
+        {v.jobType === "internship" && <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Lowongan magang: pastikan pelamar memenuhi batas usia dan ketentuan hukum setempat. GoBi tidak memfasilitasi pekerjaan yang melanggar kebijakan platform.</p>}
         <p className="mt-3 rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">Setelah dikirim, admin meninjau lowongan ini dulu. Lowongan baru tampil di daftar dan bisa dilamar setelah disetujui; kamu bisa melihat statusnya di dashboard.</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant="outline" disabled={busy} onClick={() => setStep("edit")}><ArrowLeft /> Ubah</Button>

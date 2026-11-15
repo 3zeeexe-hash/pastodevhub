@@ -17,7 +17,7 @@ export const Route = createFileRoute("/karya/$id")({
   // Real title, description and structured data come from the database; the text below is the fallback.
   loader: ({ params }) => getSeoInfo({ data: { kind: "product", id: params.id } }),
   staleTime: 300_000,
-  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail karya — Pastodev", description: "Lihat detail, demo, dan unduh karya developer di Pastodev." }),
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Detail karya — GoBi", description: "Lihat detail, demo, dan unduh karya developer di GoBi." }),
   component: KaryaDetail,
 });
 

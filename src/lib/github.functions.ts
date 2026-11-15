@@ -259,7 +259,7 @@ export const exportToGithub = createServerFn({ method: "POST" })
     });
     const commit = await ghJson<{ sha: string }>(token, `/repos/${fullName}/git/commits`, {
       method: "POST",
-      body: JSON.stringify({ message: data.message || `Export dari Pastodev: ${repo.name}`, tree: newTree.sha, parents: [parentSha] }),
+      body: JSON.stringify({ message: data.message || `Export dari GoBi: ${repo.name}`, tree: newTree.sha, parents: [parentSha] }),
     });
     await ghJson(token, `/repos/${fullName}/git/refs/heads/${encodeURIComponent(ghRepo.default_branch)}`, {
       method: "PATCH",

@@ -5,10 +5,10 @@ import { CodeBrowser } from "@/components/repo/code-browser";
 export const Route = createFileRoute("/$username_/$repo/tree/$")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params._splat} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `${params._splat} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Folder ${params._splat} di repositori ${params.username}/${params.repo}.` },
       { property: "og:title", content: `${params.username}/${params.repo}/${params._splat}` },
-      { property: "og:description", content: `Folder ${params._splat} di Pastodev.` },
+      { property: "og:description", content: `Folder ${params._splat} di GoBi.` },
     ],
   }),
   component: TreePage,

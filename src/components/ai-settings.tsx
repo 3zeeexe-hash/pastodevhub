@@ -37,7 +37,7 @@ export function AiSettingsPanel({ settings, onSave }: { settings: AiSettings; on
           <p className="text-xs text-muted-foreground sm:col-span-2">Buat key di <a className="text-link underline" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer noopener">OpenAI Platform</a>.</p>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">Key hanya disimpan di browser ini dan dikirim langsung ke Google/OpenAI — tidak pernah ke server Pastodev. Biaya pemakaian ditagih ke akun AI kamu.</p>
+      <p className="text-xs text-muted-foreground">Key hanya disimpan di browser ini dan dikirim langsung ke Google/OpenAI — tidak pernah ke server GoBi. Biaya pemakaian ditagih ke akun AI kamu.</p>
       <Button size="sm">Simpan</Button>
     </form>
   );

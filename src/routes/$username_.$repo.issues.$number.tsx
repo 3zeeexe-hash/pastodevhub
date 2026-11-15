@@ -14,10 +14,10 @@ import { ThreadComment, type ThreadItem } from "@/components/repo/thread";
 export const Route = createFileRoute("/$username_/$repo/issues/$number")({
   head: ({ params }) => ({
     meta: [
-      { title: `Issue #${params.number} · ${params.username}/${params.repo} — Pastodev` },
+      { title: `Issue #${params.number} · ${params.username}/${params.repo} — GoBi` },
       { name: "description", content: `Issue #${params.number} di ${params.username}/${params.repo}.` },
       { property: "og:title", content: `Issue #${params.number} · ${params.username}/${params.repo}` },
-      { property: "og:description", content: `Diskusi issue #${params.number} di Pastodev.` },
+      { property: "og:description", content: `Diskusi issue #${params.number} di GoBi.` },
     ],
   }),
   component: IssuePage,

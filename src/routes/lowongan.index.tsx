@@ -19,10 +19,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/lowongan/")({
   head: () => ({
     meta: [
-      { title: "Lowongan freelance — Pastodev" },
+      { title: "Lowongan freelance — GoBi" },
       { name: "description", content: "Proyek freelance dari client: website, aplikasi, desain, dan lainnya. Developer bisa langsung melamar." },
-      { property: "og:title", content: "Lowongan freelance — Pastodev" },
-      { property: "og:description", content: "Temukan proyek freelance dan lamar langsung ke client di Pastodev." },
+      { property: "og:title", content: "Lowongan freelance — GoBi" },
+      { property: "og:description", content: "Temukan proyek freelance dan lamar langsung ke client di GoBi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

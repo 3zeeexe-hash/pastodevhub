@@ -8,7 +8,7 @@ import { WORK_NAV } from "@/components/nav-data";
 export const Route = createFileRoute("/kerja")({
   head: () => ({
     meta: [
-      { title: "GOBI WORK — Pastodev" },
+      { title: "GOBI WORK — GoBi" },
       { name: "description", content: "GOBI WORK: lowongan, kontrak, milestone, dan pembayaran escrow untuk freelancer dan client." },
       { name: "robots", content: "noindex" },
     ],

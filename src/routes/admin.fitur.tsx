@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { GobiLoader } from "@/components/gobi-loader";
 
 export const Route = createFileRoute("/admin/fitur")({
-  head: () => ({ meta: [{ title: "Fitur & pengumuman — Admin Pastodev" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Fitur & pengumuman — Admin GoBi" }, { name: "robots", content: "noindex" }] }),
   component: FeaturesPage,
 });
 

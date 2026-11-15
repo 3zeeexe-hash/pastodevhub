@@ -147,7 +147,7 @@ function KerjaOverview() {
         </SectionCard>
       </div>
 
-      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Briefcase className="size-3.5" /> Pembayaran lewat Midtrans dan escrow Pastodev; dana baru diteruskan admin setelah hasil disetujui client.</p>
+      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Briefcase className="size-3.5" /> Pembayaran lewat Midtrans dan escrow GoBi; dana baru diteruskan admin setelah hasil disetujui client.</p>
     </div>
   );
 }

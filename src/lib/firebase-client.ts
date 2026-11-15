@@ -50,7 +50,7 @@ export async function firebaseGoogleIdToken(config: FirebaseWebConfig): Promise<
     provider.setCustomParameters({ prompt: "select_account" });
     const result = await mod.signInWithPopup(auth, provider);
     const token = await result.user.getIdToken();
-    await mod.signOut(auth).catch(() => {}); // Pastodev keeps its own session; Firebase is only the Google bridge.
+    await mod.signOut(auth).catch(() => {}); // GoBi keeps its own session; Firebase is only the Google bridge.
     return token;
   } catch (e) {
     const code = (e as { code?: string }).code ?? "";
