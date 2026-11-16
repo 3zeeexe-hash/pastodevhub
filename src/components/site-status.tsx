@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Lock, Megaphone, PowerOff, TriangleAlert } from "lucide-react";
+import { Lock, Megaphone, PowerOff, TriangleAlert, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { featureForPath, featureLabel, isFeatureOn } from "@/lib/features";
+import { featureForPath, featureLabel, isFeatureOn, isMaintenanceOpenPath, type FeatureKey } from "@/lib/features";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { ROLE_INFO, capabilityForPath, roleCan, roleFor, workspacePath, accountTypeFor } from "@/lib/roles";
 import { useRole } from "@/lib/use-role";
@@ -17,16 +17,52 @@ export function AnnouncementBar() {
   const Icon = warn ? TriangleAlert : Megaphone;
   return (
     <div role="status" className={cn("border-b px-4 py-2 text-sm", warn ? "border-warning/40 bg-warning/15 text-foreground" : "border-primary/30 bg-primary/10 text-foreground")}>
-      <p className="mx-auto flex max-w-7xl items-start gap-2"><Icon className={cn("mt-0.5 size-4 shrink-0", warn ? "text-warning" : "text-primary")} /><span className="min-w-0 whitespace-pre-line">{announcement}</span></p>
+      <p className="mx-auto flex max-w-7xl items-start gap-2"><Icon className={cn("mt-0.5 size-4 shrink-0", warn ? "text-warning" : "text-primary")} /><span className="min-w-0 whitespace-pre-line break-words">{announcement}</span></p>
     </div>
   );
 }
 
-/** Shows a "switched off" page instead of a feature's pages while the admin has it off. Admins still see the page. */
+/** Menampilkan isinya hanya kalau fitur menyala. Untuk elemen tampilan (mis. tombol chat) yang tidak punya halaman sendiri. */
+export function FeatureOnly({ feature, children }: { feature: FeatureKey; children: ReactNode }) {
+  const { flags } = useSiteConfig();
+  return isFeatureOn(flags, feature) ? <>{children}</> : null;
+}
+
+/** Halaman pengganti seluruh situs saat admin mematikan "Situs terbuka untuk pengunjung". */
+function MaintenancePage() {
+  return (
+    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 py-12 text-center">
+      <span className="grid size-16 place-items-center rounded-2xl bg-primary/15 text-primary"><Wrench className="size-8" /></span>
+      <h1 className="mt-5 text-2xl font-bold">GoBi sedang dalam perawatan</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Kami sedang memperbarui situs. Data kamu aman. Coba buka lagi beberapa saat lagi.</p>
+      <Button asChild variant="outline" className="mt-6"><Link to="/auth">Masuk sebagai admin</Link></Button>
+    </main>
+  );
+}
+
+/**
+ * Shows a "switched off" page instead of a feature's pages while the admin has it off. Admins still see the page.
+ * Saklar "Situs terbuka untuk pengunjung" (mode perawatan) menutup semua halaman kecuali masuk dan admin.
+ */
 export function FeatureGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { flags } = useSiteConfig();
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading, adminLoading } = useAuth();
+
+  if (!isFeatureOn(flags, "situs") && !isMaintenanceOpenPath(pathname)) {
+    if (isAdmin) {
+      return (
+        <>
+          <p className="border-b border-warning/40 bg-warning/15 px-4 py-2 text-center text-sm">Situs sedang ditutup untuk pengunjung (mode perawatan). Kamu melihatnya karena kamu admin.</p>
+          {children}
+        </>
+      );
+    }
+    // Tunggu status admin dulu supaya admin yang memuat ulang halaman tidak sempat melihat halaman perawatan.
+    if (loading || adminLoading) return <main className="min-h-[60vh]" aria-busy="true" />;
+    return <MaintenancePage />;
+  }
+
   const key = featureForPath(pathname);
   if (!key || isFeatureOn(flags, key)) return <>{children}</>;
   if (isAdmin) {
