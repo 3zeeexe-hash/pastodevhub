@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -76,7 +76,8 @@ function PackageCheckout({ service, packages, addons, selectedPkgId, onSelectPac
   const [refs, setRefs] = useState<Reference[]>([]);
   const [accept, setAccept] = useState(false);
   const [busy, setBusy] = useState(false);
-  const keyRef = useRef(newRequestKey());
+  // Satu kunci per sesi checkout: klik ganda atau percobaan ulang mengembalikan pesanan yang sama, bukan pesanan baru.
+  const [requestKey] = useState(() => newRequestKey());
   const pkg = packages.find((p) => p.id === selectedPkgId) ?? null;
   const payload = useMemo(() => selectionToPayload(sel), [sel]);
   const preview = useMemo(() => {
@@ -112,7 +113,7 @@ function PackageCheckout({ service, packages, addons, selectedPkgId, onSelectPac
     try {
       const oid = await serviceRpc<string>("service_create_order", {
         _service_id: service.id, _package_id: pkg.id, _addons: payload, _brief: brief.trim(),
-        _references: normalizeReferences(refs), _accept_terms: accept, _request_key: keyRef.current,
+        _references: normalizeReferences(refs), _accept_terms: accept, _request_key: requestKey,
       });
       toast.success("Pesanan dibuat. Lanjutkan ke pembayaran.");
       navigate({ to: "/pesanan/$id", params: { id: oid } });
@@ -242,6 +243,10 @@ export function ServiceOrderPanel(props: Props) {
   const hasPackages = props.packages.length > 0;
   const [mode, setMode] = useState<"package" | "custom">(hasPackages ? "package" : "custom");
   const active = hasPackages ? mode : "custom";
+  // Memilih paket dari kartu paket di halaman otomatis membuka tab "Pesan paket".
+  useEffect(() => {
+    if (props.selectedPkgId && hasPackages) setMode("package");
+  }, [props.selectedPkgId, hasPackages]);
   return (
     <div className="mt-4 space-y-4">
       {hasPackages && (

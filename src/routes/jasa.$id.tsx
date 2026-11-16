@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, MessageCircle, Pencil, Send, Share2, ShieldCheck, Star, Wrench } from "lucide-react";
+import { CheckCircle2, Clock, MessageCircle, Pencil, Share2, Star, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { openChatDock } from "@/lib/chat-dock";
@@ -13,13 +13,11 @@ import { categoryLabel, formatRupiah } from "@/lib/market";
 import { serviceShareUrl } from "@/lib/services-explore";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
-import { RupiahInput } from "@/components/rupiah-input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AvatarMini } from "@/components/avatar-mini";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { FavoriteButton } from "@/components/service-explore-card";
+import { ServiceOrderPanel } from "@/components/service-order-panel";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 import { getSeoInfo } from "@/lib/seo.functions";
@@ -34,11 +32,11 @@ export const Route = createFileRoute("/jasa/$id")({
   component: JasaDetail,
 });
 
-// Urutan ini sama dengan alur status pesanan: requested -> awaiting_payment -> in_progress -> delivered -> completed.
+// Urutan ini mengikuti alur pesanan: dibuat (menunggu pembayaran) -> dibayar -> dikerjakan -> hasil diterima.
 const STEPS = [
-  { title: "Kirim permintaan", text: "Ceritakan kebutuhan dan budget. Belum ada pembayaran." },
-  { title: "Developer menjawab", text: "Developer menerima dan menentukan harga final, atau menolak." },
+  { title: "Pilih paket dan isi brief", text: "Pilih paket dan add-on, lalu jelaskan kebutuhanmu. Total dihitung server. Butuh pekerjaan di luar paket? Pakai Permintaan khusus: developer menjawab dengan harga final sebelum kamu membayar." },
   { title: "Bayar dengan aman", text: "Bayar lewat Virtual Account atau QRIS. Dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasil." },
+  { title: "Developer mengerjakan", text: "Kamu bisa chat dengan developer selama pengerjaan dan meminta revisi sesuai jatah paket." },
   { title: "Terima hasil", text: "Periksa hasilnya, minta revisi kalau perlu, lalu tandai selesai." },
 ] as const;
 
@@ -69,10 +67,6 @@ function JasaDetail() {
   const { id } = Route.useParams();
   const { user } = useAuth();
   const { flags } = useSiteConfig();
-  const navigate = useNavigate();
-  const [brief, setBrief] = useState("");
-  const [budget, setBudget] = useState("");
-  const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
   const [pkgId, setPkgId] = useState<string | null>(null);
   const [img, setImg] = useState(0);
@@ -129,8 +123,6 @@ function JasaDetail() {
   );
   const x = s as typeof s & Extra;
   const isOwner = user?.id === s.owner_id;
-  const briefLen = brief.trim().length;
-  const briefOk = briefLen >= 10;
   const chatOn = isFeatureOn(flags, "discuss");
   const packages = extra.data?.packages ?? [];
   const addons = extra.data?.addons ?? [];
@@ -145,20 +137,7 @@ function JasaDetail() {
 
   function choosePackage(p: Pkg) {
     setPkgId(p.id);
-    setBudget(String(p.price));
-    document.getElementById("brief")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
-  }
-
-  async function order(e: React.FormEvent) {
-    e.preventDefault();
-    const b = budget.trim() ? Number(budget.replace(/\D/g, "")) : null;
-    if (!briefOk) { toast.error("Jelaskan kebutuhanmu minimal 10 karakter."); return; }
-    const prefix = pkg ? `[Paket ${TIER_LABEL[pkg.tier] ?? pkg.tier}: ${pkg.name} — ${formatRupiah(pkg.price)}] ` : "";
-    setBusy(true);
-    const { data: oid, error } = await supabase.rpc("request_service", { _service_id: s!.id, _brief: (prefix + brief.trim()).slice(0, 5000), _budget: b as number });
-    setBusy(false);
-    if (error || !oid) toast.error(error?.message ?? "Gagal mengirim pesanan");
-    else { toast.success("Permintaan terkirim ke developer"); navigate({ to: "/pesanan/$id", params: { id: oid } }); }
+    document.getElementById("order-panel")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   }
 
   async function askDeveloper() {
@@ -186,7 +165,7 @@ function JasaDetail() {
   }
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-8">
+    <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:py-8">
       <section className="min-w-0 lg:col-start-1 lg:row-start-1">
         {hiddenNotice && <p className="mb-3 rounded-lg border border-border bg-muted p-3 text-sm">Jasa ini belum tampil di marketplace (status: {x.status}). Hanya kamu yang bisa melihat halaman ini.</p>}
         <div className="aspect-video overflow-hidden rounded-xl border border-border bg-hero">
@@ -219,8 +198,8 @@ function JasaDetail() {
       </section>
 
       {/* Di layar kecil kartu pesan tampil tepat di bawah judul, bukan di dasar halaman. */}
-      <aside className="space-y-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-glow">
+      <aside className="space-y-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+        <div id="order-panel" className="scroll-mt-20 rounded-xl border border-border bg-card p-5 shadow-glow">
           <p className="text-sm text-muted-foreground">{pkg ? `Paket ${TIER_LABEL[pkg.tier] ?? pkg.tier}` : "Mulai dari"}</p>
           <p className="text-3xl font-bold text-primary">{formatRupiah(pkg ? pkg.price : fromPrice, "Nego")}</p>
           {isOwner ? (
@@ -228,34 +207,12 @@ function JasaDetail() {
           ) : !user ? (
             <div className="mt-4"><SignInCta text="Masuk untuk memesan jasa ini." /></div>
           ) : (
-            <form onSubmit={order} className="mt-4 space-y-3">
-              {pkg && (
-                <p className="flex items-center justify-between gap-2 rounded-md bg-primary/10 px-3 py-2 text-sm">
-                  <span className="min-w-0 truncate">Paket dipilih: <b>{pkg.name}</b></span>
-                  <button type="button" className="shrink-0 text-xs text-muted-foreground underline" onClick={() => setPkgId(null)}>Lepas</button>
-                </p>
-              )}
-              <div>
-                <Label htmlFor="brief">Kebutuhan kamu</Label>
-                <Textarea id="brief" rows={5} maxLength={4800} value={brief} onChange={(e) => setBrief(e.target.value)} aria-describedby="brief-hint" placeholder="Contoh: website company profile 5 halaman, ada form kontak, deadline 2 minggu." />
-                <p id="brief-hint" className={`mt-1 text-xs ${briefLen > 0 && !briefOk ? "text-destructive" : "text-muted-foreground"}`}>
-                  {briefOk ? "Makin jelas kebutuhanmu, makin cepat developer menjawab." : `Minimal 10 karakter (${briefLen}/10).`}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="budget">Budget (opsional)</Label>
-                <RupiahInput id="budget" value={budget} onValueChange={setBudget} placeholder={fromPrice ? formatRupiah(fromPrice) : "Rp 0"} />
-                <p className="mt-1 text-xs text-muted-foreground">{budget ? formatRupiah(Number(budget)) : "Kosongkan kalau mau nego dengan developer."}</p>
-              </div>
-              <Button className="w-full" disabled={busy || !briefOk}><Send /> {busy ? "Mengirim…" : "Kirim permintaan"}</Button>
+            <>
+              <ServiceOrderPanel service={{ id: s.id, title: s.title }} packages={packages} addons={addons} selectedPkgId={pkgId} onSelectPackage={setPkgId} fromPrice={fromPrice} />
               {chatOn && s.owner && (
-                <Button type="button" variant="outline" className="w-full" disabled={asking} onClick={askDeveloper}><MessageCircle /> {asking ? "Membuka chat…" : "Tanya developer dulu"}</Button>
+                <Button type="button" variant="outline" className="mt-3 w-full" disabled={asking} onClick={askDeveloper}><MessageCircle /> {asking ? "Membuka chat…" : "Tanya developer dulu"}</Button>
               )}
-              <p className="flex items-start gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>Kamu baru membayar setelah developer menyetujui dan menentukan harga final. Dana disimpan di escrow sampai kamu menerima hasil.</span>
-              </p>
-            </form>
+            </>
           )}
         </div>
         {s.owner && (
