@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { looseDb } from "@/lib/escrow-db";
 import type { WorkConversation } from "@/lib/work-chat";
 import { AvatarMini } from "@/components/avatar-mini";
-import { ChatBackdrop, ChatNotice, Composer, MessageList, type ChatMessage } from "@/components/chat-ui";
+import { ChatBackdrop, ChatHeader, ChatNotice, Composer, MessageList, chatBackClass, type ChatMessage } from "@/components/chat-ui";
 import { ReportButton } from "@/components/work-ui";
 import { useChatAttachment } from "@/components/chat-attachment";
 
@@ -58,21 +58,19 @@ export function WorkChatPane({ applicationId, userId, conv }: { applicationId: s
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/gobifeed/pesan" search={{ tab: "kerja" }} aria-label="Kembali ke daftar percakapan kerja" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
-          <ArrowLeft className="size-5" />
-        </Link>
-        <AvatarMini name={conv?.otherName ?? "?"} url={conv?.otherAvatar} size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold leading-tight text-[#111b21]">{conv?.otherName ?? "Percakapan kerja"}</p>
-          {conv?.jobId ? (
-            <Link to="/lowongan/$id" params={{ id: conv.jobId }} className="block truncate text-xs text-[#667781] hover:text-[#00a884]">{conv.jobTitle}</Link>
+      <ChatHeader
+        back={<Link to="/gobifeed/pesan" search={{ tab: "kerja" }} aria-label="Kembali ke daftar percakapan kerja" className={chatBackClass}><ArrowLeft className="size-5" /></Link>}
+        avatar={<AvatarMini name={conv?.otherName ?? "?"} url={conv?.otherAvatar} size={42} />}
+        title={conv?.otherName ?? "Percakapan kerja"}
+        subtitle={
+          conv?.jobId ? (
+            <Link to="/lowongan/$id" params={{ id: conv.jobId }} className="hover:text-primary hover:underline">{conv.jobTitle}</Link>
           ) : (
-            <p className="truncate text-xs text-[#667781]">{conv?.jobTitle ?? "Memuat…"}</p>
-          )}
-        </div>
-        <ReportButton targetType="conversation" targetId={applicationId} label="Laporkan percakapan" />
-      </header>
+            conv?.jobTitle ?? "Memuat…"
+          )
+        }
+        right={<ReportButton targetType="conversation" targetId={applicationId} label="Laporkan percakapan" />}
+      />
 
       <ChatBackdrop className="min-h-0 flex-1 overflow-y-auto px-3 py-3 md:px-[6%]">
         <div aria-live="polite">

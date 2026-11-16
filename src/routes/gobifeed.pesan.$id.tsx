@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { deleteMessage, fetchMessages, fetchPartner, markConversationRead, sendMessage } from "@/lib/dm";
 import { MAX_DM_LENGTH, dmBodyError } from "@/lib/feed-rules";
 import { AvatarMini } from "@/components/avatar-mini";
-import { ChatBackdrop, ChatNotice, Composer, MessageList } from "@/components/chat-ui";
+import { ChatBackdrop, ChatHeader, ChatNotice, Composer, MessageList, chatBackClass } from "@/components/chat-ui";
 import { useChatAttachment } from "@/components/chat-attachment";
 
 export const Route = createFileRoute("/gobifeed/pesan/$id")({
@@ -60,22 +60,18 @@ function ChatPage() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/gobifeed/pesan" search={{}} aria-label="Kembali ke daftar pesan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
-          <ArrowLeft className="size-5" />
-        </Link>
-        {p ? (
-          <Link to="/$username" params={{ username: p.username }} className="flex min-w-0 flex-1 items-center gap-3">
-            <AvatarMini name={p.username} url={p.avatar_url} size={40} />
-            <div className="min-w-0">
-              <p className="truncate font-semibold leading-tight text-[#111b21]">{p.display_name || p.username}</p>
-              <p className="truncate text-xs text-[#667781]">@{p.username}</p>
-            </div>
-          </Link>
-        ) : (
-          <p className="flex-1 px-1 text-[#667781]">{partner.isLoading ? "Memuat…" : "Percakapan"}</p>
-        )}
-      </header>
+      <ChatHeader
+        back={<Link to="/gobifeed/pesan" search={{}} aria-label="Kembali ke daftar pesan" className={chatBackClass}><ArrowLeft className="size-5" /></Link>}
+        avatar={
+          p ? (
+            <Link to="/$username" params={{ username: p.username }} aria-label={`Profil @${p.username}`} className="shrink-0"><AvatarMini name={p.username} url={p.avatar_url} size={42} /></Link>
+          ) : (
+            <AvatarMini name="?" url={null} size={42} />
+          )
+        }
+        title={p ? <Link to="/$username" params={{ username: p.username }} className="hover:text-primary">{p.display_name || p.username}</Link> : partner.isLoading ? "Memuat…" : "Percakapan"}
+        subtitle={p ? `@${p.username}` : undefined}
+      />
 
       <ChatBackdrop className="min-h-0 flex-1 overflow-y-auto px-3 py-3 md:px-[6%]">
         <div aria-live="polite">

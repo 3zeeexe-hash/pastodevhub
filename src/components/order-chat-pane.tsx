@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ORDER_HEAD_SELECT } from "@/lib/inbox-data";
 import type { OrderStatus } from "@/lib/market";
 import { AvatarMini } from "@/components/avatar-mini";
-import { ChatBackdrop, ChatNotice, Composer, MessageList, type ChatMessage } from "@/components/chat-ui";
+import { ChatBackdrop, ChatHeader, ChatNotice, Composer, MessageList, chatBackClass, type ChatMessage } from "@/components/chat-ui";
 import { OrderStatusBadge } from "@/components/order-status";
 import { useChatAttachment } from "@/components/chat-attachment";
 
@@ -84,23 +84,19 @@ export function OrderChatPane({ orderId, userId }: { orderId: string; userId: st
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/gobifeed/pesan" search={{ filter: "pesanan" }} aria-label="Kembali ke daftar percakapan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
-          <ArrowLeft className="size-5" />
-        </Link>
-        <AvatarMini name={other?.username ?? "?"} url={other?.avatar_url} size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold leading-tight text-[#111b21]">{head.isLoading ? "Memuat…" : otherName}</p>
-          {h ? (
-            <Link to="/pesanan/$id" params={{ id: h.id }} className="block truncate text-xs text-[#667781] hover:text-[#00a884]">
+      <ChatHeader
+        back={<Link to="/gobifeed/pesan" search={{ filter: "pesanan" }} aria-label="Kembali ke daftar percakapan" className={chatBackClass}><ArrowLeft className="size-5" /></Link>}
+        avatar={<AvatarMini name={other?.username ?? "?"} url={other?.avatar_url} size={42} />}
+        title={head.isLoading ? "Memuat…" : otherName}
+        subtitle={
+          h ? (
+            <Link to="/pesanan/$id" params={{ id: h.id }} className="hover:text-primary hover:underline">
               {h.number ? `Pesanan #${h.number} · ` : "Pesanan · "}{h.title}
             </Link>
-          ) : (
-            <p className="truncate text-xs text-[#667781]">{head.isLoading ? "" : "Pesanan tidak ditemukan"}</p>
-          )}
-        </div>
-        {h && <OrderStatusBadge status={h.status as OrderStatus} />}
-      </header>
+          ) : head.isLoading ? undefined : "Pesanan tidak ditemukan"
+        }
+        right={h ? <OrderStatusBadge status={h.status as OrderStatus} /> : undefined}
+      />
 
       <ChatBackdrop className="min-h-0 flex-1 overflow-y-auto px-3 py-3 md:px-[6%]">
         <div aria-live="polite">
@@ -117,7 +113,7 @@ export function OrderChatPane({ orderId, userId }: { orderId: string; userId: st
       </ChatBackdrop>
 
       {closed ? (
-        <p className="flex items-center justify-center gap-2 bg-[#f0f2f5] px-3 py-3 text-sm text-[#667781]"><Lock className="size-4" aria-hidden /> Pesanan ini sudah ditutup, pesan baru tidak bisa dikirim.</p>
+        <p className="flex items-center justify-center gap-2 border-t border-border bg-card px-3 py-3.5 text-sm text-muted-foreground"><Lock className="size-4" aria-hidden /> Pesanan ini sudah ditutup, pesan baru tidak bisa dikirim.</p>
       ) : (
         <Composer value={body} onChange={setBody} onSend={() => send.mutate()} pending={send.isPending} disabled={!body.trim() && !attachment.image} maxLength={MAX_ORDER_MESSAGE} attachment={attachment} />
       )}
