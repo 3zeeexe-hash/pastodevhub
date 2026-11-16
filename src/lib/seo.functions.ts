@@ -1,24 +1,12 @@
 // Public page metadata for search engines, read with the public (anon) key on the server.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { SITE_NAME, jobPostingLd, summarize, type SeoInfo } from "@/lib/seo";
+import { FEED_MIN_INDEX_LENGTH, SITE_NAME, jobPostingLd, summarize, type SeoInfo } from "@/lib/seo";
 
+// SUPABASE_* or VITE_SUPABASE_* are both read (see public-db.server.ts); without that fallback every page title silently reverted to the default.
 async function anon() {
-  const { createClient } = await import("@supabase/supabase-js");
-  const url = process.env["SUPABASE_URL"];
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
-  if (!url || !key) throw new Error("missing config");
-  return createClient(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const headers = new Headers(init?.headers);
-        if (headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
-        headers.set("apikey", key);
-        return fetch(input, { ...init, headers });
-      },
-    },
-  });
+  const { publicAnon } = await import("@/lib/public-db.server");
+  return publicAnon();
 }
 
 /** Serialize JSON-LD safely for a <script> tag. */
@@ -30,8 +18,8 @@ const NOT_FOUND: SeoInfo = { title: "", description: "", type: "website", notFou
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 export const getSeoInfo = createServerFn({ method: "GET" })
-  .inputValidator((input: { kind: "job" | "product" | "service" | "post" | "profile" | "repo" | "store"; id: string; extra?: string | undefined }) =>
-    z.object({ kind: z.enum(["job", "product", "service", "post", "profile", "repo", "store"]), id: z.string().min(1).max(100), extra: z.string().max(100).optional() }).parse(input))
+  .inputValidator((input: { kind: "job" | "product" | "service" | "post" | "feed" | "profile" | "repo" | "store"; id: string; extra?: string | undefined }) =>
+    z.object({ kind: z.enum(["job", "product", "service", "post", "feed", "profile", "repo", "store"]), id: z.string().min(1).max(100), extra: z.string().max(100).optional() }).parse(input))
   .handler(async ({ data }): Promise<SeoInfo | null> => {
     try {
       const db = await anon();
@@ -84,6 +72,24 @@ export const getSeoInfo = createServerFn({ method: "GET" })
           description: summarize(p.body) || p.title,
           type: "article",
           jsonLd: ld({ "@context": "https://schema.org", "@type": "DiscussionForumPosting", headline: p.title, text: summarize(p.body, 500), datePublished: p.created_at, author: { "@type": "Person", name: author?.username ?? "anggota" } }),
+        };
+      }
+      if (data.kind === "feed" && uuid) {
+        // GobiFeed timeline post (/gobifeed/status/<id>). Replies, reposts and one-liners are marked noindex.
+        const { data: p } = await db.from("feed_posts").select("kind,body,created_at,author_id").eq("id", data.id).maybeSingle();
+        if (!p) return NOT_FOUND;
+        const author = await profileName(p.author_id);
+        const body = String(p.body ?? "").trim();
+        const who = author?.display_name || author?.username || "anggota";
+        const thin = (p.kind !== "post" && p.kind !== "quote") || body.length < FEED_MIN_INDEX_LENGTH;
+        return {
+          title: `${summarize(body, 70) || "Post"} — ${who} di GobiFeed | ${SITE_NAME}`,
+          description: summarize(body) || `Post dari ${who} di GobiFeed.`,
+          type: "article",
+          noindex: thin,
+          jsonLd: thin
+            ? undefined
+            : ld({ "@context": "https://schema.org", "@type": "SocialMediaPosting", headline: summarize(body, 100), articleBody: summarize(body, 500), datePublished: p.created_at, author: { "@type": "Person", name: who, ...(author?.username ? { alternateName: author.username } : {}) } }),
         };
       }
       if (data.kind === "profile") {

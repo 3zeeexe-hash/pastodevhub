@@ -22,6 +22,24 @@ export function resolveSiteOrigin(configured: string | null | undefined, request
   return normalizeSiteUrl(configured) ?? new URL(requestUrl).origin;
 }
 
+/**
+ * Same as resolveSiteOrigin, but for a server that sits behind a proxy: without `SITE_URL`, the public host is read from
+ * X-Forwarded-Host / X-Forwarded-Proto (the request URL then only holds the internal address). Set `SITE_URL` on the server
+ * so the sitemap and canonical links never depend on headers a visitor can send.
+ */
+export function resolveRequestOrigin(configured: string | null | undefined, request: { url: string; headers: { get(name: string): string | null } }): string {
+  const fromEnv = normalizeSiteUrl(configured);
+  if (fromEnv) return fromEnv;
+  const first = (v: string | null) => (v ?? "").split(",")[0]?.trim() ?? "";
+  const host = first(request.headers.get("x-forwarded-host"));
+  if (host && /^[a-z0-9.-]+(:\d{1,5})?$/i.test(host)) {
+    const proto = first(request.headers.get("x-forwarded-proto")).toLowerCase() === "http" ? "http" : "https";
+    const origin = normalizeSiteUrl(`${proto}://${host}`);
+    if (origin) return origin;
+  }
+  return new URL(request.url).origin;
+}
+
 /** Escapes text for an XML element or attribute. */
 export function xmlEscape(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");

@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarMini } from "@/components/avatar-mini";
 import { SignInCta } from "@/components/sign-in-cta";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/gobifeed/$id")({
-  head: () => ({ meta: [{ title: "GobiFeed — GoBi" }, { name: "description", content: "Baca dan balas forum di GobiFeed." }, { property: "og:title", content: "GobiFeed — GoBi" }, { property: "og:description", content: "Baca dan balas diskusi di GoBi." }] }),
+  // Judul, deskripsi, dan data terstruktur forum diambil dari database; teks di bawah hanya cadangan.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "post", id: params.id } }),
+  staleTime: 300_000,
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Forum — GobiFeed | GoBi", description: "Baca dan balas diskusi developer Indonesia di forum GobiFeed." }),
   component: PostPage,
 });
 
