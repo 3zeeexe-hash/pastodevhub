@@ -4,9 +4,10 @@ import type { FeedPostBase } from "@/lib/feed";
 import { AvatarMini } from "@/components/avatar-mini";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { RichText } from "@/components/feed/rich-text";
+import { PostImage } from "@/components/feed/post-image";
 
 /** Post yang dikutip, tampil kecil di dalam post lain atau di komposer kutipan. */
-export function QuotedPost({ post }: { post: FeedPostBase }) {
+export function QuotedPost({ post }: { post: FeedPostBase & { image?: string | null } }) {
   return (
     <div className="rounded-lg border border-border bg-background/60 p-3">
       <div className="flex items-center gap-2 text-sm">
@@ -15,9 +16,10 @@ export function QuotedPost({ post }: { post: FeedPostBase }) {
         <VerifiedBadge username={post.author.username} size={14} />
         <span className="truncate text-muted-foreground">@{post.author.username} · {timeAgo(post.created_at)}</span>
       </div>
-      <Link to="/discuss/status/$id" params={{ id: post.id }} className="mt-1 block">
-        <RichText body={post.body} className="line-clamp-4 text-sm" />
+      <Link to="/gobifeed/status/$id" params={{ id: post.id }} className="mt-1 block">
+        {post.body.trim() && <RichText body={post.body} className="line-clamp-4 text-sm" />}
       </Link>
+      {post.image && <PostImage url={post.image} compact />}
     </div>
   );
 }

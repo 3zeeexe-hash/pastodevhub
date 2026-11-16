@@ -54,7 +54,7 @@ export function SiteFooter() {
           <nav aria-label="Komunitas">
             <p className={heading}>Komunitas</p>
             <ul className="flex flex-col gap-2.5">
-              {on("discuss") && <li><Link to="/discuss" className={link}>Diskusi</Link></li>}
+              {on("discuss") && <li><Link to="/gobifeed" className={link}>GobiFeed</Link></li>}
               {on("github") && <li><Link to="/import" className={link}>Impor GitHub</Link></li>}
               {user && on("repos") && <li><Link to="/new" className={link}>Repositori baru</Link></li>}
             </ul>

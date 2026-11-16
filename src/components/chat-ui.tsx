@@ -1,4 +1,4 @@
-// Potongan UI obrolan bergaya WhatsApp yang dipakai tab "Pesan" (DM) dan tab "Kerja" di /discuss/pesan.
+// Potongan UI obrolan bergaya WhatsApp yang dipakai tab "Pesan" (DM) dan tab "Kerja" di /gobifeed/pesan.
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { Loader2, Send, Trash2 } from "lucide-react";
 import { clockTime, dayLabel, isSameDay } from "@/lib/chat-time";

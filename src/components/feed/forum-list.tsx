@@ -69,7 +69,7 @@ export function ForumList() {
           {list.isLoading && <li className="py-8 text-center text-sm text-muted-foreground">Memuat…</li>}
           {rows.map((p) => (
             <li key={p.id}>
-              <Link to="/discuss/$id" params={{ id: p.id }} className="flex gap-3 py-4 hover:opacity-90">
+              <Link to="/gobifeed/$id" params={{ id: p.id }} className="flex gap-3 py-4 hover:opacity-90">
                 <AvatarMini name={p.author?.username ?? "?"} url={p.author?.avatar_url} size={36} />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{p.title}</p>

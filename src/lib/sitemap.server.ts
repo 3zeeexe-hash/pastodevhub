@@ -82,7 +82,7 @@ const SOURCES: Record<Exclude<SitemapName, "pages">, Source> = {
     feature: "discuss",
     load: async (db) =>
       (await fetchAll((a, b) => db.from("posts").select("id,created_at").order("created_at", { ascending: false }).order("id").range(a, b))).map((r) => ({
-        path: `/discuss/${seg(r["id"])}`,
+        path: `/gobifeed/${seg(r["id"])}`,
         lastmod: r["created_at"],
       })),
   },
@@ -134,7 +134,7 @@ const STATIC_PAGES: { path: string; feature: FeatureKey | null }[] = [
   { path: "/karya", feature: "karya" },
   { path: "/jasa", feature: "jasa" },
   { path: "/lowongan", feature: "jobs" },
-  { path: "/discuss", feature: "discuss" },
+  { path: "/gobifeed", feature: "discuss" },
 ];
 
 async function loadFlags(db: Db): Promise<FeatureFlags> {

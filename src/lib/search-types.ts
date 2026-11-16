@@ -6,5 +6,5 @@ export const SEARCH_TYPES = [
   ["repos", "Proyek", BookMarked],
   ["karya", "Karya", Package],
   ["jobs", "Lowongan", Briefcase],
-  ["posts", "Diskusi", MessageSquare],
+  ["posts", "GobiFeed", MessageSquare],
 ] as const;

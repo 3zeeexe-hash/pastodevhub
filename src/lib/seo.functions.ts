@@ -80,7 +80,7 @@ export const getSeoInfo = createServerFn({ method: "GET" })
         if (!p) return NOT_FOUND;
         const author = await profileName(p.author_id);
         return {
-          title: `${p.title} — Diskusi | ${SITE_NAME}`,
+          title: `${p.title} — GobiFeed | ${SITE_NAME}`,
           description: summarize(p.body) || p.title,
           type: "article",
           jsonLd: ld({ "@context": "https://schema.org", "@type": "DiscussionForumPosting", headline: p.title, text: summarize(p.body, 500), datePublished: p.created_at, author: { "@type": "Person", name: author?.username ?? "anggota" } }),

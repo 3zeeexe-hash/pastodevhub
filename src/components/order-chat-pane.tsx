@@ -85,7 +85,7 @@ export function OrderChatPane({ orderId, userId }: { orderId: string; userId: st
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/discuss/pesan" search={{ filter: "pesanan" }} aria-label="Kembali ke daftar percakapan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
+        <Link to="/gobifeed/pesan" search={{ filter: "pesanan" }} aria-label="Kembali ke daftar percakapan" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
           <ArrowLeft className="size-5" />
         </Link>
         <AvatarMini name={other?.username ?? "?"} url={other?.avatar_url} size={40} />

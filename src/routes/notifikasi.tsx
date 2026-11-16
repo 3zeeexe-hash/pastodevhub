@@ -91,13 +91,13 @@ function FeedRow({ n }: { n: FeedNotification }) {
   );
   return n.type === "follow" || !n.post_id
     ? <Link to="/$username" params={{ username: n.actor.username }} className="block">{card}</Link>
-    : <Link to="/discuss/status/$id" params={{ id: n.post_id }} className="block">{card}</Link>;
+    : <Link to="/gobifeed/status/$id" params={{ id: n.post_id }} className="block">{card}</Link>;
 }
 
 /** Pesan langsung yang belum dibaca. Satu baris per percakapan; membukanya menandai dibaca. */
 function DmRow({ c }: { c: Conversation }) {
   return (
-    <Link to="/discuss/pesan/$id" params={{ id: c.conversation_id }} className="block">
+    <Link to="/gobifeed/pesan/$id" params={{ id: c.conversation_id }} className="block">
       <div className={cn(CARD, UNREAD)}>
         <AvatarMini name={c.username} url={c.avatar_url} size={40} />
         <div className="min-w-0 flex-1">
@@ -120,7 +120,7 @@ function EntryRow({ e }: { e: Entry }) {
 /**
  * Satu halaman untuk semua notifikasi: aktivitas Diskusi (like, balasan, mention, follow), GOBI WORK (lamaran, kontrak, pembayaran,
  * pesan kerja), dan pesan langsung yang belum dibaca. Digabung dan diurutkan dari yang terbaru; tab menyaring per jenis
- * (?tab=aktivitas|kerja|pesan). Rute lama /discuss/notifikasi dan /kerja/notifikasi mengarah ke sini.
+ * (?tab=aktivitas|kerja|pesan). Rute lama /gobifeed/notifikasi dan /kerja/notifikasi mengarah ke sini.
  */
 function NotificationsPage() {
   const { user, loading } = useAuth();
@@ -240,7 +240,7 @@ function NotificationsPage() {
           )}
 
           {discuss && (active === "semua" || active === "pesan") && (
-            <Link to="/discuss/pesan" search={{}} className="mt-4 block rounded-xl border border-border px-4 py-2.5 text-center text-sm font-medium text-link hover:bg-accent/40">Buka semua pesan</Link>
+            <Link to="/gobifeed/pesan" search={{}} className="mt-4 block rounded-xl border border-border px-4 py-2.5 text-center text-sm font-medium text-link hover:bg-accent/40">Buka semua pesan</Link>
           )}
         </>
       )}

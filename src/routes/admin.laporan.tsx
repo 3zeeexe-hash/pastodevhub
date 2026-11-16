@@ -92,7 +92,7 @@ function ReportsPage() {
                 {status === "open" && first.post_id ? (
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="outline" asChild>
-                      <Link to="/discuss/status/$id" params={{ id: first.post_id }}><ExternalLink /> Buka post</Link>
+                      <Link to="/gobifeed/status/$id" params={{ id: first.post_id }}><ExternalLink /> Buka post</Link>
                     </Button>
                     <Button size="sm" variant="destructive" disabled={act.isPending}
                       onClick={async () => { if (await ask({ title: "Hapus post ini?", description: "Post dihapus dan semua laporan untuknya ditutup. Tidak bisa dibatalkan.", confirmLabel: "Hapus post", destructive: true })) act.mutate({ r: first, status: "resolved", deletePost: true }); }}>

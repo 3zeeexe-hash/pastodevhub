@@ -29,7 +29,7 @@ const searchSchema = z.object({
   order: z.string().optional().catch(undefined),
 });
 
-export const Route = createFileRoute("/discuss/pesan")({
+export const Route = createFileRoute("/gobifeed/pesan")({
   validateSearch: searchSchema,
   head: () => ({ meta: [{ title: "Pesan — GoBi" }, { name: "robots", content: "noindex" }] }),
   component: PesanLayout,
@@ -49,7 +49,7 @@ const unreadBadge = "flex min-w-5 shrink-0 items-center justify-center rounded-f
  * aktivitas terbaru, dengan penyaring Semua / Pribadi / Kerja / Pesanan. Kanan: isi percakapan.
  * Halaman lain (lowongan, lamaran, jasa, pesanan) tidak punya kolom chat sendiri; mereka memakai tombol "Pesan" yang membuka halaman ini.
  * Layar sempit hanya menampilkan satu panel: daftar, atau percakapan yang dibuka (dengan tombol kembali).
- * /discuss/pesan/$id (pesan pribadi) adalah anak rute ini dan tampil lewat <Outlet />.
+ * /gobifeed/pesan/$id (pesan pribadi) adalah anak rute ini dan tampil lewat <Outlet />.
  */
 function Messenger({ userId }: { userId: string }) {
   const { pathname } = useLocation();
@@ -62,18 +62,18 @@ function Messenger({ userId }: { userId: string }) {
   const [filter, setFilter] = useState<InboxFilter>(() => resolveFilter({ filter: filterParam, tab }));
   useEffect(() => { setFilter(resolveFilter({ filter: filterParam, tab })); }, [filterParam, tab]);
 
-  const dmId = /^\/discuss\/pesan\/([^/]+)/.exec(pathname)?.[1] ?? null;
+  const dmId = /^\/gobifeed\/pesan\/([^/]+)/.exec(pathname)?.[1] ?? null;
   const hasActive = !!u || !!dmId || !!application || !!order;
 
-  // /discuss/pesan?u=nama membuka (atau membuat) pesan pribadi lalu pindah ke sana.
+  // /gobifeed/pesan?u=nama membuka (atau membuat) pesan pribadi lalu pindah ke sana.
   useEffect(() => {
     if (!u || started.current === u) return;
     started.current = u;
     startConversation(u)
-      .then((id) => navigate({ to: "/discuss/pesan/$id", params: { id }, replace: true }))
+      .then((id) => navigate({ to: "/gobifeed/pesan/$id", params: { id }, replace: true }))
       .catch((e: Error) => {
         toast.error(e.message);
-        navigate({ to: "/discuss/pesan", search: {}, replace: true });
+        navigate({ to: "/gobifeed/pesan", search: {}, replace: true });
       });
   }, [u, navigate]);
 
@@ -100,7 +100,7 @@ function Messenger({ userId }: { userId: string }) {
         {/* Panel kiri: daftar percakapan */}
         <aside className={cn("w-full flex-col bg-card md:flex md:w-[380px] md:shrink-0 md:border-r md:border-border", hasActive ? "hidden" : "flex")}>
           <div className="flex items-center gap-2 bg-[#f0f2f5] px-3 py-3">
-            <Link to="/discuss" search={{}} aria-label="Kembali ke Diskusi" className="rounded-full p-2 text-[#54656f] hover:bg-black/5"><ArrowLeft className="size-5" /></Link>
+            <Link to="/gobifeed" search={{}} aria-label="Kembali ke GobiFeed" className="rounded-full p-2 text-[#54656f] hover:bg-black/5"><ArrowLeft className="size-5" /></Link>
             <h1 className="text-xl font-bold text-[#111b21]">Pesan</h1>
           </div>
 
@@ -218,9 +218,9 @@ function Row({ item, userId, active }: { item: InboxItem; userId: string; active
       </div>
     </>
   );
-  if (item.kind === "dm") return <Link to="/discuss/pesan/$id" params={{ id: item.id }} className={cls}>{body}</Link>;
-  if (item.kind === "work") return <Link to="/discuss/pesan" search={{ application: item.id }} className={cls}>{body}</Link>;
-  return <Link to="/discuss/pesan" search={{ order: item.id }} className={cls}>{body}</Link>;
+  if (item.kind === "dm") return <Link to="/gobifeed/pesan/$id" params={{ id: item.id }} className={cls}>{body}</Link>;
+  if (item.kind === "work") return <Link to="/gobifeed/pesan" search={{ application: item.id }} className={cls}>{body}</Link>;
+  return <Link to="/gobifeed/pesan" search={{ order: item.id }} className={cls}>{body}</Link>;
 }
 
 function ListNote({ children, icon, tone = "muted" }: { children: React.ReactNode; icon?: React.ReactNode; tone?: "muted" | "error" }) {

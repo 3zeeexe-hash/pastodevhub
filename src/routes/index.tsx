@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRight, Bell, Briefcase, Building2, ChevronDown, ChevronLeft, ChevronRight, Code, FolderOpen, LayoutDashboard,
-  LayoutGrid, LogOut, Menu, MessageCircle, MessageSquare, Newspaper, Package, Receipt, Search, Settings, ShieldCheck, User, Users,
+  LayoutGrid, LogOut, Menu, MessageCircle, MessageSquare, Package, Receipt, Search, Settings, ShieldCheck, User, Users,
   Wallet, Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,12 +57,11 @@ const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6 xl:max-w-7xl";
 const SEE_ALL = "flex shrink-0 items-center gap-1 text-sm font-bold text-link hover:underline";
 
 const MENU = [
-  { to: "/gobifeed", label: "Linimasa", Icon: Newspaper, feature: "discuss" },
   { to: "/explore", label: "Proyek", Icon: FolderOpen, feature: null },
   { to: "/jasa", label: "Jasa", Icon: Wrench, feature: "jasa" },
   { to: "/katalog", label: "Katalog", Icon: LayoutGrid, feature: "karya" },
   { to: "/lowongan", label: "Lowongan", Icon: Briefcase, feature: "jobs" },
-  { to: "/discuss", label: "Diskusi", Icon: MessageSquare, feature: "discuss" },
+  { to: "/gobifeed", label: "GobiFeed", Icon: MessageSquare, feature: "discuss" },
 ] as const;
 
 /**
@@ -165,13 +164,13 @@ function GobiHome() {
               {on("discuss") && (
                 <Section
                   icon={<MessageCircle className="size-6 text-primary" fill="currentColor" />}
-                  title="Diskusi Hangat"
-                  action={<Link to="/discuss" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
+                  title="Hangat di GobiFeed"
+                  action={<Link to="/gobifeed" className={SEE_ALL}>Lihat Semua <ArrowRight className="size-4" /></Link>}
                 >
                   {hot.isLoading ? <HomeLoading /> : hotList.length === 0 ? <Hint>Belum ada diskusi. Mulai yang pertama!</Hint> : (
                     <div className="space-y-2">
                       {hotList.map((p) => (
-                        <Link key={p.id} to="/discuss/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md">
+                        <Link key={p.id} to="/gobifeed/status/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border transition hover:shadow-md">
                           <AvatarMini name={p.author.username} url={p.author.avatar_url} size={44} />
                           <div className="min-w-0 flex-1">
                             <p className="line-clamp-1 font-extrabold">{(p.body.split("\n")[0] || "Post").slice(0, 90)}</p>
@@ -264,7 +263,7 @@ function GobiHeader({ on }: { on: (k: FeatureKey) => boolean }) {
 
           <div className="flex items-center gap-3">
             {signedIn && on("discuss") && (
-              <Link to="/discuss/notifikasi" aria-label="Notifikasi" className="relative flex size-11 items-center justify-center rounded-full hover:bg-white/10">
+              <Link to="/gobifeed/notifikasi" aria-label="Notifikasi" className="relative flex size-11 items-center justify-center rounded-full hover:bg-white/10">
                 <Bell className="size-7 lg:size-6" />
                 {!!unread.data && <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-primary px-1 text-center text-xs font-bold leading-5 text-primary-foreground">{unread.data > 99 ? "99+" : unread.data}</span>}
               </Link>
@@ -420,9 +419,9 @@ function QuickMenu({ on }: { on: (k: FeatureKey) => boolean }) {
         </Link>
       )}
       {on("discuss") && (
-        <Link to="/discuss" className={tile}>
+        <Link to="/gobifeed" className={tile}>
           <span className={dot}><MessageCircle className={icon} fill="currentColor" /></span>
-          <span className={text}><span className="block lg:truncate">Diskusi</span><span className={desc}>Tanya jawab dan berbagi ilmu</span></span>
+          <span className={text}><span className="block lg:truncate">GobiFeed</span><span className={desc}>Linimasa, forum, dan chat komunitas</span></span>
           {arrow}
         </Link>
       )}

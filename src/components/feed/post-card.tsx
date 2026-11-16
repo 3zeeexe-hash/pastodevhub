@@ -12,6 +12,7 @@ import { RichText } from "@/components/feed/rich-text";
 import { QuotedPost } from "@/components/feed/quoted-post";
 import { Composer } from "@/components/feed/composer";
 import { PollView } from "@/components/feed/poll-view";
+import { PostImage } from "@/components/feed/post-image";
 import { AutopostCard } from "@/components/feed/autopost-card";
 import { ReportDialog } from "@/components/feed/report-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,7 +70,7 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
   const repost = useMutation({ mutationFn: (on: boolean) => setRepost(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, reposted: on })), onSettled: refresh, onError });
   const del = useMutation({
     mutationFn: () => deletePost(post.id),
-    onSuccess: async () => { toast.success(isRepost ? "Repost dibatalkan" : "Post dihapus"); await refresh(); if (detail) navigate({ to: "/discuss" }); },
+    onSuccess: async () => { toast.success(isRepost ? "Repost dibatalkan" : "Post dihapus"); await refresh(); if (detail) navigate({ to: "/gobifeed" }); },
     onError,
   });
 
@@ -88,7 +89,7 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
   const canModerate = !!user && user.id !== shown.author_id;
 
   async function share() {
-    const url = `${window.location.origin}/discuss/status/${shown.id}`;
+    const url = `${window.location.origin}/gobifeed/status/${shown.id}`;
     try { await navigator.clipboard.writeText(url); toast.success("Link disalin"); } catch { toast(url); }
   }
 
@@ -96,7 +97,7 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
   function openDetail(e: React.MouseEvent) {
     if (detail) return;
     if ((e.target as HTMLElement).closest("a,button,pre,[role=menuitem]")) return;
-    navigate({ to: "/discuss/status/$id", params: { id: shown.id } });
+    navigate({ to: "/gobifeed/status/$id", params: { id: shown.id } });
   }
 
   return (
@@ -153,9 +154,10 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
           </div>
 
           {shown.kind === "reply" && shown.parent_id && (
-            <Link to="/discuss/status/$id" params={{ id: shown.parent_id }} className="text-xs text-muted-foreground hover:text-primary">Membalas sebuah post</Link>
+            <Link to="/gobifeed/status/$id" params={{ id: shown.parent_id }} className="text-xs text-muted-foreground hover:text-primary">Membalas sebuah post</Link>
           )}
-          <RichText body={shown.body} className={cn("mt-0.5", detail ? "text-lg leading-relaxed" : "text-[15px] leading-relaxed")} />
+          {(shown.body.trim() || !shown.image) && <RichText body={shown.body} className={cn("mt-0.5", detail ? "text-lg leading-relaxed" : "text-[15px] leading-relaxed")} />}
+          {shown.image && <PostImage url={shown.image} />}
           {shown.autopost && <AutopostCard info={shown.autopost} />}
           {shown.poll && <PollView postId={shown.id} poll={shown.poll} />}
           {quoted && <div className="mt-2"><QuotedPost post={quoted} /></div>}
@@ -163,7 +165,7 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
 
           <div className="-ml-2 mt-1.5 flex items-center justify-between gap-1 sm:justify-start sm:gap-6">
             <Action label="Balas" count={shown.reply_count}
-              onClick={() => navigate({ to: "/discuss/status/$id", params: { id: shown.id } })}>
+              onClick={() => navigate({ to: "/gobifeed/status/$id", params: { id: shown.id } })}>
               <MessageCircle className="size-4" />
             </Action>
 

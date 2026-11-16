@@ -16,14 +16,14 @@ describe("feature switches", () => {
     expect(featureForPath("/studio/lamaran")).toBe("jobs");
     expect(featureForPath("/kerja")).toBe("jobs");
     expect(featureForPath("/kerja/kontrak/123")).toBe("jobs");
-    expect(featureForPath("/discuss/abc")).toBe("discuss");
+    expect(featureForPath("/gobifeed/abc")).toBe("discuss");
     expect(featureForPath("/studio/karya/baru")).toBe("karya");
     expect(featureForPath("/toko/budi")).toBe("toko");
     expect(featureForPath("/studio/hosting")).toBe("hosting");
     expect(featureForPath("/budi/proyek/ai")).toBe("ai_editor");
     expect(featureForPath("/new")).toBe("repos");
     expect(featureForPath("/import")).toBe("github");
-    expect(featureForPath("/gobifeed")).toBe("linimasa");
+    expect(featureForPath("/gobifeed")).toBe("discuss");
     expect(featureForPath("/explore")).toBe("explore");
     expect(featureForPath("/verifikasi")).toBe("verifikasi");
     expect(featureForPath("/studio/verifikasi")).toBe("verifikasi");
@@ -34,7 +34,7 @@ describe("feature switches", () => {
     for (const k of keys) expect(k).toMatch(/^[a-z_]{2,40}$/);
   });
   it("does not close the work chat tab when direct messages are off", () => {
-    expect(featureForPath("/discuss/pesan")).toBe("discuss");
+    expect(featureForPath("/gobifeed/pesan")).toBe("discuss");
     expect(isFeatureOn({ dm: false }, "discuss")).toBe(true);
   });
   it("leaves pages without a feature alone", () => {

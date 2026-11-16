@@ -183,7 +183,7 @@ export function UserDetailSheet({ userId, onClose }: { userId: string | null; on
         rows<any>("admin_audit_log", "id,admin_label,action,note,created_at", mine("target_id")),
       ]);
       const out: Ev[] = [
-        ...posts.map((r): Ev => ({ id: `p${r.id}`, at: r.created_at, group: "konten", title: r.parent_id ? "Membalas di feed" : "Memposting di feed", sub: `${clip(r.body)} · ${r.like_count} suka · ${r.reply_count} balasan`, to: "/discuss/status/$id", params: { id: r.id } })),
+        ...posts.map((r): Ev => ({ id: `p${r.id}`, at: r.created_at, group: "konten", title: r.parent_id ? "Membalas di feed" : "Memposting di feed", sub: `${clip(r.body)} · ${r.like_count} suka · ${r.reply_count} balasan`, to: "/gobifeed/status/$id", params: { id: r.id } })),
         ...products.map((r): Ev => ({ id: `k${r.id}`, at: r.created_at, group: "konten", title: `Menambah karya · ${r.title}`, sub: `${r.is_published ? "Terbit" : "Draf"} · ${rp(r.price)}`, to: "/karya/$id", params: { id: r.id } })),
         ...services.map((r): Ev => ({ id: `s${r.id}`, at: r.created_at, group: "konten", title: `Menambah jasa · ${r.title}`, sub: `${r.is_active ? "Aktif" : "Nonaktif"} · mulai ${rp(r.price_from)}`, to: "/jasa/$id", params: { id: r.id } })),
         ...repos.map((r): Ev => ({ id: `r${r.id}`, at: r.created_at, group: "kode", title: `Membuat repositori ${r.name}`, sub: `${r.is_private ? "Privat" : "Publik"}${r.language ? ` · ${r.language}` : ""}`, to: "/$username/$repo", params: { username: username!, repo: r.name } })),

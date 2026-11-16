@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarMini } from "@/components/avatar-mini";
 import { SignInCta } from "@/components/sign-in-cta";
+import { AttachImageButton, AttachmentPreview, useChatAttachment } from "@/components/chat-attachment";
 import { QuotedPost } from "@/components/feed/quoted-post";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +33,12 @@ export function Composer({ kind, parentId, refPost, placeholder, submitLabel, au
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [poll, setPoll] = useState<PollDraft | null>(null);
+  const attachment = useChatAttachment("feed");
   const left = MAX_POST_LENGTH - body.length;
   const empty = body.trim().length === 0;
   const pollError = poll ? validatePoll(body, poll.options, poll.hours, MAX_POST_LENGTH) : null;
-  const canSend = poll ? !pollError : !empty && left >= 0;
+  // Post boleh tanpa teks kalau ada gambar. Polling tidak membawa gambar.
+  const canSend = poll ? !pollError : (!empty || !!attachment.image) && left >= 0 && !attachment.uploading;
 
   const send = useMutation({
     mutationFn: async () => {
@@ -45,6 +48,7 @@ export function Composer({ kind, parentId, refPost, placeholder, submitLabel, au
         return;
       }
       const input: Parameters<typeof createPost>[1] = { kind, body };
+      if (attachment.image) input.imageUrl = attachment.image;
       if (parentId) input.parentId = parentId;
       if (refPost) input.refId = refPost.id;
       await createPost(user.id, input);
@@ -53,6 +57,7 @@ export function Composer({ kind, parentId, refPost, placeholder, submitLabel, au
       const wasPoll = !!poll;
       setBody("");
       setPoll(null);
+      attachment.clear();
       toast.success(wasPoll ? "Polling terkirim" : kind === "reply" ? "Balasan terkirim" : kind === "quote" ? "Kutipan terkirim" : "Post terkirim");
       await Promise.all(["feed", "feed-post", "feed-replies"].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       onPosted?.();
@@ -74,11 +79,16 @@ export function Composer({ kind, parentId, refPost, placeholder, submitLabel, au
           autoFocus={autoFocus}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); submit(); } }}
+          onPaste={(e) => {
+            const f = poll ? undefined : [...e.clipboardData.files].find((x) => x.type.startsWith("image/"));
+            if (f) { e.preventDefault(); void attachment.pick(f); }
+          }}
           placeholder={poll ? "Tulis pertanyaan polling…" : (placeholder ?? "Apa yang sedang kamu kerjakan? Pakai #hashtag, @mention, dan ``` untuk kode.")}
           rows={kind === "post" ? 3 : 2}
           className="resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
           aria-label={poll ? "Pertanyaan polling" : "Isi post"}
         />
+        {!poll && <div className="-mx-3"><AttachmentPreview attachment={attachment} /></div>}
         {refPost && <div className="mt-2"><QuotedPost post={refPost} /></div>}
 
         {poll && (
@@ -124,18 +134,20 @@ export function Composer({ kind, parentId, refPost, placeholder, submitLabel, au
         )}
 
         <div className="mt-3 flex items-center justify-end gap-3">
-          {kind === "post" && (
-            <Button
-              type="button"
-              size="sm"
-              variant={poll ? "secondary" : "ghost"}
-              className="mr-auto"
-              aria-pressed={!!poll}
-              onClick={() => setPoll(poll ? null : NEW_POLL)}
-            >
-              <BarChart3 /> Polling
-            </Button>
-          )}
+          <div className="mr-auto flex items-center gap-1">
+            {!poll && <AttachImageButton attachment={attachment} className="size-9" />}
+            {kind === "post" && (
+              <Button
+                type="button"
+                size="sm"
+                variant={poll ? "secondary" : "ghost"}
+                aria-pressed={!!poll}
+                onClick={() => { setPoll(poll ? null : NEW_POLL); if (!poll) attachment.clear(); }}
+              >
+                <BarChart3 /> Polling
+              </Button>
+            )}
+          </div>
           <span className={cn("font-mono text-xs text-muted-foreground", left < 20 && "text-amber-500", left < 0 && "text-destructive")} aria-live="polite">{left}</span>
           <Button type="submit" size="sm" disabled={!canSend || send.isPending} title={pollError ?? undefined}>
             {send.isPending ? "Mengirim…" : (submitLabel ?? (kind === "reply" ? "Balas" : kind === "quote" ? "Kutip" : "Posting"))}

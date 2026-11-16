@@ -15,7 +15,7 @@ export type PollData = {
 
 export type AutopostInfo = { repoPath: string; commitId: string | null };
 
-export type PostExtras = { polls: Map<string, PollData>; autoposts: Map<string, AutopostInfo> };
+export type PostExtras = { polls: Map<string, PollData>; autoposts: Map<string, AutopostInfo>; /** post id -> URL gambar (kolom image_url, docs/sql/gobi-feed/001). */ images: Map<string, string> };
 
 type PollRow = { post_id: string; options: string[]; ends_at: string };
 type AutopostRow = {
@@ -25,16 +25,22 @@ type AutopostRow = {
 };
 
 export async function fetchPostExtras(ids: string[], userId: string | undefined): Promise<PostExtras> {
-  const out: PostExtras = { polls: new Map(), autoposts: new Map() };
+  const out: PostExtras = { polls: new Map(), autoposts: new Map(), images: new Map() };
   if (!ids.length) return out;
   try {
-    const [pollsRes, autoRes] = await Promise.all([
+    const [pollsRes, autoRes, imageRes] = await Promise.all([
       db.from("feed_polls").select("post_id,options,ends_at").in("post_id", ids),
       db
         .from("feed_autoposts")
         .select("post_id,commit_id,repo:repositories(name,owner:profiles!repositories_owner_id_fkey(username))")
         .in("post_id", ids),
+      // Dipisah dari query utama: kalau kolom image_url belum ada, hanya query ini yang gagal dan post tetap tampil.
+      db.from("feed_posts").select("id,image_url").in("id", ids).not("image_url", "is", null),
     ]);
+
+    for (const r of (imageRes.error ? [] : (imageRes.data ?? [])) as { id: string; image_url: string | null }[]) {
+      if (r.image_url) out.images.set(r.id, r.image_url);
+    }
 
     for (const a of (autoRes.error ? [] : (autoRes.data ?? [])) as AutopostRow[]) {
       const owner = a.repo?.owner?.username;

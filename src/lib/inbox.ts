@@ -1,4 +1,4 @@
-// Kotak masuk gabungan: pesan pribadi (DM), obrolan kerja (lamaran), dan chat pesanan dalam SATU daftar dan SATU halaman (/discuss/pesan).
+// Kotak masuk gabungan: pesan pribadi (DM), obrolan kerja (lamaran), dan chat pesanan dalam SATU daftar dan SATU halaman (/gobifeed/pesan).
 // Bagian ini murni (tanpa database) supaya mudah diuji. Halaman lain (lowongan, lamaran, jasa, pesanan) tidak punya kolom chat sendiri:
 // mereka cukup memakai tombol "Pesan" (components/message-button) yang mengarah ke halaman ini lewat `messengerSearch`.
 

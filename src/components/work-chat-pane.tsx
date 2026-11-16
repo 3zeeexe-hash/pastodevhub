@@ -1,4 +1,4 @@
-// Panel percakapan tab "Kerja" di /discuss/pesan: obrolan satu lamaran antara client dan pelamar, tampilan sama dengan DM.
+// Panel percakapan tab "Kerja" di /gobifeed/pesan: obrolan satu lamaran antara client dan pelamar, tampilan sama dengan DM.
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,7 +59,7 @@ export function WorkChatPane({ applicationId, userId, conv }: { applicationId: s
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       <header className="flex items-center gap-2 bg-[#f0f2f5] px-2 py-2 sm:px-3">
-        <Link to="/discuss/pesan" search={{ tab: "kerja" }} aria-label="Kembali ke daftar percakapan kerja" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
+        <Link to="/gobifeed/pesan" search={{ tab: "kerja" }} aria-label="Kembali ke daftar percakapan kerja" className="rounded-full p-2 text-[#54656f] hover:bg-black/5 md:hidden">
           <ArrowLeft className="size-5" />
         </Link>
         <AvatarMini name={conv?.otherName ?? "?"} url={conv?.otherAvatar} size={40} />

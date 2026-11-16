@@ -15,11 +15,11 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExploreRouteImport } from './routes/explore'
-import { Route as GobifeedRouteImport } from './routes/gobifeed'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as KatalogRouteImport } from './routes/katalog'
 import { Route as KerjaRouteImport } from './routes/kerja'
 import { Route as NewRouteImport } from './routes/new'
+import { Route as NotifikasiRouteImport } from './routes/notifikasi'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -46,11 +46,13 @@ import { Route as AdminPembayaranRouteImport } from './routes/admin.pembayaran'
 import { Route as AdminPenggunaRouteImport } from './routes/admin.pengguna'
 import { Route as AdminVerifikasiRouteImport } from './routes/admin.verifikasi'
 import { Route as DiscussIndexRouteImport } from './routes/discuss.index'
-import { Route as DiscussIdRouteImport } from './routes/discuss.$id'
-import { Route as DiscussNotifikasiRouteImport } from './routes/discuss.notifikasi'
-import { Route as DiscussPesanRouteImport } from './routes/discuss.pesan'
-import { Route as DiscussTersimpanRouteImport } from './routes/discuss.tersimpan'
+import { Route as DiscussSplatRouteImport } from './routes/discuss.$'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
+import { Route as GobifeedIndexRouteImport } from './routes/gobifeed.index'
+import { Route as GobifeedIdRouteImport } from './routes/gobifeed.$id'
+import { Route as GobifeedNotifikasiRouteImport } from './routes/gobifeed.notifikasi'
+import { Route as GobifeedPesanRouteImport } from './routes/gobifeed.pesan'
+import { Route as GobifeedTersimpanRouteImport } from './routes/gobifeed.tersimpan'
 import { Route as JasaIndexRouteImport } from './routes/jasa.index'
 import { Route as JasaIdRouteImport } from './routes/jasa.$id'
 import { Route as KaryaIndexRouteImport } from './routes/karya.index'
@@ -84,9 +86,9 @@ import { Route as UsernameRepoCommitsRouteImport } from './routes/$username_.$re
 import { Route as UsernameRepoNewRouteImport } from './routes/$username_.$repo.new'
 import { Route as UsernameRepoSettingsRouteImport } from './routes/$username_.$repo.settings'
 import { Route as ApiMidtransNotificationRouteImport } from './routes/api/midtrans/notification'
-import { Route as DiscussPesanIdRouteImport } from './routes/discuss.pesan.$id'
-import { Route as DiscussStatusIdRouteImport } from './routes/discuss.status.$id'
-import { Route as DiscussTagTagRouteImport } from './routes/discuss.tag.$tag'
+import { Route as GobifeedPesanIdRouteImport } from './routes/gobifeed.pesan.$id'
+import { Route as GobifeedStatusIdRouteImport } from './routes/gobifeed.status.$id'
+import { Route as GobifeedTagTagRouteImport } from './routes/gobifeed.tag.$tag'
 import { Route as KerjaKontrakIndexRouteImport } from './routes/kerja.kontrak.index'
 import { Route as KerjaKontrakIdRouteImport } from './routes/kerja.kontrak.$id'
 import { Route as KerjaKontrakBaruRouteImport } from './routes/kerja.kontrak.baru'
@@ -136,11 +138,6 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GobifeedRoute = GobifeedRouteImport.update({
-  id: '/gobifeed',
-  path: '/gobifeed',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ImportRoute = ImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -159,6 +156,11 @@ const KerjaRoute = KerjaRouteImport.update({
 const NewRoute = NewRouteImport.update({
   id: '/new',
   path: '/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotifikasiRoute = NotifikasiRouteImport.update({
+  id: '/notifikasi',
+  path: '/notifikasi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -292,29 +294,39 @@ const DiscussIndexRoute = DiscussIndexRouteImport.update({
   path: '/discuss/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DiscussIdRoute = DiscussIdRouteImport.update({
-  id: '/discuss/$id',
-  path: '/discuss/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiscussNotifikasiRoute = DiscussNotifikasiRouteImport.update({
-  id: '/discuss/notifikasi',
-  path: '/discuss/notifikasi',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiscussPesanRoute = DiscussPesanRouteImport.update({
-  id: '/discuss/pesan',
-  path: '/discuss/pesan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiscussTersimpanRoute = DiscussTersimpanRouteImport.update({
-  id: '/discuss/tersimpan',
-  path: '/discuss/tersimpan',
+const DiscussSplatRoute = DiscussSplatRouteImport.update({
+  id: '/discuss/$',
+  path: '/discuss/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FSlugRoute = FSlugRouteImport.update({
   id: '/f/$slug',
   path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GobifeedIndexRoute = GobifeedIndexRouteImport.update({
+  id: '/gobifeed/',
+  path: '/gobifeed/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GobifeedIdRoute = GobifeedIdRouteImport.update({
+  id: '/gobifeed/$id',
+  path: '/gobifeed/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GobifeedNotifikasiRoute = GobifeedNotifikasiRouteImport.update({
+  id: '/gobifeed/notifikasi',
+  path: '/gobifeed/notifikasi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GobifeedPesanRoute = GobifeedPesanRouteImport.update({
+  id: '/gobifeed/pesan',
+  path: '/gobifeed/pesan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GobifeedTersimpanRoute = GobifeedTersimpanRouteImport.update({
+  id: '/gobifeed/tersimpan',
+  path: '/gobifeed/tersimpan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JasaIndexRoute = JasaIndexRouteImport.update({
@@ -482,19 +494,19 @@ const ApiMidtransNotificationRoute = ApiMidtransNotificationRouteImport.update({
   path: '/api/midtrans/notification',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DiscussPesanIdRoute = DiscussPesanIdRouteImport.update({
+const GobifeedPesanIdRoute = GobifeedPesanIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => DiscussPesanRoute,
+  getParentRoute: () => GobifeedPesanRoute,
 } as any)
-const DiscussStatusIdRoute = DiscussStatusIdRouteImport.update({
-  id: '/discuss/status/$id',
-  path: '/discuss/status/$id',
+const GobifeedStatusIdRoute = GobifeedStatusIdRouteImport.update({
+  id: '/gobifeed/status/$id',
+  path: '/gobifeed/status/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DiscussTagTagRoute = DiscussTagTagRouteImport.update({
-  id: '/discuss/tag/$tag',
-  path: '/discuss/tag/$tag',
+const GobifeedTagTagRoute = GobifeedTagTagRouteImport.update({
+  id: '/gobifeed/tag/$tag',
+  path: '/gobifeed/tag/$tag',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KerjaKontrakIndexRoute = KerjaKontrakIndexRouteImport.update({
@@ -596,11 +608,11 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
-  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
+  '/notifikasi': typeof NotifikasiRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -625,11 +637,12 @@ export interface FileRoutesByFullPath {
   '/admin/pembayaran': typeof AdminPembayaranRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
-  '/discuss/$id': typeof DiscussIdRoute
-  '/discuss/notifikasi': typeof DiscussNotifikasiRoute
-  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
-  '/discuss/tersimpan': typeof DiscussTersimpanRoute
+  '/discuss/$': typeof DiscussSplatRoute
   '/f/$slug': typeof FSlugRoute
+  '/gobifeed/$id': typeof GobifeedIdRoute
+  '/gobifeed/notifikasi': typeof GobifeedNotifikasiRoute
+  '/gobifeed/pesan': typeof GobifeedPesanRouteWithChildren
+  '/gobifeed/tersimpan': typeof GobifeedTersimpanRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
@@ -653,6 +666,7 @@ export interface FileRoutesByFullPath {
   '/toko/$username': typeof TokoUsernameRoute
   '/admin/': typeof AdminIndexRoute
   '/discuss/': typeof DiscussIndexRoute
+  '/gobifeed/': typeof GobifeedIndexRoute
   '/jasa/': typeof JasaIndexRoute
   '/karya/': typeof KaryaIndexRoute
   '/kerja/': typeof KerjaIndexRoute
@@ -664,9 +678,9 @@ export interface FileRoutesByFullPath {
   '/$username/$repo/new': typeof UsernameRepoNewRoute
   '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
-  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
-  '/discuss/status/$id': typeof DiscussStatusIdRoute
-  '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/gobifeed/pesan/$id': typeof GobifeedPesanIdRoute
+  '/gobifeed/status/$id': typeof GobifeedStatusIdRoute
+  '/gobifeed/tag/$tag': typeof GobifeedTagTagRoute
   '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
   '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -693,10 +707,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
-  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/new': typeof NewRoute
+  '/notifikasi': typeof NotifikasiRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -719,11 +733,12 @@ export interface FileRoutesByTo {
   '/admin/pembayaran': typeof AdminPembayaranRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
-  '/discuss/$id': typeof DiscussIdRoute
-  '/discuss/notifikasi': typeof DiscussNotifikasiRoute
-  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
-  '/discuss/tersimpan': typeof DiscussTersimpanRoute
+  '/discuss/$': typeof DiscussSplatRoute
   '/f/$slug': typeof FSlugRoute
+  '/gobifeed/$id': typeof GobifeedIdRoute
+  '/gobifeed/notifikasi': typeof GobifeedNotifikasiRoute
+  '/gobifeed/pesan': typeof GobifeedPesanRouteWithChildren
+  '/gobifeed/tersimpan': typeof GobifeedTersimpanRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
@@ -747,6 +762,7 @@ export interface FileRoutesByTo {
   '/toko/$username': typeof TokoUsernameRoute
   '/admin': typeof AdminIndexRoute
   '/discuss': typeof DiscussIndexRoute
+  '/gobifeed': typeof GobifeedIndexRoute
   '/jasa': typeof JasaIndexRoute
   '/karya': typeof KaryaIndexRoute
   '/kerja': typeof KerjaIndexRoute
@@ -758,9 +774,9 @@ export interface FileRoutesByTo {
   '/$username/$repo/new': typeof UsernameRepoNewRoute
   '/$username/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
-  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
-  '/discuss/status/$id': typeof DiscussStatusIdRoute
-  '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/gobifeed/pesan/$id': typeof GobifeedPesanIdRoute
+  '/gobifeed/status/$id': typeof GobifeedStatusIdRoute
+  '/gobifeed/tag/$tag': typeof GobifeedTagTagRoute
   '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
   '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -789,11 +805,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
-  '/gobifeed': typeof GobifeedRoute
   '/import': typeof ImportRoute
   '/katalog': typeof KatalogRoute
   '/kerja': typeof KerjaRouteWithChildren
   '/new': typeof NewRoute
+  '/notifikasi': typeof NotifikasiRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -818,11 +834,12 @@ export interface FileRoutesById {
   '/admin/pembayaran': typeof AdminPembayaranRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
-  '/discuss/$id': typeof DiscussIdRoute
-  '/discuss/notifikasi': typeof DiscussNotifikasiRoute
-  '/discuss/pesan': typeof DiscussPesanRouteWithChildren
-  '/discuss/tersimpan': typeof DiscussTersimpanRoute
+  '/discuss/$': typeof DiscussSplatRoute
   '/f/$slug': typeof FSlugRoute
+  '/gobifeed/$id': typeof GobifeedIdRoute
+  '/gobifeed/notifikasi': typeof GobifeedNotifikasiRoute
+  '/gobifeed/pesan': typeof GobifeedPesanRouteWithChildren
+  '/gobifeed/tersimpan': typeof GobifeedTersimpanRoute
   '/jasa/$id': typeof JasaIdRoute
   '/karya/$id': typeof KaryaIdRoute
   '/kerja/lamaran': typeof KerjaLamaranRoute
@@ -846,6 +863,7 @@ export interface FileRoutesById {
   '/toko/$username': typeof TokoUsernameRoute
   '/admin/': typeof AdminIndexRoute
   '/discuss/': typeof DiscussIndexRoute
+  '/gobifeed/': typeof GobifeedIndexRoute
   '/jasa/': typeof JasaIndexRoute
   '/karya/': typeof KaryaIndexRoute
   '/kerja/': typeof KerjaIndexRoute
@@ -857,9 +875,9 @@ export interface FileRoutesById {
   '/$username_/$repo/new': typeof UsernameRepoNewRoute
   '/$username_/$repo/settings': typeof UsernameRepoSettingsRoute
   '/api/midtrans/notification': typeof ApiMidtransNotificationRoute
-  '/discuss/pesan/$id': typeof DiscussPesanIdRoute
-  '/discuss/status/$id': typeof DiscussStatusIdRoute
-  '/discuss/tag/$tag': typeof DiscussTagTagRoute
+  '/gobifeed/pesan/$id': typeof GobifeedPesanIdRoute
+  '/gobifeed/status/$id': typeof GobifeedStatusIdRoute
+  '/gobifeed/tag/$tag': typeof GobifeedTagTagRoute
   '/kerja/kontrak/$id': typeof KerjaKontrakIdRoute
   '/kerja/kontrak/baru': typeof KerjaKontrakBaruRoute
   '/studio/jasa/$id': typeof StudioJasaIdRoute
@@ -889,11 +907,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
-    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/kerja'
     | '/new'
+    | '/notifikasi'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -918,11 +936,12 @@ export interface FileRouteTypes {
     | '/admin/pembayaran'
     | '/admin/pengguna'
     | '/admin/verifikasi'
-    | '/discuss/$id'
-    | '/discuss/notifikasi'
-    | '/discuss/pesan'
-    | '/discuss/tersimpan'
+    | '/discuss/$'
     | '/f/$slug'
+    | '/gobifeed/$id'
+    | '/gobifeed/notifikasi'
+    | '/gobifeed/pesan'
+    | '/gobifeed/tersimpan'
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
@@ -946,6 +965,7 @@ export interface FileRouteTypes {
     | '/toko/$username'
     | '/admin/'
     | '/discuss/'
+    | '/gobifeed/'
     | '/jasa/'
     | '/karya/'
     | '/kerja/'
@@ -957,9 +977,9 @@ export interface FileRouteTypes {
     | '/$username/$repo/new'
     | '/$username/$repo/settings'
     | '/api/midtrans/notification'
-    | '/discuss/pesan/$id'
-    | '/discuss/status/$id'
-    | '/discuss/tag/$tag'
+    | '/gobifeed/pesan/$id'
+    | '/gobifeed/status/$id'
+    | '/gobifeed/tag/$tag'
     | '/kerja/kontrak/$id'
     | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
@@ -986,10 +1006,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
-    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/new'
+    | '/notifikasi'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -1012,11 +1032,12 @@ export interface FileRouteTypes {
     | '/admin/pembayaran'
     | '/admin/pengguna'
     | '/admin/verifikasi'
-    | '/discuss/$id'
-    | '/discuss/notifikasi'
-    | '/discuss/pesan'
-    | '/discuss/tersimpan'
+    | '/discuss/$'
     | '/f/$slug'
+    | '/gobifeed/$id'
+    | '/gobifeed/notifikasi'
+    | '/gobifeed/pesan'
+    | '/gobifeed/tersimpan'
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
@@ -1040,6 +1061,7 @@ export interface FileRouteTypes {
     | '/toko/$username'
     | '/admin'
     | '/discuss'
+    | '/gobifeed'
     | '/jasa'
     | '/karya'
     | '/kerja'
@@ -1051,9 +1073,9 @@ export interface FileRouteTypes {
     | '/$username/$repo/new'
     | '/$username/$repo/settings'
     | '/api/midtrans/notification'
-    | '/discuss/pesan/$id'
-    | '/discuss/status/$id'
-    | '/discuss/tag/$tag'
+    | '/gobifeed/pesan/$id'
+    | '/gobifeed/status/$id'
+    | '/gobifeed/tag/$tag'
     | '/kerja/kontrak/$id'
     | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
@@ -1081,11 +1103,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/explore'
-    | '/gobifeed'
     | '/import'
     | '/katalog'
     | '/kerja'
     | '/new'
+    | '/notifikasi'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -1110,11 +1132,12 @@ export interface FileRouteTypes {
     | '/admin/pembayaran'
     | '/admin/pengguna'
     | '/admin/verifikasi'
-    | '/discuss/$id'
-    | '/discuss/notifikasi'
-    | '/discuss/pesan'
-    | '/discuss/tersimpan'
+    | '/discuss/$'
     | '/f/$slug'
+    | '/gobifeed/$id'
+    | '/gobifeed/notifikasi'
+    | '/gobifeed/pesan'
+    | '/gobifeed/tersimpan'
     | '/jasa/$id'
     | '/karya/$id'
     | '/kerja/lamaran'
@@ -1138,6 +1161,7 @@ export interface FileRouteTypes {
     | '/toko/$username'
     | '/admin/'
     | '/discuss/'
+    | '/gobifeed/'
     | '/jasa/'
     | '/karya/'
     | '/kerja/'
@@ -1149,9 +1173,9 @@ export interface FileRouteTypes {
     | '/$username_/$repo/new'
     | '/$username_/$repo/settings'
     | '/api/midtrans/notification'
-    | '/discuss/pesan/$id'
-    | '/discuss/status/$id'
-    | '/discuss/tag/$tag'
+    | '/gobifeed/pesan/$id'
+    | '/gobifeed/status/$id'
+    | '/gobifeed/tag/$tag'
     | '/kerja/kontrak/$id'
     | '/kerja/kontrak/baru'
     | '/studio/jasa/$id'
@@ -1180,11 +1204,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
-  GobifeedRoute: typeof GobifeedRoute
   ImportRoute: typeof ImportRoute
   KatalogRoute: typeof KatalogRoute
   KerjaRoute: typeof KerjaRouteWithChildren
   NewRoute: typeof NewRoute
+  NotifikasiRoute: typeof NotifikasiRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -1197,11 +1221,12 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifikasiRoute: typeof VerifikasiRoute
   UsernameRepoRoute: typeof UsernameRepoRouteWithChildren
-  DiscussIdRoute: typeof DiscussIdRoute
-  DiscussNotifikasiRoute: typeof DiscussNotifikasiRoute
-  DiscussPesanRoute: typeof DiscussPesanRouteWithChildren
-  DiscussTersimpanRoute: typeof DiscussTersimpanRoute
+  DiscussSplatRoute: typeof DiscussSplatRoute
   FSlugRoute: typeof FSlugRoute
+  GobifeedIdRoute: typeof GobifeedIdRoute
+  GobifeedNotifikasiRoute: typeof GobifeedNotifikasiRoute
+  GobifeedPesanRoute: typeof GobifeedPesanRouteWithChildren
+  GobifeedTersimpanRoute: typeof GobifeedTersimpanRoute
   JasaIdRoute: typeof JasaIdRoute
   KaryaIdRoute: typeof KaryaIdRoute
   LowonganIdRoute: typeof LowonganIdRoute
@@ -1210,13 +1235,14 @@ export interface RootRouteChildren {
   PesananIdRoute: typeof PesananIdRoute
   TokoUsernameRoute: typeof TokoUsernameRoute
   DiscussIndexRoute: typeof DiscussIndexRoute
+  GobifeedIndexRoute: typeof GobifeedIndexRoute
   JasaIndexRoute: typeof JasaIndexRoute
   KaryaIndexRoute: typeof KaryaIndexRoute
   LowonganIndexRoute: typeof LowonganIndexRoute
   PesananIndexRoute: typeof PesananIndexRoute
   ApiMidtransNotificationRoute: typeof ApiMidtransNotificationRoute
-  DiscussStatusIdRoute: typeof DiscussStatusIdRoute
-  DiscussTagTagRoute: typeof DiscussTagTagRoute
+  GobifeedStatusIdRoute: typeof GobifeedStatusIdRoute
+  GobifeedTagTagRoute: typeof GobifeedTagTagRoute
   ApiOauthGithubReturnRoute: typeof ApiOauthGithubReturnRoute
 }
 
@@ -1264,13 +1290,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/gobifeed': {
-      id: '/gobifeed'
-      path: '/gobifeed'
-      fullPath: '/gobifeed'
-      preLoaderRoute: typeof GobifeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/import': {
       id: '/import'
       path: '/import'
@@ -1297,6 +1316,13 @@ declare module '@tanstack/react-router' {
       path: '/new'
       fullPath: '/new'
       preLoaderRoute: typeof NewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifikasi': {
+      id: '/notifikasi'
+      path: '/notifikasi'
+      fullPath: '/notifikasi'
+      preLoaderRoute: typeof NotifikasiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1481,32 +1507,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscussIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/discuss/$id': {
-      id: '/discuss/$id'
-      path: '/discuss/$id'
-      fullPath: '/discuss/$id'
-      preLoaderRoute: typeof DiscussIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/discuss/notifikasi': {
-      id: '/discuss/notifikasi'
-      path: '/discuss/notifikasi'
-      fullPath: '/discuss/notifikasi'
-      preLoaderRoute: typeof DiscussNotifikasiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/discuss/pesan': {
-      id: '/discuss/pesan'
-      path: '/discuss/pesan'
-      fullPath: '/discuss/pesan'
-      preLoaderRoute: typeof DiscussPesanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/discuss/tersimpan': {
-      id: '/discuss/tersimpan'
-      path: '/discuss/tersimpan'
-      fullPath: '/discuss/tersimpan'
-      preLoaderRoute: typeof DiscussTersimpanRouteImport
+    '/discuss/$': {
+      id: '/discuss/$'
+      path: '/discuss/$'
+      fullPath: '/discuss/$'
+      preLoaderRoute: typeof DiscussSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/f/$slug': {
@@ -1514,6 +1519,41 @@ declare module '@tanstack/react-router' {
       path: '/f/$slug'
       fullPath: '/f/$slug'
       preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed/': {
+      id: '/gobifeed/'
+      path: '/gobifeed'
+      fullPath: '/gobifeed/'
+      preLoaderRoute: typeof GobifeedIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed/$id': {
+      id: '/gobifeed/$id'
+      path: '/gobifeed/$id'
+      fullPath: '/gobifeed/$id'
+      preLoaderRoute: typeof GobifeedIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed/notifikasi': {
+      id: '/gobifeed/notifikasi'
+      path: '/gobifeed/notifikasi'
+      fullPath: '/gobifeed/notifikasi'
+      preLoaderRoute: typeof GobifeedNotifikasiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed/pesan': {
+      id: '/gobifeed/pesan'
+      path: '/gobifeed/pesan'
+      fullPath: '/gobifeed/pesan'
+      preLoaderRoute: typeof GobifeedPesanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gobifeed/tersimpan': {
+      id: '/gobifeed/tersimpan'
+      path: '/gobifeed/tersimpan'
+      fullPath: '/gobifeed/tersimpan'
+      preLoaderRoute: typeof GobifeedTersimpanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jasa/': {
@@ -1747,25 +1787,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMidtransNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/discuss/pesan/$id': {
-      id: '/discuss/pesan/$id'
+    '/gobifeed/pesan/$id': {
+      id: '/gobifeed/pesan/$id'
       path: '/$id'
-      fullPath: '/discuss/pesan/$id'
-      preLoaderRoute: typeof DiscussPesanIdRouteImport
-      parentRoute: typeof DiscussPesanRoute
+      fullPath: '/gobifeed/pesan/$id'
+      preLoaderRoute: typeof GobifeedPesanIdRouteImport
+      parentRoute: typeof GobifeedPesanRoute
     }
-    '/discuss/status/$id': {
-      id: '/discuss/status/$id'
-      path: '/discuss/status/$id'
-      fullPath: '/discuss/status/$id'
-      preLoaderRoute: typeof DiscussStatusIdRouteImport
+    '/gobifeed/status/$id': {
+      id: '/gobifeed/status/$id'
+      path: '/gobifeed/status/$id'
+      fullPath: '/gobifeed/status/$id'
+      preLoaderRoute: typeof GobifeedStatusIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/discuss/tag/$tag': {
-      id: '/discuss/tag/$tag'
-      path: '/discuss/tag/$tag'
-      fullPath: '/discuss/tag/$tag'
-      preLoaderRoute: typeof DiscussTagTagRouteImport
+    '/gobifeed/tag/$tag': {
+      id: '/gobifeed/tag/$tag'
+      path: '/gobifeed/tag/$tag'
+      fullPath: '/gobifeed/tag/$tag'
+      preLoaderRoute: typeof GobifeedTagTagRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kerja/kontrak/': {
@@ -2034,16 +2074,16 @@ const UsernameRepoRouteWithChildren = UsernameRepoRoute._addFileChildren(
   UsernameRepoRouteChildren,
 )
 
-interface DiscussPesanRouteChildren {
-  DiscussPesanIdRoute: typeof DiscussPesanIdRoute
+interface GobifeedPesanRouteChildren {
+  GobifeedPesanIdRoute: typeof GobifeedPesanIdRoute
 }
 
-const DiscussPesanRouteChildren: DiscussPesanRouteChildren = {
-  DiscussPesanIdRoute: DiscussPesanIdRoute,
+const GobifeedPesanRouteChildren: GobifeedPesanRouteChildren = {
+  GobifeedPesanIdRoute: GobifeedPesanIdRoute,
 }
 
-const DiscussPesanRouteWithChildren = DiscussPesanRoute._addFileChildren(
-  DiscussPesanRouteChildren,
+const GobifeedPesanRouteWithChildren = GobifeedPesanRoute._addFileChildren(
+  GobifeedPesanRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -2053,11 +2093,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
-  GobifeedRoute: GobifeedRoute,
   ImportRoute: ImportRoute,
   KatalogRoute: KatalogRoute,
   KerjaRoute: KerjaRouteWithChildren,
   NewRoute: NewRoute,
+  NotifikasiRoute: NotifikasiRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
@@ -2070,11 +2110,12 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifikasiRoute: VerifikasiRoute,
   UsernameRepoRoute: UsernameRepoRouteWithChildren,
-  DiscussIdRoute: DiscussIdRoute,
-  DiscussNotifikasiRoute: DiscussNotifikasiRoute,
-  DiscussPesanRoute: DiscussPesanRouteWithChildren,
-  DiscussTersimpanRoute: DiscussTersimpanRoute,
+  DiscussSplatRoute: DiscussSplatRoute,
   FSlugRoute: FSlugRoute,
+  GobifeedIdRoute: GobifeedIdRoute,
+  GobifeedNotifikasiRoute: GobifeedNotifikasiRoute,
+  GobifeedPesanRoute: GobifeedPesanRouteWithChildren,
+  GobifeedTersimpanRoute: GobifeedTersimpanRoute,
   JasaIdRoute: JasaIdRoute,
   KaryaIdRoute: KaryaIdRoute,
   LowonganIdRoute: LowonganIdRoute,
@@ -2083,13 +2124,14 @@ const rootRouteChildren: RootRouteChildren = {
   PesananIdRoute: PesananIdRoute,
   TokoUsernameRoute: TokoUsernameRoute,
   DiscussIndexRoute: DiscussIndexRoute,
+  GobifeedIndexRoute: GobifeedIndexRoute,
   JasaIndexRoute: JasaIndexRoute,
   KaryaIndexRoute: KaryaIndexRoute,
   LowonganIndexRoute: LowonganIndexRoute,
   PesananIndexRoute: PesananIndexRoute,
   ApiMidtransNotificationRoute: ApiMidtransNotificationRoute,
-  DiscussStatusIdRoute: DiscussStatusIdRoute,
-  DiscussTagTagRoute: DiscussTagTagRoute,
+  GobifeedStatusIdRoute: GobifeedStatusIdRoute,
+  GobifeedTagTagRoute: GobifeedTagTagRoute,
   ApiOauthGithubReturnRoute: ApiOauthGithubReturnRoute,
 }
 export const routeTree = rootRouteImport
