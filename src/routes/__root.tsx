@@ -22,7 +22,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { MobileBottomNav, useMobileNavVisible } from "@/components/mobile-bottom-nav";
 import { ChatDock } from "@/components/chat-dock";
 import { Toaster } from "@/components/ui/sonner";
-import { AnnouncementBar, FeatureGate, RoleGate } from "@/components/site-status";
+import { AnnouncementBar, FeatureGate, FeatureOnly, RoleGate } from "@/components/site-status";
 import { BanGate } from "@/components/ban-gate";
 import { siteConfigQuery } from "@/lib/site-config.functions";
 import { rootSeoHead } from "@/lib/seo";
@@ -189,7 +189,8 @@ function RootComponent() {
           )}
           <AccountTypePrompt />
           <MobileBottomNav />
-          <ChatDock />
+          {/* Saklar admin "Tombol chat mengambang" menyembunyikan jendela chat kecil ini. */}
+          <FeatureOnly feature="chat_dock"><ChatDock /></FeatureOnly>
         </BanGate>
         <Toaster />
       </AuthProvider>

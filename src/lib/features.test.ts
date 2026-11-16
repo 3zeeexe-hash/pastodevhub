@@ -48,7 +48,7 @@ describe("feature switches", () => {
     expect(featureForPath("/budi/proyek/edit/src/a.ts")).toBe("editor_web");
     expect(featureForPath("/budi/proyek/new")).toBe("editor_web");
     expect(featureForPath("/kerja/kontrak/baru")).toBe("jobs");
-    expect(featureForPath("/studio/jasa/new")).toBeNull();
+    expect(featureForPath("/studio/jasa/new")).toBe("jasa");
     expect(featureForPath("/budi/proyek")).toBeNull();
   });
   it("keeps every feature key unique and matches the database key format", () => {

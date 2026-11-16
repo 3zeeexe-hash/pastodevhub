@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+  CheckCircle2,
   ExternalLink,
   GitBranch,
+  Globe,
   Loader2,
   Megaphone,
   MessagesSquare,
@@ -28,6 +30,7 @@ import {
   type FeatureFlags,
   type FeatureKey,
 } from "@/lib/features";
+import { siteConfigQuery } from "@/lib/site-config.functions";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +59,7 @@ export const Route = createFileRoute("/admin/fitur")({
 
 const GROUPS = [...new Set(FEATURES.map((f) => f.group))];
 const GROUP_ICON: Record<FeatureDef["group"], LucideIcon> = {
+  Umum: Globe,
   Akun: UserPlus,
   Kode: GitBranch,
   Komunitas: MessagesSquare,
@@ -65,6 +69,57 @@ const GROUP_ICON: Record<FeatureDef["group"], LucideIcon> = {
 
 type Filter = "semua" | "aktif" | "mati";
 type Confirm = { title: string; body: string; keys: FeatureKey[]; enabled: boolean } | null;
+
+/** Apakah situs publik (yang dibaca pengunjung lewat server) sudah mengikuti pengaturan yang tersimpan di database? */
+function PublicSync({ flags }: { flags: FeatureFlags | undefined }) {
+  const pub = useQuery(siteConfigQuery);
+  const cfg = pub.data;
+  const mismatched =
+    flags && cfg && !cfg.error
+      ? FEATURES.filter((f) => isFeatureOn(flags, f.key) !== isFeatureOn(cfg.flags, f.key))
+      : [];
+  const failure = pub.isError ? errMsg(pub.error) : (cfg?.error ?? null);
+
+  let tone: "ok" | "warn" | "bad" = "ok";
+  let body: React.ReactNode = "Situs publik sudah mengikuti pengaturan di halaman ini.";
+  if (failure) {
+    tone = "bad";
+    body = (
+      <>
+        Situs publik <b>tidak bisa membaca</b> pengaturan, jadi semua fitur dianggap menyala dan pengumuman tidak tampil.
+        <span className="mt-1 block text-xs">Penyebab: {failure}</span>
+      </>
+    );
+  } else if (mismatched.length > 0) {
+    tone = "warn";
+    body = (
+      <>
+        Situs publik belum mengikuti {mismatched.length} saklar: {mismatched.map((f) => f.label).join(", ")}.
+        <span className="mt-1 block text-xs">Perubahan baru biasanya sampai dalam sekitar satu menit. Tekan Periksa ulang; kalau tetap berbeda, cek variabel lingkungan server.</span>
+      </>
+    );
+  }
+
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex flex-wrap items-start justify-between gap-3 rounded-xl border p-3 text-sm",
+        tone === "ok" && "border-success/40 bg-success/10",
+        tone === "warn" && "border-warning/40 bg-warning/15",
+        tone === "bad" && "border-destructive/40 bg-destructive/10",
+      )}
+    >
+      <p className="flex min-w-0 flex-1 items-start gap-2">
+        {tone === "ok" ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" /> : <TriangleAlert className={cn("mt-0.5 size-4 shrink-0", tone === "bad" ? "text-destructive" : "text-warning")} />}
+        <span className="min-w-0">{pub.isFetching && !cfg ? "Memeriksa situs publik…" : body}</span>
+      </p>
+      <Button type="button" size="sm" variant="outline" disabled={pub.isFetching} onClick={() => void pub.refetch()}>
+        <RefreshCw className={cn(pub.isFetching && "animate-spin")} /> Periksa ulang
+      </Button>
+    </div>
+  );
+}
 
 function FeaturesPage() {
   const { user } = useAuth();
@@ -102,7 +157,7 @@ function FeaturesPage() {
       if (filter === "aktif" && !on) return false;
       if (filter === "mati" && on) return false;
       if (!q) return true;
-      return [f.label, f.description, f.group, ...f.paths].some((t) => t.toLowerCase().includes(q));
+      return [f.label, f.description, f.group, ...f.paths, ...(f.examples ?? [])].some((t) => t.toLowerCase().includes(q));
     });
   }, [flags, query, filter]);
 
@@ -116,18 +171,24 @@ function FeaturesPage() {
     });
     setBusyKeys((s) => new Set([...s, ...keys]));
     const now = new Date().toISOString();
-    const { error } = await supabase.from("feature_flags").upsert(
-      keys.map((key) => ({ key, enabled, updated_by: user?.id ?? null, updated_at: now })),
-      { onConflict: "key" },
-    );
+    // .select() supaya penolakan diam-diam oleh kebijakan database (nol baris tersimpan) ikut terdeteksi.
+    const { data: saved, error } = await supabase
+      .from("feature_flags")
+      .upsert(
+        keys.map((key) => ({ key, enabled, updated_by: user?.id ?? null, updated_at: now })),
+        { onConflict: "key" },
+      )
+      .select("key");
     setBusyKeys((s) => {
       const n = new Set(s);
       keys.forEach((k) => n.delete(k));
       return n;
     });
-    if (error) {
+    const failed = error ? errMsg(error) : (saved ?? []).length < keys.length ? "Database menolak sebagian perubahan: akun admin belum punya izin menulis ke feature_flags." : null;
+    if (failed) {
       qc.setQueryData(["admin-flags"], previous);
-      toast.error(errMsg(error));
+      toast.error(failed);
+      void qc.invalidateQueries({ queryKey: ["admin-flags"] });
       return;
     }
     toast.success(
@@ -153,10 +214,14 @@ function FeaturesPage() {
       void save(targets, true);
       return;
     }
-    const names = targets.map((k) => FEATURES.find((f) => f.key === k)?.label ?? k);
+    const defs = targets.map((k) => FEATURES.find((f) => f.key === k)).filter((f): f is FeatureDef => !!f);
+    const names = defs.map((f) => f.label);
+    const special = defs.find((f) => f.confirm);
     setConfirm({
       title: targets.length === 1 ? `Matikan “${names[0]}”?` : `Matikan ${targets.length} fitur?`,
-      body: `${names.join(", ")} akan hilang dari menu dan halamannya menampilkan “dinonaktifkan” untuk pengguna biasa. Konten yang sudah ada tidak dihapus, dan kamu bisa menyalakannya lagi kapan saja.`,
+      body:
+        (special?.confirm ? `${special.confirm} ` : "") +
+        `${names.join(", ")} akan ditutup untuk pengguna biasa: halamannya menampilkan “dinonaktifkan”. Konten yang sudah ada tidak dihapus, dan kamu bisa menyalakannya lagi kapan saja.`,
       keys: targets,
       enabled: false,
     });
@@ -169,10 +234,10 @@ function FeaturesPage() {
           <div className="min-w-0">
             <h2 className="font-semibold">Fitur & halaman</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Fitur yang dimatikan hilang dari menu, halamannya menampilkan “dinonaktifkan”, dan
-              penambahan konten baru ditolak oleh database. Konten yang sudah ada tidak dihapus.
-              Admin tetap bisa mengaksesnya. Pengunjung lain melihat perubahan dalam sekitar satu
-              menit.
+              Fitur yang dimatikan menampilkan “dinonaktifkan” di halamannya. Pada fitur tanpa tanda
+              “Tutup halaman saja”, penambahan konten baru juga ditolak oleh database. Konten yang sudah ada
+              tidak dihapus. Admin tetap bisa mengaksesnya. Pengunjung lain melihat perubahan dalam sekitar
+              satu menit.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-4 text-sm" aria-live="polite">
@@ -211,6 +276,8 @@ function FeaturesPage() {
           </p>
         )}
       </section>
+
+      <PublicSync flags={flags} />
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-52 flex-1">
@@ -284,6 +351,9 @@ function FeaturesPage() {
           const all = FEATURES.filter((f) => f.group === g);
           const groupOn = all.filter((f) => isFeatureOn(flags, f.key)).length;
           const Icon = GROUP_ICON[g];
+          // Mode perawatan tidak ikut "Matikan semua" supaya satu klik tidak menutup seluruh situs.
+          const bulk = all.filter((f) => f.key !== "situs");
+          const bulkOn = bulk.filter((f) => isFeatureOn(flags, f.key)).length;
           return (
             <section
               key={g}
@@ -305,10 +375,10 @@ function FeaturesPage() {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    disabled={isLoading || groupOn === all.length}
+                    disabled={isLoading || bulkOn === bulk.length}
                     onClick={() =>
                       request(
-                        all.map((f) => f.key),
+                        bulk.map((f) => f.key),
                         true,
                       )
                     }
@@ -320,10 +390,10 @@ function FeaturesPage() {
                     size="sm"
                     variant="ghost"
                     className="text-destructive hover:text-destructive"
-                    disabled={isLoading || groupOn === 0}
+                    disabled={isLoading || bulkOn === 0}
                     onClick={() =>
                       request(
-                        all.map((f) => f.key),
+                        bulk.map((f) => f.key),
                         false,
                       )
                     }
@@ -351,9 +421,14 @@ function FeaturesPage() {
                           >
                             {on ? "Menyala" : "Mati"}
                           </span>
+                          {f.pageOnly && (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground" title="Hanya menutup halaman atau tampilan; belum ada pengunci di database.">
+                              Tutup halaman saja
+                            </span>
+                          )}
                         </p>
                         <p className="mt-0.5 text-sm text-muted-foreground">{f.description}</p>
-                        {f.paths.length > 0 && (
+                        {(f.paths.length > 0 || (f.examples?.length ?? 0) > 0) && (
                           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-muted-foreground">
                             {f.paths.map((p) => (
                               <a
@@ -368,6 +443,7 @@ function FeaturesPage() {
                                 <ExternalLink className="size-3" />
                               </a>
                             ))}
+                            {f.examples?.map((p) => <span key={p}>{p}</span>)}
                           </p>
                         )}
                       </div>
@@ -425,55 +501,83 @@ function FeaturesPage() {
 }
 
 const MAX_ANNOUNCEMENT = 500;
+const TEMPLATES: { label: string; level: "info" | "warning"; text: string }[] = [
+  { label: "Perawatan terjadwal", level: "warning", text: "Perawatan terjadwal: GoBi mungkin tidak bisa diakses sebentar. Mohon maaf atas ketidaknyamanannya." },
+  { label: "Gangguan", level: "warning", text: "Sebagian fitur sedang terganggu. Tim kami sedang memperbaikinya." },
+  { label: "Fitur baru", level: "info", text: "Ada fitur baru di GoBi! Coba sekarang dan beri tahu kami pendapatmu." },
+];
+
+// Akses ke app_settings tidak ada di tipe yang dihasilkan untuk operasi tulis ini, jadi pakai klien longgar.
+const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 function AnnouncementForm() {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [level, setLevel] = useState<"info" | "warning">("info");
   const [busy, setBusy] = useState(false);
+  const pub = useQuery(siteConfigQuery);
   const { data } = useQuery({
     queryKey: ["admin-announcement"],
-    queryFn: async () =>
-      (
-        await supabase
-          .from("app_settings")
-          .select("announcement,announcement_level,updated_at")
-          .eq("id", 1)
-          .maybeSingle()
-      ).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("announcement,announcement_level,updated_at")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
   useEffect(() => {
     if (!data) return;
     setText(data.announcement ?? "");
     setLevel(data.announcement_level === "warning" ? "warning" : "info");
-  }, [data?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data?.updated_at, !!data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const live = (data?.announcement ?? "").trim();
-  const dirty =
-    text.trim() !== live ||
-    (live !== "" && level !== (data?.announcement_level === "warning" ? "warning" : "info"));
+  const savedLevel = data?.announcement_level === "warning" ? "warning" : "info";
+  const dirty = text.trim() !== live || (live !== "" && level !== savedLevel);
+
+  // Yang benar-benar dibaca pengunjung lewat server. Berbeda dari yang tersimpan = pengumuman tidak sampai.
+  const cfg = pub.data;
+  const pubText = (cfg?.announcement ?? "").trim();
+  const pubMatches = !!cfg && !cfg.error && pubText === live && (live === "" || cfg.announcementLevel === savedLevel);
+
+  /** Menulis ke app_settings dan memastikan barisnya benar-benar berubah (nol baris = ditolak diam-diam, atau barisnya belum ada). */
+  async function persist(value: string | null) {
+    const row = { announcement: value, announcement_level: level, updated_at: new Date().toISOString() };
+    const upd = await db.from("app_settings").update(row).eq("id", 1).select("id");
+    if (upd.error) throw upd.error;
+    if ((upd.data ?? []).length > 0) return;
+    const ins = await db.from("app_settings").insert({ id: 1, ...row }).select("id");
+    if (ins.error) throw ins.error;
+    if ((ins.data ?? []).length === 0) throw new Error("Database menolak perubahan: akun admin belum punya izin menulis ke app_settings.");
+  }
 
   async function save(e?: React.FormEvent, clear = false) {
     e?.preventDefault();
-    const value = clear ? "" : text.trim();
+    const value = clear ? null : text.trim() || null;
     setBusy(true);
-    const { error } = await supabase
-      .from("app_settings")
-      .update({
-        announcement: value || null,
-        announcement_level: level,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", 1);
-    setBusy(false);
-    if (error) {
-      toast.error(errMsg(error));
+    try {
+      await persist(value);
+    } catch (err) {
+      setBusy(false);
+      toast.error(errMsg(err));
       return;
     }
     if (clear) setText("");
-    toast.success(value ? "Pengumuman tampil di seluruh situs" : "Pengumuman dihapus");
-    qc.invalidateQueries({ queryKey: ["admin-announcement"] });
-    qc.invalidateQueries({ queryKey: ["site-config"] });
+    await qc.invalidateQueries({ queryKey: ["admin-announcement"] });
+    // Baca ulang seperti pengunjung membacanya, lalu bandingkan.
+    let reached = false;
+    try {
+      const fresh = await qc.fetchQuery({ ...siteConfigQuery, staleTime: 0 });
+      reached = !fresh.error && (fresh.announcement ?? "") === (value ?? "") && (!value || fresh.announcementLevel === level);
+    } catch {
+      reached = false;
+    }
+    setBusy(false);
+    if (reached) toast.success(value ? "Pengumuman tampil di seluruh situs" : "Pengumuman dihapus");
+    else toast.warning("Pengumuman tersimpan, tetapi situs publik belum membacanya. Lihat keterangan di bawah form.");
   }
 
   const warn = level === "warning";
@@ -491,12 +595,27 @@ function AnnouncementForm() {
             live ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
           )}
         >
-          {live ? "Sedang tampil" : "Tidak ada pengumuman"}
+          {live ? "Tersimpan" : "Tidak ada pengumuman"}
         </span>
       </div>
       <p className="text-sm text-muted-foreground">
-        Banner di bagian atas semua halaman. Kosongkan lalu simpan untuk menghapusnya.
+        Banner di bagian atas semua halaman pengunjung (halaman admin tidak menampilkannya). Kosongkan lalu simpan untuk menghapusnya.
       </p>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Contoh cepat:</span>
+        {TEMPLATES.map((t) => (
+          <button
+            key={t.label}
+            type="button"
+            onClick={() => { setText(t.text); setLevel(t.level); }}
+            className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition hover:bg-accent"
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div>
         <Label htmlFor="ann-text">Isi pengumuman</Label>
         <Textarea
@@ -540,6 +659,7 @@ function AnnouncementForm() {
           </Button>
         </div>
       </div>
+
       {text.trim() && (
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -556,11 +676,35 @@ function AnnouncementForm() {
               <PreviewIcon
                 className={cn("mt-0.5 size-4 shrink-0", warn ? "text-warning" : "text-primary")}
               />
-              <span className="min-w-0 whitespace-pre-line">{text}</span>
+              <span className="min-w-0 whitespace-pre-line break-words">{text}</span>
             </p>
           </div>
         </div>
       )}
+
+      <div
+        role="status"
+        className={cn(
+          "flex flex-wrap items-start justify-between gap-3 rounded-md border p-3 text-sm",
+          cfg?.error ? "border-destructive/40 bg-destructive/10" : pubMatches ? "border-success/40 bg-success/10" : "border-warning/40 bg-warning/15",
+        )}
+      >
+        <p className="min-w-0 flex-1">
+          {!cfg ? (
+            "Memeriksa apa yang dilihat pengunjung…"
+          ) : cfg.error ? (
+            <>Situs publik tidak bisa membaca pengaturan, jadi pengumuman tidak tampil. <span className="block text-xs">Penyebab: {cfg.error}</span></>
+          ) : pubMatches ? (
+            live ? "Pengumuman ini sedang tampil di situs publik." : "Tidak ada pengumuman di situs publik."
+          ) : (
+            <>Yang dilihat pengunjung berbeda dari yang tersimpan{pubText ? ` (saat ini: “${pubText.slice(0, 60)}${pubText.length > 60 ? "…" : ""}”)` : " (saat ini: tidak ada pengumuman)"}. Perubahan biasanya sampai dalam sekitar satu menit; tekan Periksa ulang.</>
+          )}
+        </p>
+        <Button type="button" size="sm" variant="outline" disabled={pub.isFetching} onClick={() => void pub.refetch()}>
+          <RefreshCw className={cn(pub.isFetching && "animate-spin")} /> Periksa ulang
+        </Button>
+      </div>
+
       <p className="text-xs text-muted-foreground">
         Mau melihat hasilnya langsung?{" "}
         <Link to="/" className="underline hover:text-primary">
