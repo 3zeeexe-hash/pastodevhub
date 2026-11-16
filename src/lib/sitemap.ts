@@ -1,7 +1,8 @@
 // XML builders for the sitemaps (pure, no database). The data side lives in sitemap.server.ts.
 import { xmlEscape } from "@/lib/site-url";
 
-export const SITEMAP_NAMES = ["pages", "karya", "jasa", "lowongan", "diskusi", "developer", "repo", "toko"] as const;
+/** "diskusi" = forum threads (/gobifeed/<id>), "gobifeed" = timeline posts (/gobifeed/status/<id>). */
+export const SITEMAP_NAMES = ["pages", "karya", "jasa", "lowongan", "diskusi", "gobifeed", "developer", "repo", "toko"] as const;
 export type SitemapName = (typeof SITEMAP_NAMES)[number];
 
 export const isSitemapName = (s: string): s is SitemapName => (SITEMAP_NAMES as readonly string[]).includes(s);
@@ -50,4 +51,4 @@ export function buildSitemapIndex(origin: string, items: { name: SitemapName; la
     return `  <sitemap>\n    <loc>${xmlEscape(`${origin}/sitemap-${i.name}.xml`)}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n  </sitemap>`;
   });
   return `${XML_HEAD}<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join("\n")}${rows.length ? "\n" : ""}</sitemapindex>\n`;
-  }
+}

@@ -1,28 +1,12 @@
 // Reads the public rows that belong in the sitemaps. Uses the public (anon) key, so only rows
 // that anyone can already see on the site can ever show up here.
-import { createClient } from "@supabase/supabase-js";
 import { isFeatureOn, type FeatureFlags, type FeatureKey } from "@/lib/features";
-import { resolveSiteOrigin } from "@/lib/site-url";
+import { PublicDbConfigError, publicAnon } from "@/lib/public-db.server";
+import { FEED_MIN_INDEX_LENGTH } from "@/lib/seo";
+import { resolveRequestOrigin } from "@/lib/site-url";
 import { SITEMAP_MAX_URLS, SITEMAP_NAMES, buildSitemapIndex, buildUrlset, type SitemapName, type SitemapUrl } from "@/lib/sitemap";
 
-function anon() {
-  const url = process.env["SUPABASE_URL"];
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
-  if (!url || !key) throw new Error("missing config");
-  return createClient(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const headers = new Headers(init?.headers);
-        if (headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
-        headers.set("apikey", key);
-        return fetch(input, { ...init, headers });
-      },
-    },
-  });
-}
-
-type Db = ReturnType<typeof anon>;
+type Db = ReturnType<typeof publicAnon>;
 // Rows come back untyped from dynamic selects (embedded relations, per-table columns).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -47,6 +31,8 @@ const https = (u: unknown) => (typeof u === "string" && /^https:\/\//.test(u) ? 
 
 type Source = {
   feature: FeatureKey | null;
+  /** When true, a failing query gives an empty sitemap instead of a 503 (table may not be readable yet). */
+  soft?: boolean;
   load: (db: Db) => Promise<SitemapUrl[]>;
 };
 
@@ -86,15 +72,25 @@ const SOURCES: Record<Exclude<SitemapName, "pages">, Source> = {
         lastmod: r["created_at"],
       })),
   },
-  developer: {
-    feature: null,
-    // Profiles have no "updated" date, so no <lastmod>. Empty profiles are left out as thin pages.
+  gobifeed: {
+    feature: "discuss",
+    soft: true,
+    // Timeline posts with real text. Replies and reposts repeat other content, and one-liners are too thin to rank.
     load: async (db) =>
       (
         await fetchAll((a, b) =>
-          db.from("profiles").select("username,created_at").or("account_type.eq.developer,bio.not.is.null,headline.not.is.null").order("created_at", { ascending: false }).order("username").range(a, b),
+          db.from("feed_posts").select("id,body,created_at").in("kind", ["post", "quote"]).order("created_at", { ascending: false }).order("id").range(a, b),
         )
       )
+        .filter((r) => typeof r["body"] === "string" && r["body"].trim().length >= FEED_MIN_INDEX_LENGTH)
+        .map((r) => ({ path: `/gobifeed/status/${seg(r["id"])}`, lastmod: r["created_at"] })),
+  },
+  developer: {
+    feature: null,
+    // Every account with a username gets its page listed, so each profile can be found on Google.
+    // Profiles have no "updated" date, so no <lastmod>.
+    load: async (db) =>
+      (await fetchAll((a, b) => db.from("profiles").select("username,created_at").order("created_at", { ascending: false }).order("username").range(a, b)))
         .filter((r) => r["username"])
         .map((r) => ({ path: `/${seg(r["username"])}` })),
   },
@@ -137,46 +133,81 @@ const STATIC_PAGES: { path: string; feature: FeatureKey | null }[] = [
   { path: "/gobifeed", feature: "discuss" },
 ];
 
-async function loadFlags(db: Db): Promise<FeatureFlags> {
-  const { data } = await db.from("feature_flags").select("key,enabled");
+/** `ok` is false when the switches could not be read (database down or table unreadable). */
+async function loadFlags(db: Db): Promise<{ flags: FeatureFlags; ok: boolean }> {
+  const { data, error } = await db.from("feature_flags").select("key,enabled");
   const flags: FeatureFlags = {};
   for (const row of data ?? []) flags[row.key] = row.enabled;
-  return flags;
+  return { flags, ok: !error };
 }
 
-/** One child sitemap as XML, or null for an unknown name. Throws when the database cannot be read. */
+/** One child sitemap as XML. Throws when the database cannot be read. */
 export async function renderSitemap(name: SitemapName, origin: string): Promise<string> {
-  const db = anon();
-  const flags = await loadFlags(db);
+  const db = publicAnon();
+  const { flags } = await loadFlags(db);
   if (name === "pages") return buildUrlset(origin, STATIC_PAGES.filter((p) => !p.feature || isFeatureOn(flags, p.feature)).map((p) => ({ path: p.path })));
   const source = SOURCES[name];
   if (source.feature && !isFeatureOn(flags, source.feature)) return buildUrlset(origin, []);
-  return buildUrlset(origin, await source.load(db));
+  try {
+    return buildUrlset(origin, await source.load(db));
+  } catch (e) {
+    if (!source.soft) throw e;
+    console.error("sitemap source unreadable", name, e);
+    return buildUrlset(origin, []);
+  }
 }
 
-/** The /sitemap.xml index: one entry per child sitemap that has something in it. */
+/**
+ * The /sitemap.xml index: one entry per child sitemap that has something in it.
+ * The index itself must never fail because of the database: when the database cannot be read at all, every child is listed
+ * without <lastmod> (each child then reports its own error and Google retries it), so Search Console can always read this file.
+ */
 export async function renderSitemapIndex(origin: string): Promise<string> {
-  const db = anon();
-  const flags = await loadFlags(db);
+  const children = SITEMAP_NAMES.filter((n): n is Exclude<SitemapName, "pages"> => n !== "pages");
   const items: { name: SitemapName; lastmod?: string | null }[] = [{ name: "pages" }];
+
+  let db: Db | null = null;
+  let flags: FeatureFlags = {};
+  let readable = false;
+  try {
+    db = publicAnon();
+    const loaded = await loadFlags(db);
+    flags = loaded.flags;
+    readable = loaded.ok;
+  } catch (e) {
+    console.error("sitemap index: database not readable", e);
+  }
+  if (!db || !readable) {
+    for (const n of children) items.push({ name: n });
+    return buildSitemapIndex(origin, items);
+  }
+  const database = db;
+
   // The table name is dynamic, so the query builder is loosely typed here on purpose.
+  // undefined = could not read (leave the child out), null = no rows (nothing to list), string = newest change.
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  const newest = async (table: string, col: string, apply: (q: any) => any) => {
-    const { data } = await apply(db.from(table as any).select(col)).order(col, { ascending: false }).limit(1);
-    return ((data as Row[] | null)?.[0]?.[col] as string | undefined) ?? null;
+  const newest = async (table: string, col: string, apply: (q: any) => any): Promise<string | null | undefined> => {
+    try {
+      const { data, error } = await apply(database.from(table as any).select(col)).order(col, { ascending: false }).limit(1);
+      if (error) return undefined;
+      return ((data as Row[] | null)?.[0]?.[col] as string | undefined) ?? null;
+    } catch {
+      return undefined;
+    }
   };
   /* eslint-enable @typescript-eslint/no-explicit-any */
-  const probes: Record<Exclude<SitemapName, "pages">, () => Promise<string | null>> = {
+  const probes: Record<Exclude<SitemapName, "pages">, () => Promise<string | null | undefined>> = {
     karya: () => newest("products", "updated_at", (q) => q.eq("is_published", true)),
     jasa: () => newest("services", "updated_at", (q) => q.eq("is_active", true)),
     lowongan: () => newest("jobs", "updated_at", (q) => q.eq("status", "open")),
     diskusi: () => newest("posts", "created_at", (q) => q),
-    developer: () => newest("profiles", "created_at", (q) => q.or("account_type.eq.developer,bio.not.is.null,headline.not.is.null")),
+    gobifeed: () => newest("feed_posts", "created_at", (q) => q.in("kind", ["post", "quote"])),
+    developer: () => newest("profiles", "created_at", (q) => q),
     repo: () => newest("repositories", "updated_at", (q) => q.eq("is_private", false).is("forked_from", null)),
     toko: () => newest("stores", "updated_at", (q) => q),
   };
   await Promise.all(
-    SITEMAP_NAMES.filter((n): n is Exclude<SitemapName, "pages"> => n !== "pages").map(async (n) => {
+    children.map(async (n) => {
       const feature = SOURCES[n].feature;
       if (feature && !isFeatureOn(flags, feature)) return;
       const lastmod = await probes[n]();
@@ -194,14 +225,21 @@ const XML_HEADERS = {
   "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
 };
 
-/** Serves /sitemap.xml (name = null) or /sitemap-<name>.xml. A database failure is a 503 so Google retries later instead of storing an empty sitemap. */
+/**
+ * Serves /sitemap.xml (name = null) or /sitemap-<name>.xml. A database failure is a 503 so Google retries later instead of
+ * storing an empty sitemap. The body and the X-Sitemap-Error header say whether the cause is the server config or the database.
+ */
 export async function sitemapResponse(request: Request, name: SitemapName | null): Promise<Response> {
-  const origin = resolveSiteOrigin(process.env["SITE_URL"], request.url);
   try {
+    const origin = resolveRequestOrigin(process.env["SITE_URL"], request);
     const body = name ? await renderSitemap(name, origin) : await renderSitemapIndex(origin);
     return new Response(body, { headers: XML_HEADERS });
   } catch (e) {
     console.error("sitemap failed", name, e);
-    return new Response("Sitemap sementara tidak tersedia.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "300" } });
+    const reason = e instanceof PublicDbConfigError ? "config" : "database";
+    return new Response(`Sitemap sementara tidak tersedia (${reason}).`, {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "300", "Cache-Control": "no-store", "X-Sitemap-Error": reason },
+    });
   }
 }
