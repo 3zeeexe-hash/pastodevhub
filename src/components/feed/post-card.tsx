@@ -63,10 +63,14 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
     await Promise.all(INVALIDATE.map((k) => qc.invalidateQueries({ queryKey: [k] })));
     setOv({});
   };
+  // Suka dan simpan sudah tampil secara optimistis, jadi tidak perlu memuat ulang SEMUA halaman linimasa (itu berat dan membuat daftar melompat).
+  // Hanya daftar Tersimpan yang perlu disegarkan supaya post yang baru dilepas simpanannya hilang dari sana.
+  const refreshBookmarks = () =>
+    qc.invalidateQueries({ queryKey: ["feed"], predicate: (query) => (query.queryKey[1] as { tab?: string } | undefined)?.tab === "bookmarks" });
   const onError = (e: Error) => { setOv({}); toast.error(e.message); };
 
-  const like = useMutation({ mutationFn: (on: boolean) => setLike(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, liked: on })), onSettled: refresh, onError });
-  const mark = useMutation({ mutationFn: (on: boolean) => setBookmark(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, bookmarked: on })), onSettled: refresh, onError });
+  const like = useMutation({ mutationFn: (on: boolean) => setLike(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, liked: on })), onError });
+  const mark = useMutation({ mutationFn: (on: boolean) => setBookmark(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, bookmarked: on })), onSuccess: refreshBookmarks, onError });
   const repost = useMutation({ mutationFn: (on: boolean) => setRepost(user!.id, shown.id, on), onMutate: (on) => setOv((o) => ({ ...o, reposted: on })), onSettled: refresh, onError });
   const del = useMutation({
     mutationFn: () => deletePost(post.id),
@@ -90,6 +94,17 @@ export function PostCard({ post, detail = false }: { post: FeedPost; detail?: bo
 
   async function share() {
     const url = `${window.location.origin}/gobifeed/status/${shown.id}`;
+    // Di ponsel (layar sentuh) buka menu bagikan bawaan seperti Instagram/X; di desktop cukup salin link.
+    const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+    if (touch && typeof navigator.share === "function") {
+      const text = shown.body.trim().slice(0, 140);
+      try {
+        await navigator.share(text ? { url, text } : { url });
+        return;
+      } catch (e) {
+        if ((e as DOMException).name === "AbortError") return;
+      }
+    }
     try { await navigator.clipboard.writeText(url); toast.success("Link disalin"); } catch { toast(url); }
   }
 
