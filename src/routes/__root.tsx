@@ -23,6 +23,7 @@ import { MobileBottomNav, useMobileNavVisible } from "@/components/mobile-bottom
 import { ChatDock } from "@/components/chat-dock";
 import { Toaster } from "@/components/ui/sonner";
 import { AnnouncementBar, FeatureGate, RoleGate } from "@/components/site-status";
+import { BanGate } from "@/components/ban-gate";
 import { siteConfigQuery } from "@/lib/site-config.functions";
 import { rootSeoHead } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -169,24 +170,27 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {adminArea ? (
-          // The admin dashboard has its own full-screen shell with a sidebar.
-          <div className="min-h-screen bg-background font-sans"><Outlet /></div>
-        ) : (
-          // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile mengambang (pil 3,5rem + jarak 0,5rem; lg ke atas tidak punya menu bawah).
-          <div className={cn("flex min-h-screen flex-col bg-background font-sans text-foreground", repoPage && "dark", navVisible && "pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0")}>
-            {!homePage && <SiteHeader />}
-            <AnnouncementBar />
-            <div className="flex-1">
-              {/* Required: nested routes render here. */}
-              <FeatureGate><RoleGate><Outlet /></RoleGate></FeatureGate>
+        {/* Akun yang diblokir hanya melihat layar blokir, bukan halaman GoBi mana pun (termasuk /admin, chat, dan menu bawah). */}
+        <BanGate>
+          {adminArea ? (
+            // The admin dashboard has its own full-screen shell with a sidebar.
+            <div className="min-h-screen bg-background font-sans"><Outlet /></div>
+          ) : (
+            // Ruang di bawah supaya isi dan footer tidak tertutup menu bawah mobile mengambang (pil 3,5rem + jarak 0,5rem; lg ke atas tidak punya menu bawah).
+            <div className={cn("flex min-h-screen flex-col bg-background font-sans text-foreground", repoPage && "dark", navVisible && "pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-0")}>
+              {!homePage && <SiteHeader />}
+              <AnnouncementBar />
+              <div className="flex-1">
+                {/* Required: nested routes render here. */}
+                <FeatureGate><RoleGate><Outlet /></RoleGate></FeatureGate>
+              </div>
+              <SiteFooter />
             </div>
-            <SiteFooter />
-          </div>
-        )}
-        <AccountTypePrompt />
-        <MobileBottomNav />
-        <ChatDock />
+          )}
+          <AccountTypePrompt />
+          <MobileBottomNav />
+          <ChatDock />
+        </BanGate>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
