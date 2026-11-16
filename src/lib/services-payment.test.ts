@@ -50,8 +50,10 @@ describe("kesesuaian stage dengan status pesanan lama", () => {
   });
   it("setiap stage yang diharapkan benar-benar ada di mesin status", () => {
     const all = Object.keys(SERVICE_STAGE_TRANSITIONS) as ServiceOrderStage[];
-    for (const st of ["awaiting_payment", "payment_ progress".replace(" ", ""), "delivered", "completed", "cancelled", "in_progress"]) {
-      for (const s of expectedStages(st) ?? []) expect(all).toContain(s);
+    for (const status of ["awaiting_payment", "payment_review", "in_progress", "delivered", "completed", "cancelled"]) {
+      const stages = expectedStages(status);
+      expect(stages).not.toBeNull();
+      for (const s of stages ?? []) expect(all).toContain(s);
     }
   });
 });
