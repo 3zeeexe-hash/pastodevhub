@@ -18,10 +18,13 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Pill } from "@/components/work-ui";
 import { WorkOverview } from "@/components/admin-work-overview";
-import { ApplicationsTab, AuditTab, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
+import { AuditTab, PayoutsTab } from "@/components/admin-work-extra";
+import { ApplicationsTab } from "@/components/admin-work-applications";
+import { TransactionsTab } from "@/components/admin-work-transactions";
+import { JobsTab } from "@/components/admin-work-jobs";
 import { CasesTab, DisputesTab2, ReportsTab2 } from "@/components/admin-work-cases";
 import { ClientWithdrawalsTab } from "@/components/admin-client-withdrawals";
-import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
+import { SettingsTab, UsersTab } from "@/components/admin-work-manage";
 import { useAskAdmin } from "@/lib/admin-ask";
 
 const TAB_KEYS = ["ringkasan", "laporan", "sengketa", "kasus", "transaksi", "pencairan", "pengguna", "lowongan", "lamaran", "rekonsiliasi", "kategori", "pengaturan", "audit"] as const;
