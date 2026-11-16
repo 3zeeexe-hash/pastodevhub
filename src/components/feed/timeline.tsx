@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchFeed, type FeedQuery } from "@/lib/feed";
 import { dedupeById } from "@/lib/feed-rules";
@@ -7,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/post-card";
 
 /**
- * Daftar post dengan tombol "Muat lagi" (kursor berdasarkan waktu).
+ * Daftar post dengan gulir tak berujung (halaman berikutnya dimuat otomatis saat daftar hampir habis, kursor berdasarkan waktu).
+ * Tombol "Muat lagi" tetap ada sebagai cadangan untuk peramban tanpa IntersectionObserver.
  * variant="card" menampilkan tiap post sebagai kartu bulat (halaman Diskusi); bawaannya daftar berbatas garis.
  */
 export function Timeline({ query, empty, variant = "plain" }: { query: FeedQuery; empty: ReactNode; variant?: "plain" | "card" }) {
@@ -18,8 +20,31 @@ export function Timeline({ query, empty, variant = "plain" }: { query: FeedQuery
     queryFn: ({ pageParam }) => fetchFeed(query, user?.id, pageParam),
     getNextPageParam: (last) => last.next ?? undefined,
   });
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = q;
+  const sentinel = useRef<HTMLDivElement | null>(null);
 
-  if (q.isLoading) return <p className="px-4 py-10 text-center text-sm text-muted-foreground">Memuat…</p>;
+  // Hook ini sengaja berada sebelum return awal. Penjaga muncul setelah halaman pertama tampil, lalu dipasang ulang
+  // setiap selesai memuat halaman berikutnya (kalau masih terlihat, halaman berikutnya langsung dimuat).
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasNextPage || isFetchingNextPage || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void fetchNextPage();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  if (q.isLoading) {
+    return (
+      <div role="status" aria-label="Memuat" className="flex justify-center py-12">
+        <Loader2 className="size-7 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (q.isError) {
     return (
       <div className="px-4 py-10 text-center text-sm">
@@ -32,11 +57,13 @@ export function Timeline({ query, empty, variant = "plain" }: { query: FeedQuery
   const items = dedupeById(q.data?.pages.flatMap((p) => p.items) ?? []);
   if (!items.length) return <div className="px-4 py-12 text-center text-sm text-muted-foreground">{empty}</div>;
 
-  const more = q.hasNextPage && (
-    <div className="p-4 text-center">
-      <Button variant="secondary" size="sm" disabled={q.isFetchingNextPage} onClick={() => q.fetchNextPage()}>
-        {q.isFetchingNextPage ? "Memuat…" : "Muat lagi"}
-      </Button>
+  const more = hasNextPage && (
+    <div ref={sentinel} className="flex min-h-16 items-center justify-center p-4">
+      {isFetchingNextPage ? (
+        <Loader2 role="status" aria-label="Memuat" className="size-5 animate-spin text-primary" />
+      ) : (
+        <Button variant="secondary" size="sm" onClick={() => fetchNextPage()}>Muat lagi</Button>
+      )}
     </div>
   );
 
