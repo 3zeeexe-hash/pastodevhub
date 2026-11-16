@@ -5,6 +5,8 @@ export const SITE_NAME = "GoBi";
 export const SITE_ALT_NAMES = ["Gobi", "GOBI", "GoBi Indonesia"];
 /** Default share image for pages that have none of their own. */
 export const DEFAULT_OG_IMAGE_PATH = "/gobi-logo.png";
+/** GobiFeed posts with less text than this are too thin to rank: they stay out of the sitemap and get noindex. */
+export const FEED_MIN_INDEX_LENGTH = 40;
 export type SeoInfo = { title: string; description: string; image?: string | undefined; type: "website" | "article" | "product" | "profile"; /** Pre-serialized JSON-LD. */ jsonLd?: string | undefined; noindex?: boolean | undefined; /** The row does not exist (or is not public): keep the fallback title and ask Google not to index it. */ notFound?: boolean | undefined };
 
 /** Plain-text summary for meta descriptions: strips markdown/HTML and cuts at ~155 chars on a word. */
@@ -74,8 +76,30 @@ export function jobPostingLd(j: { title: string; description: string; created_at
 // Site-wide rules: which pages Google may index, canonical links, robots.txt.
 // ---------------------------------------------------------------------------
 
-/** Pages that only make sense when signed in (or are forms). Matched as the exact path or anything below it. */
-export const PRIVATE_PREFIXES = ["/admin", "/auth", "/dashboard", "/settings", "/studio", "/new", "/import", "/pesanan", "/reset-password", "/lowongan/baru"];
+/**
+ * Pages that only make sense when signed in (or are forms). Matched as the exact path or anything below it.
+ * Includes the chat, notifications, saved posts, balance and GOBI WORK (/kerja) areas, which show nothing to a search engine.
+ */
+export const PRIVATE_PREFIXES = [
+  "/admin",
+  "/auth",
+  "/dashboard",
+  "/settings",
+  "/studio",
+  "/new",
+  "/import",
+  "/pesanan",
+  "/reset-password",
+  "/lowongan/baru",
+  "/lowongan/saya",
+  "/kerja",
+  "/saldo",
+  "/notifikasi",
+  "/verifikasi",
+  "/gobifeed/pesan",
+  "/gobifeed/notifikasi",
+  "/gobifeed/tersimpan",
+];
 
 /** Exact path or a sub-path, so "/new" does not swallow a user called "newton". */
 const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);

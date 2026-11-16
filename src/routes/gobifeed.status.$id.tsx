@@ -5,9 +5,14 @@ import { useAuth } from "@/lib/auth";
 import { fetchPost, fetchReplies } from "@/lib/feed";
 import { Composer } from "@/components/feed/composer";
 import { PostCard } from "@/components/feed/post-card";
+import { getSeoInfo } from "@/lib/seo.functions";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/gobifeed/status/$id")({
-  head: () => ({ meta: [{ title: "Post — GoBi" }, { name: "description", content: "Baca dan balas post di GobiFeed." }, { property: "og:title", content: "Post — GoBi" }, { property: "og:description", content: "Baca dan balas post di GobiFeed." }] }),
+  // Judul, deskripsi, dan data terstruktur post diambil dari database; teks di bawah hanya cadangan.
+  loader: ({ params }) => getSeoInfo({ data: { kind: "feed", id: params.id } }),
+  staleTime: 300_000,
+  head: ({ loaderData }) => seoHead(loaderData, { title: "Post — GobiFeed | GoBi", description: "Baca dan balas post developer Indonesia di GobiFeed." }),
   component: StatusPage,
 });
 
