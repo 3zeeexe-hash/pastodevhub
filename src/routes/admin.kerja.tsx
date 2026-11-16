@@ -1,57 +1,133 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { z } from "zod";
+import { AlertTriangle, CheckCheck, CheckCircle2, ChevronRight, Flag, Loader2, RefreshCw, Scale, ShieldCheck, Wallet } from "lucide-react";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg } from "@/lib/market";
-import { rp, workRpc } from "@/lib/work-db";
+import { workRpc } from "@/lib/work-db";
+import { sumCounts } from "@/lib/admin-work-activity";
+import { markWorkSeen, useAdminWorkActivity, useMarkSeenOnLeave, useRefreshWorkAdmin } from "@/lib/use-admin-work-activity";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyState, ErrorState, Pill, Stat } from "@/components/work-ui";
+import { EmptyState, ErrorState, Pill } from "@/components/work-ui";
+import { WorkOverview } from "@/components/admin-work-overview";
 import { ApplicationsTab, AuditTab, PayoutsTab, TransactionsTab } from "@/components/admin-work-extra";
 import { CasesTab, DisputesTab2, ReportsTab2 } from "@/components/admin-work-cases";
 import { ClientWithdrawalsTab } from "@/components/admin-client-withdrawals";
 import { JobsTab, SettingsTab, UsersTab } from "@/components/admin-work-manage";
 import { useAskAdmin } from "@/lib/admin-ask";
 
-export const Route = createFileRoute("/admin/kerja")({ component: AdminWork });
+const TAB_KEYS = ["ringkasan", "laporan", "sengketa", "kasus", "transaksi", "pencairan", "pengguna", "lowongan", "lamaran", "rekonsiliasi", "kategori", "pengaturan", "audit"] as const;
+type TabKey = (typeof TAB_KEYS)[number];
+const searchSchema = z.object({ tab: z.enum(TAB_KEYS).optional().catch(undefined) });
+
+export const Route = createFileRoute("/admin/kerja")({ validateSearch: searchSchema, component: AdminWork });
+
+const TAB_LABEL: Record<TabKey, string> = {
+  ringkasan: "Ringkasan", laporan: "Laporan", sengketa: "Sengketa", kasus: "Kasus & riwayat", transaksi: "Transaksi", pencairan: "Pencairan",
+  pengguna: "Pengguna", lowongan: "Lowongan", lamaran: "Lamaran", rekonsiliasi: "Rekonsiliasi", kategori: "Kategori", pengaturan: "Pengaturan", audit: "Audit log",
+};
+
+type Todo = { tab: TabKey; label: string; hint: string; n: number; fresh: number; Icon: ComponentType<{ className?: string }> };
+
+function CountPill({ n, tone }: { n: number; tone: "red" | "blue" }) {
+  if (!n) return null;
+  return <span className={cn("ml-1.5 min-w-5 rounded-full px-1.5 text-center font-mono text-[11px] leading-5 text-white", tone === "red" ? "bg-red-500" : "bg-sky-500")}>{tone === "blue" ? "+" : ""}{n > 99 ? "99+" : n}</span>;
+}
 
 function AdminWork() {
+  const { tab = "ringkasan" } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const go = (t: string) => void navigate({ search: { tab: (TAB_KEYS as readonly string[]).includes(t) ? (t as TabKey) : "ringkasan" }, replace: true });
+  const activity = useAdminWorkActivity();
+  const refresh = useRefreshWorkAdmin();
+  const [spin, setSpin] = useState(false);
+  useMarkSeenOnLeave();
+
+  const a = activity.data;
+  const todos: Todo[] = a ? [
+    { tab: "laporan", label: "Laporan terbuka", hint: "Laporan dari pengguna yang belum ditutup", n: a.pending.reports, fresh: a.fresh.reports, Icon: Flag },
+    { tab: "sengketa", label: "Sengketa aktif", hint: "Dana tertahan sampai admin memutuskan", n: a.pending.disputes, fresh: a.fresh.disputes, Icon: Scale },
+    { tab: "lowongan", label: "Lowongan menunggu moderasi", hint: "Belum tayang sebelum disetujui", n: a.pending.jobs, fresh: a.fresh.jobs, Icon: ShieldCheck },
+    { tab: "pencairan", label: "Pencairan client", hint: "Permintaan penarikan saldo client", n: a.pending.withdrawals, fresh: a.fresh.withdrawals, Icon: Wallet },
+  ] : [];
+  const badge: Partial<Record<TabKey, { todo?: number; fresh?: number }>> = a ? {
+    laporan: { todo: a.pending.reports }, sengketa: { todo: a.pending.disputes }, lowongan: { todo: a.pending.jobs },
+    pencairan: { todo: a.pending.withdrawals }, lamaran: { fresh: a.fresh.applications }, kasus: { fresh: a.fresh.contracts },
+  } : {};
+
+  async function reload() {
+    setSpin(true);
+    try { await refresh(); toast.success("Data diperbarui"); } finally { setSpin(false); }
+  }
+
   return (
-    <div className="space-y-4">
-      <header className="relative overflow-hidden rounded-3xl bg-header-gradient p-5 text-white shadow-md sm:p-6">
-        <div className="pointer-events-none absolute -left-12 bottom-0 size-40 rounded-full bg-primary/30 blur-2xl" />
-        <div className="relative">
-          <p className="font-mono text-sm font-semibold text-primary">admin · GOBI WORK</p>
-          <h2 className="mt-1 text-2xl font-extrabold">Pusat kendali GOBI WORK</h2>
-          <p className="mt-1 max-w-3xl text-sm text-white/80">
-            Pengguna, moderasi lowongan, lamaran, kasus kontrak lengkap (lowongan, profil kedua pihak, pembayaran, riwayat), transaksi, sengketa, laporan, rekonsiliasi, kategori, komisi, dan audit log.
-            Semua aksi mengubah data lewat fungsi database khusus admin dan tercatat di audit log; tab lamaran dan transaksi hanya untuk melihat. Penarikan saldo client diproses di tab Pencairan.
-          </p>
+    <div className="space-y-5">
+      {/* Bilah status: pembaruan terakhir, muat ulang, tandai dilihat */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 shadow-sm ring-1 ring-border">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <span className="relative flex size-2.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/60" /><span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" /></span>
+          Pantauan langsung · diperbarui otomatis tiap 30 detik
+          {activity.dataUpdatedAt ? <span className="hidden sm:inline">· terakhir {new Date(activity.dataUpdatedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span> : null}
+        </p>
+        <div className="flex gap-2">
+          {a && a.totalFresh > 0 && <Button size="sm" variant="outline" className="rounded-full" onClick={() => { markWorkSeen(); toast.success("Semua pembaruan ditandai sudah dilihat"); }}><CheckCheck /> Tandai sudah dilihat ({a.totalFresh})</Button>}
+          <Button size="sm" variant="outline" className="rounded-full" disabled={spin} onClick={reload}><RefreshCw className={cn(spin && "animate-spin")} /> Muat ulang</Button>
         </div>
-      </header>
-      <Tabs defaultValue="ringkasan">
+      </div>
+
+      {/* Pusat tindakan */}
+      <section aria-labelledby="todo-h">
+        <h2 id="todo-h" className="mb-2 flex items-center gap-2 text-sm font-extrabold">
+          Perlu ditindaklanjuti
+          {a && a.totalPending > 0 && <span className="rounded-full bg-red-500 px-2 py-0.5 font-mono text-[11px] text-white">{a.totalPending}</span>}
+        </h2>
+        {activity.isLoading && <Skeleton className="h-24 rounded-2xl" />}
+        {activity.error && <ErrorState error={activity.error} onRetry={() => activity.refetch()} />}
+        {a && sumCounts(a.pending) === 0 && (
+          <p className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-200"><CheckCircle2 className="size-5 shrink-0" aria-hidden /> Semua beres. Tidak ada laporan, sengketa, lowongan, atau pencairan yang menunggu.</p>
+        )}
+        {a && sumCounts(a.pending) > 0 && (
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {todos.map((t) => (
+              <li key={t.tab}>
+                <button type="button" onClick={() => go(t.tab)} className={cn("group flex h-full w-full flex-col rounded-2xl p-4 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md", t.n > 0 ? "bg-red-500/5 ring-red-500/30" : "bg-card ring-border")}>
+                  <span className="flex items-center justify-between"><t.Icon className={cn("size-5", t.n > 0 ? "text-red-500" : "text-muted-foreground")} /><ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" aria-hidden /></span>
+                  <span className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-extrabold tabular-nums">{t.n}</span>{t.fresh > 0 && <span className="rounded-full bg-sky-500 px-1.5 font-mono text-[11px] leading-5 text-white">+{t.fresh} baru</span>}</span>
+                  <span className="mt-1 text-sm font-semibold">{t.label}</span>
+                  <span className="text-xs text-muted-foreground">{t.n > 0 ? t.hint : "Beres"}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {a && a.totalFresh > 0 && (a.fresh.applications > 0 || a.fresh.contracts > 0) && (
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <AlertTriangle className="size-3.5 text-sky-500" aria-hidden /> Sejak kunjungan terakhir:
+            {a.fresh.applications > 0 && <button type="button" className="font-semibold text-sky-600 underline-offset-2 hover:underline dark:text-sky-400" onClick={() => go("lamaran")}>{a.fresh.applications} lamaran baru</button>}
+            {a.fresh.contracts > 0 && <button type="button" className="font-semibold text-sky-600 underline-offset-2 hover:underline dark:text-sky-400" onClick={() => go("kasus")}>{a.fresh.contracts} kontrak baru</button>}
+          </p>
+        )}
+      </section>
+
+      <Tabs value={tab} onValueChange={go}>
         <TabsList className="h-auto flex-wrap justify-start gap-1 rounded-2xl bg-secondary/60 p-1.5">
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="laporan">Laporan</TabsTrigger>
-          <TabsTrigger value="sengketa">Sengketa</TabsTrigger>
-          <TabsTrigger value="kasus">Kasus & riwayat</TabsTrigger>
-          <TabsTrigger value="transaksi">Transaksi</TabsTrigger>
-          <TabsTrigger value="pencairan">Pencairan</TabsTrigger>
-          <TabsTrigger value="pengguna">Pengguna</TabsTrigger>
-          <TabsTrigger value="lowongan">Lowongan</TabsTrigger>
-          <TabsTrigger value="lamaran">Lamaran</TabsTrigger>
-          <TabsTrigger value="rekonsiliasi">Rekonsiliasi</TabsTrigger>
-          <TabsTrigger value="kategori">Kategori</TabsTrigger>
-          <TabsTrigger value="pengaturan">Pengaturan</TabsTrigger>
-          <TabsTrigger value="audit">Audit log</TabsTrigger>
+          {TAB_KEYS.map((k) => (
+            <TabsTrigger key={k} value={k}>
+              {TAB_LABEL[k]}
+              <CountPill n={badge[k]?.todo ?? 0} tone="red" />
+              <CountPill n={badge[k]?.fresh ?? 0} tone="blue" />
+            </TabsTrigger>
+          ))}
         </TabsList>
-        <TabsContent value="ringkasan" className="mt-4"><Overview /></TabsContent>
+        <TabsContent value="ringkasan" className="mt-4"><WorkOverview /></TabsContent>
         <TabsContent value="laporan" className="mt-4"><ReportsTab2 /></TabsContent>
         <TabsContent value="sengketa" className="mt-4"><DisputesTab2 /></TabsContent>
         <TabsContent value="kasus" className="mt-4"><CasesTab /></TabsContent>
@@ -68,75 +144,6 @@ function AdminWork() {
     </div>
   );
 }
-
-/* ---------- Ringkasan & analitik ---------- */
-type AStats = Record<string, number>;
-type Analytics = {
-  monthly: { month: string; volume: number; commission: number; count: number }[];
-  user_growth: { month: string; count: number }[];
-  top_jobs: { id: string; title: string; applications: number }[];
-  categories: { category: string; count: number }[];
-  completed: number; cancelled: number; completion_rate: number | null;
-};
-
-function Bars({ rows, fmt }: { rows: { label: string; value: number }[]; fmt?: (n: number) => string }) {
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  return (
-    <ul className="space-y-1.5">
-      {rows.map((r) => (
-        <li key={r.label} className="grid grid-cols-[84px_1fr_auto] items-center gap-2 text-xs">
-          <span className="truncate text-muted-foreground">{r.label}</span>
-          <span className="h-2.5 overflow-hidden rounded-full bg-secondary"><span className="block h-full rounded-full bg-primary" style={{ width: `${(r.value / max) * 100}%` }} /></span>
-          <span className="tabular-nums">{fmt ? fmt(r.value) : r.value}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Overview() {
-  const s = useQuery({ queryKey: ["work-admin-stats"], queryFn: () => workRpc<AStats>("work_admin_stats") });
-  const a = useQuery({ queryKey: ["work-admin-analytics"], queryFn: () => workRpc<Analytics>("work_admin_analytics") });
-  return (
-    <div className="space-y-6">
-      {s.isLoading && <Skeleton className="h-40 rounded-2xl" />}
-      {s.error && <ErrorState error={s.error} onRetry={() => s.refetch()} />}
-      {s.data && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Total client" value={s.data.clients} />
-          <Stat label="Total freelancer" value={s.data.freelancers} />
-          <Stat label="Total lowongan" value={s.data.jobs} hint={`${s.data.jobs_pending_moderation} menunggu moderasi`} />
-          <Stat label="Total lamaran" value={s.data.applications} />
-          <Stat label="Proyek aktif" value={s.data.contracts_active} />
-          <Stat label="Proyek selesai" value={s.data.contracts_completed} />
-          <Stat label="Transaksi dibayar" value={s.data.transactions} hint={rp(s.data.volume)} />
-          <Stat label="Komisi platform" value={rp(s.data.commission)} />
-          <Stat label="Sengketa aktif" value={s.data.disputes_open} />
-          <Stat label="Laporan terbuka" value={s.data.reports_open} />
-        </div>
-      )}
-      {a.isLoading && <Skeleton className="h-40 rounded-2xl" />}
-      {a.error && <ErrorState error={a.error} onRetry={() => a.refetch()} />}
-      {a.data && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card title="Volume transaksi (6 bulan)">{a.data.monthly.length ? <Bars rows={a.data.monthly.map((m) => ({ label: m.month, value: Number(m.volume) }))} fmt={rp} /> : <None />}</Card>
-          <Card title="Komisi (6 bulan)">{a.data.monthly.length ? <Bars rows={a.data.monthly.map((m) => ({ label: m.month, value: Number(m.commission) }))} fmt={rp} /> : <None />}</Card>
-          <Card title="Pertumbuhan pengguna">{a.data.user_growth.length ? <Bars rows={a.data.user_growth.map((m) => ({ label: m.month, value: Number(m.count) }))} /> : <None />}</Card>
-          <Card title="Kategori populer">{a.data.categories.length ? <Bars rows={a.data.categories.map((m) => ({ label: m.category, value: Number(m.count) }))} /> : <None />}</Card>
-          <Card title="Lowongan terpopuler">
-            {a.data.top_jobs.length ? <ul className="space-y-1 text-sm">{a.data.top_jobs.map((j) => <li key={j.id} className="flex justify-between gap-2"><Link to="/lowongan/$id" params={{ id: j.id }} className="truncate hover:text-primary">{j.title}</Link><span className="tabular-nums text-muted-foreground">{j.applications} pelamar</span></li>)}</ul> : <None />}
-          </Card>
-          <Card title="Tingkat penyelesaian proyek">
-            <p className="text-3xl font-extrabold">{a.data.completion_rate === null ? "—" : `${a.data.completion_rate}%`}</p>
-            <p className="text-xs text-muted-foreground">{a.data.completed} selesai · {a.data.cancelled} dibatalkan</p>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <section className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border"><h3 className="mb-3 text-sm font-extrabold">{title}</h3>{children}</section>;
-const None = () => <p className="text-sm text-muted-foreground">Belum ada data.</p>;
 
 /* ---------- Rekonsiliasi ---------- */
 type Rec = { kind: string; ref_id: string; detail: string };
