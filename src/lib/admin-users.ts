@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import { errMsg } from "@/lib/market";
 import { useAskAdmin } from "@/lib/admin-ask";
 import { sb } from "@/lib/admin-db";
+import { TIER_META, type VerifiedTier } from "@/lib/verification-tier";
+
+/** Fungsi database belum dibuat (perubahan SQL belum diterapkan). */
+function isMissingFunction(e: { code?: string; message?: string }) {
+  return e.code === "PGRST202" || e.code === "42883" || /could not find the function|does not exist/i.test(e.message ?? "");
+}
 
 export type UserRow = {
   id: string;
@@ -42,8 +48,22 @@ export function useUserActions() {
     return true;
   }
 
-  function toggleVerified(u: { id: string; is_verified?: boolean | null }) {
-    return act(u.id, u.is_verified ? "Centang biru dicabut" : "Developer diverifikasi", () => sb.rpc("admin_set_verified", { _user: u.id, _verified: !u.is_verified }));
+  /** Beri centang biru / hijau / merah, atau cabut (tier = null). Akun apa pun boleh, tidak harus developer. */
+  function setTier(u: { id: string }, tier: VerifiedTier | null) {
+    const ok = tier ? `Centang ${TIER_META[tier].colorName} diberikan (${TIER_META[tier].label})` : "Centang dicabut";
+    return act(u.id, ok, async () => {
+      const r = await sb.rpc("admin_set_verified_tier", { _user: u.id, _tier: tier });
+      if (r.error && isMissingFunction(r.error)) {
+        // docs/sql/0010 belum diterapkan: biru dan cabut masih bisa lewat fungsi lama; hijau dan merah belum.
+        if (tier === null || tier === "verified") return sb.rpc("admin_set_verified", { _user: u.id, _verified: tier === "verified" });
+        return { error: { message: "Centang hijau dan merah butuh perubahan database dari docs/sql/0010_tingkat_centang.sql. Terapkan lewat Lovable dulu." } };
+      }
+      // Catatan audit hanya pelengkap: gagal mencatat tidak membatalkan centangnya.
+      if (!r.error) {
+        try { await sb.rpc("admin_log_event", { _action: tier ? `user_tier_${tier}` : "user_tier_removed", _target_type: "profile", _target_id: u.id, _note: tier ?? "" }); } catch { /* abaikan */ }
+      }
+      return r;
+    });
   }
 
   async function toggleBan(u: { id: string; username: string }, banned: boolean) {
@@ -76,5 +96,5 @@ export function useUserActions() {
     });
   }
 
-  return { busy, toggleVerified, toggleBan, toggleAdmin, setType };
+  return { busy, setTier, toggleBan, toggleAdmin, setType };
 }

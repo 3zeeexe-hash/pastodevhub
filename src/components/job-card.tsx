@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, Building2, CalendarClock, Users, Wallet } from "lucide-react";
+import { ArrowRight, Building2, CalendarClock, Users, Wallet } from "lucide-react";
 import { timeAgo } from "@/lib/auth";
 import {
   APPLICATION_STATUS_LABEL, JOB_STATUS_LABEL, budgetLabel, jobCategoryLabel, jobTypeLabel, workModeLabel,
   type ApplicationStatus, type JobCardData, type JobStatus,
 } from "@/lib/jobs";
 import { AvatarMini } from "@/components/avatar-mini";
+import { VerifiedBadge } from "@/components/verified-badge";
 import jobImage from "@/assets/lowongan-job.jpg";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,7 @@ export function JobCard({ j, compact = false }: { j: JobCardData; compact?: bool
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
             <Building2 className="size-4 shrink-0" />
             <span className="truncate">{clientName}</span>
-            {j.client?.is_verified && <BadgeCheck className="size-4 shrink-0 text-link" aria-label="Terverifikasi" />}
+            <VerifiedBadge username={j.client?.username} verified={j.client?.is_verified} size={16} />
           </p>
           <p className="mt-0.5 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-foreground/80">
             <Wallet className="mt-0.5 size-4 shrink-0" />

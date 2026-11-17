@@ -3,7 +3,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  Ban, BadgeCheck, Briefcase, Code2, Copy, ExternalLink, Flag, MessageCircle, Newspaper, ShieldCheck, Shield, UserCog, Wallet, type LucideIcon,
+  Ban, Briefcase, Code2, Copy, ExternalLink, Flag, MessageCircle, Newspaper, ShieldCheck, Shield, UserCog, Wallet, type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { timeAgo, useAuth } from "@/lib/auth";
@@ -14,6 +14,8 @@ import { useUserActions } from "@/lib/admin-users";
 import { cn } from "@/lib/utils";
 import { AvatarMini } from "@/components/avatar-mini";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifiedTierButton } from "@/components/verified-tier-menu";
+import { TIER_META, asTier, type VerifiedTier } from "@/lib/verification-tier";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -246,6 +248,8 @@ export function UserDetailSheet({ userId, onClose }: { userId: string | null; on
 
   const d = profileQ.data;
   const p = d?.p;
+  /** Tingkat centang akun ini; centang lama tanpa tingkat dianggap biru. */
+  const tier: VerifiedTier | null = p ? asTier(p.verified_tier) ?? (p.is_verified ? "verified" : null) : null;
   const c = countsQ.data;
   const isMe = !!userId && userId === me?.id;
   const banned = !!d?.ban;
@@ -265,7 +269,7 @@ export function UserDetailSheet({ userId, onClose }: { userId: string | null; on
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-lg">
                     <span className="truncate">{p.display_name || p.username}</span>
-                    <VerifiedBadge verified={!!p.is_verified} size={16} />
+                    <VerifiedBadge tier={tier} verified={!!tier} size={16} />
                     {d.isAdmin && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">Admin</span>}
                     {banned && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">Diblokir</span>}
                   </SheetTitle>
@@ -277,9 +281,7 @@ export function UserDetailSheet({ userId, onClose }: { userId: string | null; on
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline"><ALink to="/$username" params={{ username: p.username }}><ExternalLink /> Profil publik</ALink></Button>
                 <Button size="sm" variant="outline" onClick={() => { void navigator.clipboard?.writeText(p.id); toast.success("ID akun disalin"); }}><Copy /> Salin ID</Button>
-                {p.account_type === "developer" && (
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => actions.toggleVerified({ id: p.id, is_verified: p.is_verified })}><BadgeCheck /> {p.is_verified ? "Cabut centang biru" : "Beri centang biru"}</Button>
-                )}
+                <VerifiedTierButton current={tier} disabled={busy} onPick={(t) => actions.setTier({ id: p.id }, t)} />
                 <Button size="sm" variant="outline" disabled={busy} onClick={() => actions.setType({ id: p.id }, p.account_type === "developer" ? "client" : "developer")}><UserCog /> Jadikan {p.account_type === "developer" ? "Client" : "Developer"}</Button>
                 <Button size="sm" variant="outline" disabled={busy || isMe} onClick={() => actions.toggleAdmin({ id: p.id, username: p.username }, d.isAdmin)}>{d.isAdmin ? <Shield /> : <ShieldCheck />} {d.isAdmin ? "Cabut admin" : "Jadikan admin"}</Button>
                 <Button size="sm" variant={banned ? "outline" : "destructive"} disabled={busy || isMe} onClick={() => actions.toggleBan({ id: p.id, username: p.username }, banned)}><Ban /> {banned ? "Buka blokir" : "Blokir akun"}</Button>
@@ -312,7 +314,7 @@ export function UserDetailSheet({ userId, onClose }: { userId: string | null; on
                     {([
                       ["Nama tampilan", p.display_name], ["Username", `@${p.username}`], ["Headline", p.headline], ["Perusahaan", p.company],
                       ["Lokasi", p.location], ["Bergabung", when(p.created_at)], ["Tersedia untuk kerja", p.available_for_hire ? "Ya" : "Tidak"],
-                      ["Terverifikasi", p.is_verified ? `Ya${p.verified_at ? ` (${new Date(p.verified_at).toLocaleDateString("id-ID")})` : ""}` : "Belum"],
+                      ["Centang verifikasi", tier ? `${TIER_META[tier].label} (centang ${TIER_META[tier].colorName})${p.verified_at ? `, sejak ${new Date(p.verified_at).toLocaleDateString("id-ID")}` : ""}` : "Belum"],
                     ] as [string, string | null][]).map(([k, v]) => (
                       <div key={k}><dt className="text-xs text-muted-foreground">{k}</dt><dd className="break-words">{v || "—"}</dd></div>
                     ))}
