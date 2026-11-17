@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, MessageCircle, Pencil, Share2, Star, Wrench } from "lucide-react";
+import {
+  Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, Clock, FileText, ListOrdered, MessageCircle,
+  Package, Pencil, PlusCircle, RefreshCw, Ruler, Share2, ShieldCheck, Star, Wrench, type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { openChatDock } from "@/lib/chat-dock";
@@ -13,11 +16,11 @@ import { categoryLabel, formatRupiah } from "@/lib/market";
 import { serviceShareUrl } from "@/lib/services-explore";
 import { useSiteConfig } from "@/lib/use-site-config";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AvatarMini } from "@/components/avatar-mini";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { FavoriteButton } from "@/components/service-explore-card";
 import { ServiceOrderPanel } from "@/components/service-order-panel";
+import { GobiLoader } from "@/components/gobi-loader";
 import { Markdown } from "@/components/markdown";
 import { SignInCta } from "@/components/sign-in-cta";
 import { getSeoInfo } from "@/lib/seo.functions";
@@ -41,6 +44,11 @@ const STEPS = [
 ] as const;
 
 const TIER_LABEL: Record<string, string> = { basic: "Basic", standard: "Standard", premium: "Premium" };
+const TIER_STYLE: Record<string, string> = {
+  basic: "bg-secondary text-secondary-foreground",
+  standard: "bg-navy-soft/15 text-link",
+  premium: "bg-sun text-primary-foreground",
+};
 
 // Kolom dan tabel GOBI SERVICES belum ada di tipe Supabase hasil generate, jadi dibaca lewat looseDb dan toleran bila SQL belum diterapkan.
 type Extra = { buyer_requirements?: string; revision_terms?: string; scope_limits?: string; skills?: string[]; rating_avg?: number; rating_count?: number; orders_completed?: number; status?: string };
@@ -61,6 +69,50 @@ function Stars({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("size-3.5", i <= value ? "fill-primary text-primary" : "text-muted-foreground/40")} />)}
     </span>
   );
+}
+
+/** Bagian halaman berbentuk kartu dengan judul beribu oranye. `id` dipakai bilah navigasi bagian di atas konten. */
+function Section({ id, title, Icon, children }: { id: string; title: string; Icon: LucideIcon; children: ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-28 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="mb-4 flex items-center gap-2.5 text-lg font-bold">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Icon className="size-4" /></span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function HeroStat({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div className="min-w-0 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
+      <p className="flex items-center gap-1 truncate text-base font-bold sm:text-lg">{value}</p>
+      <p className="truncate text-[11px] text-white/60">{label}</p>
+    </div>
+  );
+}
+
+/** Menandai bagian yang sedang terlihat di layar untuk bilah navigasi bagian. Hanya jalan di browser. */
+function useActiveSection(ids: string[], ready: boolean) {
+  const [active, setActive] = useState(ids[0] ?? "");
+  const key = ids.join("|");
+  useEffect(() => {
+    if (!ready || typeof IntersectionObserver === "undefined") return;
+    const els = key.split("|").map((i) => document.getElementById(i)).filter((e): e is HTMLElement => !!e);
+    if (!els.length) return;
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (vis[0]) setActive(vis[0].target.id);
+    }, { rootMargin: "-112px 0px -55% 0px" });
+    els.forEach((e) => io.observe(e));
+    return () => io.disconnect();
+  }, [key, ready]);
+  return active;
+}
+
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
 
 function JasaDetail() {
@@ -114,11 +166,29 @@ function JasaDetail() {
     },
   });
 
-  if (isLoading) return <main className="mx-auto max-w-6xl px-4 py-12 text-muted-foreground">Memuat…</main>;
+  // Bilah navigasi bagian hanya memuat bagian yang benar-benar ada isinya. Hook ini harus dipanggil sebelum return dini di bawah.
+  const terms = s as (typeof s & Extra) | null | undefined;
+  const hasTerms = !!(terms?.buyer_requirements || terms?.revision_terms || terms?.scope_limits);
+  const navSections = [
+    ...(extra.data?.packages.length ? [{ id: "paket", label: "Paket" }] : []),
+    { id: "deskripsi", label: "Deskripsi" },
+    ...(extra.data?.addons.length ? [{ id: "addon", label: "Add-on" }] : []),
+    ...(hasTerms ? [{ id: "ketentuan", label: "Ketentuan" }] : []),
+    ...(extra.data?.faqs.length ? [{ id: "faq", label: "FAQ" }] : []),
+    { id: "ulasan", label: "Ulasan" },
+    { id: "cara-pesan", label: "Cara pesan" },
+  ];
+  const activeSection = useActiveSection(navSections.map((n) => n.id), !!s && !extra.isLoading);
+
+  if (isLoading) return <GobiLoader page />;
   if (!s) return (
     <main className="mx-auto max-w-6xl px-4 py-12">
-      <p>Jasa tidak ditemukan.</p>
-      <Button asChild variant="secondary" className="mt-4"><Link to="/jasa">Lihat semua jasa</Link></Button>
+      <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-8 text-center">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary"><Wrench className="size-7" /></span>
+        <h1 className="mt-4 text-xl font-bold">Jasa tidak ditemukan</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Jasa ini mungkin sudah dihapus, disembunyikan, atau tautannya salah.</p>
+        <Button asChild className="mt-5 rounded-full"><Link to="/jasa">Lihat semua jasa</Link></Button>
+      </div>
     </main>
   );
   const x = s as typeof s & Extra;
@@ -129,15 +199,19 @@ function JasaDetail() {
   const faqs = extra.data?.faqs ?? [];
   const reviews = extra.data?.reviews ?? [];
   const images = [...(s.cover_url ? [s.cover_url] : []), ...(extra.data?.gallery ?? [])];
+  const cur = images[img] ? img : 0;
+  const goImg = (d: number) => setImg((cur + d + images.length) % images.length);
   const pkg = packages.find((p) => p.id === pkgId) ?? null;
   const fromPrice = packages.length ? Math.min(...packages.map((p) => p.price)) : s.price_from;
   const ratingCount = x.rating_count ?? 0;
+  const ratingAvg = Number(x.rating_avg ?? 0);
   const skills = x.skills ?? [];
   const hiddenNotice = isOwner && x.status && x.status !== "published";
+  const favReady = !user || fav.data !== undefined;
 
   function choosePackage(p: Pkg) {
     setPkgId(p.id);
-    document.getElementById("order-panel")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    scrollToId("order-panel");
   }
 
   async function askDeveloper() {
@@ -165,187 +239,280 @@ function JasaDetail() {
   }
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-x-8 gap-y-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:py-8">
-      <section className="min-w-0 lg:col-start-1 lg:row-start-1">
-        {hiddenNotice && <p className="mb-3 rounded-lg border border-border bg-muted p-3 text-sm">Jasa ini belum tampil di marketplace (status: {x.status}). Hanya kamu yang bisa melihat halaman ini.</p>}
-        <div className="aspect-video overflow-hidden rounded-xl border border-border bg-hero">
-          {images[img] ? <img src={images[img]} alt={s.title} className="size-full object-cover" /> : <div className="flex size-full items-center justify-center"><Wrench className="size-16 text-primary/70" /></div>}
+    <main className="mx-auto max-w-6xl px-4 py-4 sm:py-6 lg:py-8">
+      {hiddenNotice && <p role="status" className="mb-4 rounded-xl border border-warning/40 bg-warning/15 p-3 text-sm">Jasa ini belum tampil di marketplace (status: {x.status}). Hanya kamu yang bisa melihat halaman ini.</p>}
+
+      {/* Kepala: kartu biru tua bergaya GOBI dengan judul, ringkasan, keahlian, angka penting, penjual, dan aksi. */}
+      <header className="relative overflow-hidden rounded-3xl bg-header-gradient p-5 pb-7 text-white shadow-lg ring-1 ring-white/10 sm:p-8 sm:pb-10">
+        <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-primary/25 blur-3xl" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-16 size-60 rounded-full bg-navy-soft/40 blur-3xl" />
+        <div className="relative">
+          <nav aria-label="Jejak halaman" className="flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/70">
+            <Link to="/jasa" className="rounded px-0.5 hover:text-white">Jasa</Link>
+            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate font-semibold text-primary-glow">{categoryLabel(s.category)}</span>
+          </nav>
+          <h1 className="mt-3 max-w-3xl text-balance text-2xl font-bold leading-tight sm:text-3xl lg:text-4xl">{s.title}</h1>
+          {s.summary && <p className="mt-3 max-w-3xl text-sm text-white/75 sm:text-base">{s.summary}</p>}
+          {skills.length > 0 && (
+            <ul className="mt-4 flex flex-wrap gap-1.5" aria-label="Keahlian">
+              {skills.map((k) => <li key={k} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90 ring-1 ring-white/15">{k}</li>)}
+            </ul>
+          )}
+
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-xl">
+            <HeroStat
+              value={ratingCount > 0 ? <><Star className="size-4 shrink-0 fill-primary text-primary" />{ratingAvg.toFixed(1)}</> : "Baru"}
+              label={ratingCount > 0 ? `${ratingCount} ulasan` : "Belum ada ulasan"}
+            />
+            <HeroStat value={<><CheckCircle2 className="size-4 shrink-0 text-primary-glow" />{x.orders_completed ?? 0}</>} label="Pesanan selesai" />
+            <HeroStat value={<><Clock className="size-4 shrink-0 text-primary-glow" />{pkg?.delivery_days ?? s.delivery_days} hari</>} label={pkg ? "Estimasi paket" : "Estimasi"} />
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            {s.owner ? (
+              <Link to="/$username" params={{ username: s.owner.username }} className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full bg-white/10 py-1 pl-1 pr-4 ring-1 ring-white/10 transition hover:bg-white/15">
+                <AvatarMini name={s.owner.username} url={s.owner.avatar_url} size={32} />
+                <span className="min-w-0 text-sm">
+                  <span className="block text-[11px] leading-none text-white/60">Oleh</span>
+                  <b className="flex items-center gap-1"><span className="truncate">{s.owner.display_name || s.owner.username}</span><VerifiedBadge username={s.owner.username} verified={!!(s.owner as { is_verified?: boolean }).is_verified} size={14} /></b>
+                </span>
+              </Link>
+            ) : <span />}
+            <div className="flex flex-wrap gap-2">
+              {!isOwner && favReady && <FavoriteButton key={`${id}-${fav.data}`} serviceId={s.id} ownerId={s.owner_id} initial={fav.data ?? false} label className="h-9" />}
+              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={share}><Share2 /> Bagikan</Button>
+            </div>
+          </div>
         </div>
-        {images.length > 1 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-            {images.map((u, i) => (
-              <button key={u} type="button" onClick={() => setImg(i)} aria-label={`Gambar ${i + 1}`} aria-current={i === img}
-                className={cn("aspect-video w-24 shrink-0 overflow-hidden rounded-md border bg-muted", i === img ? "border-primary" : "border-border")}>
-                <img src={u} alt="" loading="lazy" className="size-full object-cover" />
+        <div aria-hidden className="batik-line absolute inset-x-0 bottom-0" />
+      </header>
+
+      <div className="mt-6 grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Galeri */}
+        <section aria-label="Galeri jasa" className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-hero">
+            {images[cur] ? <img src={images[cur]} alt={s.title} className="size-full object-cover" /> : <div className="flex size-full items-center justify-center"><Wrench className="size-16 text-primary/70" /></div>}
+            {images.length > 1 && (
+              <>
+                <button type="button" onClick={() => goImg(-1)} aria-label="Gambar sebelumnya" className="absolute left-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-navy/70 text-white backdrop-blur transition hover:bg-navy"><ChevronLeft className="size-5" /></button>
+                <button type="button" onClick={() => goImg(1)} aria-label="Gambar berikutnya" className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-navy/70 text-white backdrop-blur transition hover:bg-navy"><ChevronRight className="size-5" /></button>
+                <span className="absolute bottom-2 right-2 rounded-full bg-navy/70 px-2.5 py-1 font-mono text-xs text-white backdrop-blur">{cur + 1}/{images.length}</span>
+              </>
+            )}
+          </div>
+          {images.length > 1 && (
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              {images.map((u, i) => (
+                <button key={u} type="button" onClick={() => setImg(i)} aria-label={`Gambar ${i + 1}`} aria-current={i === cur}
+                  className={cn("aspect-video w-24 shrink-0 overflow-hidden rounded-lg border-2 bg-muted transition", i === cur ? "border-primary" : "border-transparent opacity-70 hover:opacity-100")}>
+                  <img src={u} alt="" loading="lazy" className="size-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Di layar kecil kartu pesan tampil tepat di bawah galeri, bukan di dasar halaman. */}
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto">
+          <div id="order-panel" className="scroll-mt-20 overflow-hidden rounded-2xl border border-border bg-card shadow-glow">
+            <div className="relative overflow-hidden bg-header-gradient p-5 text-white">
+              <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-primary/25 blur-2xl" />
+              <p className="relative text-xs font-medium uppercase tracking-wider text-white/70">{pkg ? `Paket ${TIER_LABEL[pkg.tier] ?? pkg.tier}` : "Mulai dari"}</p>
+              <p className="relative mt-1 text-3xl font-bold text-primary-glow">{formatRupiah(pkg ? pkg.price : fromPrice, "Nego")}</p>
+              {pkg && <p className="relative mt-1 text-xs text-white/70">{pkg.name} · {pkg.delivery_days} hari · {pkg.revisions} revisi</p>}
+            </div>
+            <div className="p-5">
+              {isOwner ? (
+                <Button asChild variant="secondary" className="w-full"><Link to="/studio/jasa/$id" params={{ id: s.id }}><Pencil /> Edit jasa</Link></Button>
+              ) : !user ? (
+                <SignInCta text="Masuk untuk memesan jasa ini." />
+              ) : (
+                <>
+                  <ServiceOrderPanel service={{ id: s.id, title: s.title }} packages={packages} addons={addons} selectedPkgId={pkgId} onSelectPackage={setPkgId} fromPrice={fromPrice} />
+                  {chatOn && s.owner && (
+                    <Button type="button" variant="outline" className="mt-3 w-full rounded-full" disabled={asking} onClick={askDeveloper}><MessageCircle /> {asking ? "Membuka chat…" : "Tanya developer dulu"}</Button>
+                  )}
+                </>
+              )}
+              {!isOwner && (
+                <ul className="mt-4 space-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
+                  <li className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" /> Dana aman di escrow sampai kamu menerima hasil</li>
+                  <li className="flex items-start gap-2"><RefreshCw className="mt-0.5 size-4 shrink-0 text-success" /> Revisi sesuai jatah paket</li>
+                  <li className="flex items-start gap-2"><MessageCircle className="mt-0.5 size-4 shrink-0 text-success" /> Chat langsung dengan developer selama pengerjaan</li>
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {s.owner && (
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+              <Link to="/$username" params={{ username: s.owner.username }} className="flex items-center gap-3 hover:text-primary">
+                <AvatarMini name={s.owner.username} url={s.owner.avatar_url} size={52} />
+                <span className="min-w-0">
+                  <b className="flex items-center gap-1"><span className="truncate">{s.owner.display_name || s.owner.username}</span><VerifiedBadge username={s.owner.username} verified={!!(s.owner as { is_verified?: boolean }).is_verified} size={14} /></b>
+                  <span className="block truncate text-xs text-muted-foreground">{s.owner.headline || `@${s.owner.username}`}</span>
+                </span>
+              </Link>
+              {seller.data && (
+                <dl className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-xl bg-muted px-2 py-2"><dt className="text-[11px] text-muted-foreground">Jasa aktif</dt><dd className="font-bold">{seller.data.services}</dd></div>
+                  <div className="rounded-xl bg-muted px-2 py-2"><dt className="text-[11px] text-muted-foreground">Selesai</dt><dd className="font-bold">{seller.data.completed}</dd></div>
+                  <div className="rounded-xl bg-muted px-2 py-2"><dt className="text-[11px] text-muted-foreground">Rating</dt><dd className="flex items-center justify-center gap-0.5 font-bold">{seller.data.reviews > 0 ? <><Star className="size-3 fill-primary text-primary" />{seller.data.rating.toFixed(1)}</> : "—"}</dd></div>
+                </dl>
+              )}
+              {(seller.data?.portfolio.length ?? 0) > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold">Portofolio</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {seller.data!.portfolio.map((p) => (
+                      <Link key={p.id} to="/$username" params={{ username: s.owner!.username }} search={{ tab: "portofolio" }} title={p.title} className="aspect-video overflow-hidden rounded-lg border border-border bg-muted transition hover:border-primary">
+                        {p.image_url ? <img src={p.image_url} alt={p.title} loading="lazy" className="size-full object-cover" /> : <span className="flex size-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">{p.title}</span>}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild size="sm" variant="outline" className="rounded-full"><Link to="/$username" params={{ username: s.owner.username }} search={{ tab: "jasa" }}>Semua jasa</Link></Button>
+                <Button asChild size="sm" variant="secondary" className="rounded-full"><Link to="/$username" params={{ username: s.owner.username }}>Lihat profil</Link></Button>
+              </div>
+            </div>
+          )}
+        </aside>
+
+        <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
+          {/* Navigasi bagian: lengket di bawah header situs, bisa digeser ke samping di layar sempit. */}
+          <nav aria-label="Bagian halaman" className="sticky top-14 z-20 -mx-1 flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card/95 p-1.5 shadow-sm backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {navSections.map((n) => (
+              <button key={n.id} type="button" onClick={() => scrollToId(n.id)} aria-current={activeSection === n.id ? "true" : undefined}
+                className={cn("shrink-0 rounded-xl px-3.5 py-1.5 text-sm font-semibold transition", activeSection === n.id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+                {n.label}
               </button>
             ))}
-          </div>
-        )}
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full bg-primary/15 px-2.5 py-1 font-medium text-primary">{categoryLabel(s.category)}</span>
-          <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><Clock className="size-3.5" /> Estimasi {pkg?.delivery_days ?? s.delivery_days} hari</span>
-          {ratingCount > 0 && <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><Star className="size-3.5 fill-primary text-primary" /> {Number(x.rating_avg ?? 0).toFixed(1)} ({ratingCount} ulasan)</span>}
-          {(x.orders_completed ?? 0) > 0 && <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><CheckCircle2 className="size-3.5" /> {x.orders_completed} pesanan selesai</span>}
-        </div>
-        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{s.title}</h1>
-        {s.summary && <p className="mt-2 text-base text-muted-foreground sm:text-lg">{s.summary}</p>}
-        {skills.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{skills.map((k) => <Badge key={k} variant="secondary">{k}</Badge>)}</div>}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {!isOwner && fav.data !== undefined && <FavoriteButton key={`${id}-${fav.data}`} serviceId={s.id} ownerId={s.owner_id} initial={fav.data} label className="h-9" />}
-          {!isOwner && !user && <FavoriteButton serviceId={s.id} ownerId={s.owner_id} initial={false} label className="h-9" />}
-          <Button type="button" variant="outline" size="sm" className="h-9 rounded-full" onClick={share}><Share2 /> Bagikan</Button>
-        </div>
-      </section>
+          </nav>
 
-      {/* Di layar kecil kartu pesan tampil tepat di bawah judul, bukan di dasar halaman. */}
-      <aside className="space-y-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-        <div id="order-panel" className="scroll-mt-20 rounded-xl border border-border bg-card p-5 shadow-glow">
-          <p className="text-sm text-muted-foreground">{pkg ? `Paket ${TIER_LABEL[pkg.tier] ?? pkg.tier}` : "Mulai dari"}</p>
-          <p className="text-3xl font-bold text-primary">{formatRupiah(pkg ? pkg.price : fromPrice, "Nego")}</p>
-          {isOwner ? (
-            <Button asChild variant="secondary" className="mt-4 w-full"><Link to="/studio/jasa/$id" params={{ id: s.id }}><Pencil /> Edit jasa</Link></Button>
-          ) : !user ? (
-            <div className="mt-4"><SignInCta text="Masuk untuk memesan jasa ini." /></div>
-          ) : (
-            <>
-              <ServiceOrderPanel service={{ id: s.id, title: s.title }} packages={packages} addons={addons} selectedPkgId={pkgId} onSelectPackage={setPkgId} fromPrice={fromPrice} />
-              {chatOn && s.owner && (
-                <Button type="button" variant="outline" className="mt-3 w-full" disabled={asking} onClick={askDeveloper}><MessageCircle /> {asking ? "Membuka chat…" : "Tanya developer dulu"}</Button>
-              )}
-            </>
+          {packages.length > 0 && (
+            <Section id="paket" title="Pilih paket" Icon={Package}>
+              <ul className="space-y-3">
+                {packages.map((p) => {
+                  const on = pkgId === p.id;
+                  return (
+                    <li key={p.id} className={cn("rounded-2xl border bg-card p-4 transition sm:p-5", on ? "border-primary shadow-glow ring-2 ring-primary/30" : "border-border hover:border-primary/50")}>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide", TIER_STYLE[p.tier] ?? "bg-secondary text-secondary-foreground")}>{TIER_LABEL[p.tier] ?? p.tier}</span>
+                            <h3 className="min-w-0 break-words font-semibold">{p.name}</h3>
+                          </div>
+                          {p.description && <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>}
+                          {(p.features ?? []).length > 0 && (
+                            <ul className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+                              {p.features.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{f}</span></li>)}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col gap-2 border-t border-border pt-3 sm:w-44 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+                          <p className="text-2xl font-bold text-primary">{formatRupiah(p.price, "—")}</p>
+                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock className="size-3.5" /> {p.delivery_days} hari pengerjaan</p>
+                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><RefreshCw className="size-3.5" /> {p.revisions} revisi</p>
+                          {p.work_limit && <p className="flex items-start gap-1.5 text-xs text-muted-foreground"><Ruler className="mt-0.5 size-3.5 shrink-0" /> <span className="min-w-0 break-words">{p.work_limit}</span></p>}
+                          {!isOwner && user && <Button type="button" size="sm" variant={on ? "default" : "outline"} className="mt-1 rounded-full" onClick={() => choosePackage(p)}>{on ? <><Check /> Terpilih</> : "Pilih paket"}</Button>}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Section>
           )}
-        </div>
-        {s.owner && (
-          <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-            <Link to="/$username" params={{ username: s.owner.username }} className="flex items-center gap-3 hover:text-primary">
-              <AvatarMini name={s.owner.username} url={s.owner.avatar_url} size={44} />
-              <span className="min-w-0">
-                <b className="flex items-center gap-1"><span className="truncate">{s.owner.display_name || s.owner.username}</span><VerifiedBadge username={s.owner.username} verified={!!(s.owner as { is_verified?: boolean }).is_verified} size={14} /></b>
-                <span className="block truncate text-xs text-muted-foreground">{s.owner.headline || `@${s.owner.username}`}</span>
-              </span>
-            </Link>
-            {seller.data && (
-              <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span>{seller.data.services} jasa aktif</span>
-                {seller.data.completed > 0 && <span>{seller.data.completed} pesanan selesai</span>}
-                {seller.data.reviews > 0 && <span className="inline-flex items-center gap-0.5"><Star className="size-3 fill-primary text-primary" />{seller.data.rating.toFixed(1)} ({seller.data.reviews})</span>}
-              </p>
-            )}
-            {(seller.data?.portfolio.length ?? 0) > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium">Portofolio</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {seller.data!.portfolio.map((p) => (
-                    <Link key={p.id} to="/$username" params={{ username: s.owner!.username }} search={{ tab: "portofolio" }} title={p.title} className="aspect-video overflow-hidden rounded-md border border-border bg-muted">
-                      {p.image_url ? <img src={p.image_url} alt={p.title} loading="lazy" className="size-full object-cover" /> : <span className="flex size-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">{p.title}</span>}
-                    </Link>
-                  ))}
+
+          <Section id="deskripsi" title="Tentang jasa ini" Icon={FileText}>
+            {s.description ? <Markdown>{s.description}</Markdown> : <p className="text-sm text-muted-foreground">Belum ada deskripsi.</p>}
+          </Section>
+
+          {addons.length > 0 && (
+            <Section id="addon" title="Add-on" Icon={PlusCircle}>
+              <ul className="divide-y divide-border text-sm">
+                {addons.map((a) => (
+                  <li key={a.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                    <span className="min-w-0"><b>{a.name}</b>{a.description && <span className="block text-muted-foreground">{a.description}</span>}</span>
+                    <span className="shrink-0 text-muted-foreground"><b className="text-base text-primary">{formatRupiah(a.price, "—")}</b>{a.extra_days > 0 && ` · +${a.extra_days} hari`}{a.extra_revisions > 0 && ` · +${a.extra_revisions} revisi`}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {hasTerms && (
+            <Section id="ketentuan" title="Ketentuan pesanan" Icon={ClipboardList}>
+              <div className="grid gap-3 text-sm">
+                {x.buyer_requirements && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><ClipboardList className="size-4 text-primary" /> Yang perlu kamu siapkan</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.buyer_requirements}</p></div>}
+                {x.revision_terms && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><RefreshCw className="size-4 text-primary" /> Ketentuan revisi</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.revision_terms}</p></div>}
+                {x.scope_limits && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><Ruler className="size-4 text-primary" /> Batas ruang lingkup</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.scope_limits}</p></div>}
+              </div>
+            </Section>
+          )}
+
+          {faqs.length > 0 && (
+            <Section id="faq" title="Pertanyaan umum" Icon={CircleHelp}>
+              <div className="divide-y divide-border">
+                {faqs.map((q) => (
+                  <details key={q.id} className="group py-3 first:pt-0 last:pb-0">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-0 break-words">{q.question}</span>
+                      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition group-open:rotate-180" aria-hidden />
+                    </summary>
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{q.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <Section id="ulasan" title="Ulasan pembeli" Icon={Star}>
+            {ratingCount > 0 && (
+              <div className="mb-4 flex items-center gap-4 rounded-xl bg-muted p-4">
+                <p className="text-4xl font-bold text-primary">{ratingAvg.toFixed(1)}</p>
+                <div>
+                  <Stars value={Math.round(ratingAvg)} />
+                  <p className="mt-1 text-xs text-muted-foreground">dari {ratingCount} ulasan</p>
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm" variant="outline"><Link to="/$username" params={{ username: s.owner.username }} search={{ tab: "jasa" }}>Semua jasa</Link></Button>
-              <Button asChild size="sm" variant="ghost"><Link to="/$username" params={{ username: s.owner.username }}>Profil</Link></Button>
-            </div>
-          </div>
-        )}
-      </aside>
+            {reviews.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada ulasan. Ulasan hanya datang dari pembeli yang pesanannya sudah selesai.</p> : (
+              <ul className="divide-y divide-border">
+                {reviews.map((r) => (
+                  <li key={r.id} className="py-4 text-sm first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <AvatarMini name={r.buyer?.username ?? "?"} url={r.buyer?.avatar_url ?? null} size={28} />
+                      <b className="min-w-0 truncate">{r.buyer?.display_name || r.buyer?.username || "Pembeli"}</b>
+                      <Stars value={r.rating} />
+                      <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    </div>
+                    {r.comment && <p className="mt-2 whitespace-pre-wrap break-words">{r.comment}</p>}
+                    {r.seller_reply && <p className="mt-2 rounded-lg border-l-2 border-primary bg-muted p-3 text-muted-foreground"><b className="text-foreground">Balasan penjual:</b> {r.seller_reply}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
 
-      <section className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
-        {packages.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Pilih paket</h2>
-            <div className={cn("grid gap-3", packages.length === 3 && "sm:grid-cols-3")}>
-              {packages.map((p) => (
-                <div key={p.id} className={cn("flex flex-col rounded-lg border bg-card p-4 text-sm", pkgId === p.id ? "border-primary ring-1 ring-primary" : "border-border")}>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">{TIER_LABEL[p.tier] ?? p.tier}</p>
-                  <p className="font-semibold">{p.name}</p>
-                  <p className="text-xl font-bold text-primary">{formatRupiah(p.price, "—")}</p>
-                  <p className="text-xs text-muted-foreground">{p.delivery_days} hari · {p.revisions} revisi{p.work_limit ? ` · ${p.work_limit}` : ""}</p>
-                  {p.description && <p className="mt-2">{p.description}</p>}
-                  {(p.features ?? []).length > 0 && <ul className="mt-2 list-disc space-y-0.5 pl-4">{p.features.map((f) => <li key={f}>{f}</li>)}</ul>}
-                  {!isOwner && user && <Button type="button" size="sm" variant={pkgId === p.id ? "default" : "outline"} className="mt-auto" onClick={() => choosePackage(p)}>{pkgId === p.id ? "Terpilih" : "Pilih paket"}</Button>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-lg border border-border bg-card p-6">
-          {s.description ? <Markdown>{s.description}</Markdown> : <p className="text-sm text-muted-foreground">Belum ada deskripsi.</p>}
-        </div>
-
-        {addons.length > 0 && (
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Add-on</h2>
-            <ul className="mt-3 space-y-2 text-sm">
-              {addons.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="min-w-0"><b>{a.name}</b>{a.description && <span className="text-muted-foreground"> — {a.description}</span>}</span>
-                  <span className="shrink-0 text-muted-foreground"><b className="text-foreground">{formatRupiah(a.price, "—")}</b>{a.extra_days > 0 && ` · +${a.extra_days} hari`}{a.extra_revisions > 0 && ` · +${a.extra_revisions} revisi`}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {(x.buyer_requirements || x.revision_terms || x.scope_limits) && (
-          <div className="space-y-3 rounded-lg border border-border bg-card p-6 text-sm">
-            {x.buyer_requirements && <div><h2 className="font-semibold">Yang perlu kamu siapkan</h2><p className="mt-1 whitespace-pre-wrap text-muted-foreground">{x.buyer_requirements}</p></div>}
-            {x.revision_terms && <div><h2 className="font-semibold">Ketentuan revisi</h2><p className="mt-1 whitespace-pre-wrap text-muted-foreground">{x.revision_terms}</p></div>}
-            {x.scope_limits && <div><h2 className="font-semibold">Batas ruang lingkup</h2><p className="mt-1 whitespace-pre-wrap text-muted-foreground">{x.scope_limits}</p></div>}
-          </div>
-        )}
-
-        {faqs.length > 0 && (
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Pertanyaan umum</h2>
-            <div className="mt-3 divide-y divide-border">
-              {faqs.map((q) => (
-                <details key={q.id} className="group py-2">
-                  <summary className="cursor-pointer list-none text-sm font-medium marker:hidden">{q.question}</summary>
-                  <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{q.answer}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Ulasan{ratingCount > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground">{Number(x.rating_avg ?? 0).toFixed(1)} dari {ratingCount} ulasan</span>}</h2>
-          {reviews.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Belum ada ulasan. Ulasan hanya datang dari pembeli yang pesanannya sudah selesai.</p> : (
-            <ul className="mt-3 space-y-4">
-              {reviews.map((r) => (
-                <li key={r.id} className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <AvatarMini name={r.buyer?.username ?? "?"} url={r.buyer?.avatar_url ?? null} size={24} />
-                    <b className="truncate">{r.buyer?.display_name || r.buyer?.username || "Pembeli"}</b>
-                    <Stars value={r.rating} />
-                    <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <Section id="cara-pesan" title="Cara pesan di GoBi" Icon={ListOrdered}>
+            <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-3.5 before:top-3 before:w-px before:bg-border">
+              {STEPS.map((st, i) => (
+                <li key={st.title} className="relative flex gap-3">
+                  <span className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground ring-4 ring-card">{i + 1}</span>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-sm font-semibold">{st.title}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{st.text}</p>
                   </div>
-                  {r.comment && <p className="mt-1 whitespace-pre-wrap">{r.comment}</p>}
-                  {r.seller_reply && <p className="mt-1.5 rounded-md bg-muted p-2 text-muted-foreground"><b className="text-foreground">Balasan penjual:</b> {r.seller_reply}</p>}
                 </li>
               ))}
-            </ul>
-          )}
+            </ol>
+          </Section>
         </div>
-
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Cara pesan di GoBi</h2>
-          <ol className="mt-4 space-y-4">
-            {STEPS.map((st, i) => (
-              <li key={st.title} className="flex gap-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{st.title}</p>
-                  <p className="text-sm text-muted-foreground">{st.text}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }
