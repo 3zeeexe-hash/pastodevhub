@@ -406,6 +406,21 @@ function JasaDetail() {
       return { packages, addons, faqs, gallery: gallery.filter((g) => g.url).map((g) => g.url as string), reviews };
     },
   });
+  // Ulasan lengkap: daftar bisa dimuat bertahap, dan sebaran bintang dihitung dari semua ulasan yang tampil.
+  const [reviewLimit, setReviewLimit] = useState(10);
+  const revQ = useQuery({
+    queryKey: ["service-reviews", id, reviewLimit],
+    queryFn: async () => {
+      const [list, ratings] = await Promise.all([
+        rows<Review>(looseDb.from("service_reviews").select("id,rating,comment,seller_reply,created_at,buyer:profiles!service_reviews_buyer_id_fkey(username,display_name,avatar_url)").eq("service_id", id).eq("is_visible", true).order("created_at", { ascending: false }).limit(reviewLimit)),
+        rows<{ rating: number }>(looseDb.from("service_reviews").select("rating").eq("service_id", id).eq("is_visible", true).limit(2000)),
+      ]);
+      const dist = [0, 0, 0, 0, 0];
+      for (const r of ratings) if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++;
+      return { list, dist, total: ratings.length };
+    },
+    placeholderData: (prev) => prev,
+  });
   const ownerId = s?.owner_id;
   const seller = useQuery({
     queryKey: ["service-seller-info", ownerId],
@@ -447,7 +462,9 @@ function JasaDetail() {
   const packages = extra.data?.packages ?? [];
   const addons = extra.data?.addons ?? [];
   const faqs = extra.data?.faqs ?? [];
-  const reviews = extra.data?.reviews ?? [];
+  const reviews = revQ.data?.list ?? extra.data?.reviews ?? [];
+  const dist = revQ.data?.dist ?? [0, 0, 0, 0, 0];
+  const reviewTotal = revQ.data?.total ?? 0;
   const images = [...(s.cover_url ? [s.cover_url] : []), ...(extra.data?.gallery ?? [])];
   // Selalu ada paket aktif bila jasa punya paket: tab pertama (termurah) terpilih dari awal, jadi harga di bar dan panel pesan langsung terisi.
   const selectedId = pkgId && packages.some((p) => p.id === pkgId) ? pkgId : (packages[0]?.id ?? null);
@@ -633,12 +650,27 @@ function JasaDetail() {
 
             <Disclosure id="ulasan" title="Ulasan pembeli" Icon={Star} defaultOpen badge={ratingCount > 0 ? `${ratingAvg.toFixed(1)} · ${ratingCount}` : undefined} className={RISE} style={delay(8)}>
               {ratingCount > 0 && (
-                <div className="mb-4 flex items-center gap-4 rounded-xl bg-muted p-4">
-                  <p className="text-4xl font-bold text-primary">{ratingAvg.toFixed(1)}</p>
-                  <div>
-                    <Stars value={Math.round(ratingAvg)} />
-                    <p className="mt-1 text-xs text-muted-foreground">dari {ratingCount} ulasan</p>
+                <div className="mb-4 flex flex-col gap-4 rounded-xl bg-muted p-4 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-4 sm:flex-col sm:gap-1 sm:px-3 sm:text-center">
+                    <p className="text-4xl font-bold text-primary">{ratingAvg.toFixed(1)}</p>
+                    <div>
+                      <Stars value={Math.round(ratingAvg)} />
+                      <p className="mt-1 text-xs text-muted-foreground">dari {ratingCount} ulasan</p>
+                    </div>
                   </div>
+                  {reviewTotal > 0 && (
+                    <ul className="min-w-0 flex-1 space-y-1.5" aria-label="Sebaran bintang">
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <li key={n} className="flex items-center gap-2 text-xs">
+                          <span className="flex w-6 shrink-0 items-center gap-0.5 font-medium">{n}<Star className="size-3 fill-primary text-primary" /></span>
+                          <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-background">
+                            <span className="block h-full rounded-full bg-primary" style={{ width: `${(dist[n - 1] / reviewTotal) * 100}%` }} />
+                          </span>
+                          <span className="w-6 shrink-0 text-right tabular-nums text-muted-foreground">{dist[n - 1]}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
               {reviews.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada ulasan. Ulasan hanya datang dari pembeli yang pesanannya sudah selesai.</p> : (
@@ -656,6 +688,11 @@ function JasaDetail() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {reviewTotal > reviews.length && (
+                <Button variant="outline" className="mt-4 h-11 w-full rounded-full" disabled={revQ.isFetching} onClick={() => setReviewLimit((n) => n + 10)}>
+                  {revQ.isFetching ? "Memuat…" : `Muat ulasan lainnya (${reviewTotal - reviews.length})`}
+                </Button>
               )}
             </Disclosure>
 

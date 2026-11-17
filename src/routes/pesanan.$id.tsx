@@ -23,6 +23,7 @@ import { EscrowBox } from "@/components/escrow-box";
 import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
 import { ServiceOrderSummary } from "@/components/service-order-summary";
 import { ServiceWorkflowPanel } from "@/components/service-workflow-panel";
+import { ServiceReviewBox } from "@/components/service-review-box";
 
 export const Route = createFileRoute("/pesanan/$id")({
   head: () => ({
@@ -75,6 +76,7 @@ function OrderPage() {
     qc.invalidateQueries({ queryKey: ["service-order-detail", id] });
     qc.invalidateQueries({ queryKey: ["service-workflow", id] });
     qc.invalidateQueries({ queryKey: ["service-package", id] });
+    qc.invalidateQueries({ queryKey: ["service-review", id] });
     qc.invalidateQueries({ queryKey: ["service-seller-orders"] });
   };
 
@@ -103,11 +105,11 @@ function OrderPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:py-8">
+    <main className="mx-auto max-w-3xl space-y-4 px-4 py-5 pb-28 sm:space-y-5 sm:py-8 md:pb-8">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground"><Link to="/pesanan" className="hover:underline">Pesanan</Link> / #{o.number}</p>
-          <h1 className="mt-1 text-2xl font-bold">{o.title}</h1>
+          <h1 className="mt-1 break-words text-xl font-bold sm:text-2xl">{o.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
             <OrderStatusBadge status={o.status as OrderStatus} />
             <span className="text-muted-foreground">{o.kind === "product" ? "Pembelian karya" : "Pesanan jasa"} · dibuat {timeAgo(o.created_at)}</span>
@@ -119,10 +121,23 @@ function OrderPage() {
 
       <OrderProgress status={o.status as OrderStatus} isBuyer={isBuyer} isSeller={isSeller} showSteps={o.kind === "service"} />
 
-      <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-3">
+      {/* Setelah pesanan jasa paket selesai: pop-up ulasan untuk client, kartu ulasan + balasan untuk developer. */}
+      {o.kind === "service" && pkg.data && (isBuyer || isSeller) && (
+        <ServiceReviewBox
+          orderId={o.id}
+          buyerId={o.buyer_id}
+          sellerId={o.seller_id}
+          serviceId={(o as { service_id?: string | null }).service_id ?? null}
+          serviceTitle={o.title}
+          sellerName={o.seller?.display_name || o.seller?.username || "developer"}
+          onChanged={refresh}
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-3">
         <PartyBox label="Client" p={o.buyer} />
         <PartyBox label="Developer" p={o.seller} />
-        <div><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold text-primary">{o.amount ? formatRupiah(o.amount) : "Belum ditentukan"}</p></div>
+        <div className="col-span-2 border-t border-border pt-3 sm:col-span-1 sm:border-0 sm:pt-0"><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold text-primary">{o.amount ? formatRupiah(o.amount) : "Belum ditentukan"}</p></div>
       </div>
       {o.brief && <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Kebutuhan client</h2><p className="whitespace-pre-wrap break-words text-sm">{o.brief}</p></section>}
       {showWorkflowPanel({ kind, isPackage: pkg.data }) && <ServiceWorkflowPanel orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} isAdmin={isAdmin} onChanged={refresh} />}
@@ -141,7 +156,7 @@ function OrderPage() {
         </p>
       )}
       {(actions.includes("complete") || actions.includes("cancel")) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap [&>button]:h-11 sm:[&>button]:h-9">
           {actions.includes("complete") && <Button onClick={() => run("complete_order", { _order_id: o.id }, "Pesanan selesai")}><Check /> Tandai selesai</Button>}
           {actions.includes("revise") && <Button variant="outline" onClick={() => run("request_revision", { _order_id: o.id }, "Revisi diminta")}>Minta revisi</Button>}
           {actions.includes("cancel") && <Button variant="ghost" onClick={() => { if (confirm("Batalkan pesanan ini?")) run("cancel_order", { _order_id: o.id }, "Pesanan dibatalkan"); }}><X /> Batalkan</Button>}

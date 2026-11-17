@@ -82,6 +82,15 @@ export function cancelReasonErrors(reason: string): string[] {
 
 // ---- Ulasan ----
 export const REVIEW_COMMENT_MAX = 1000;
+
+/** Keterangan di bawah bintang saat pembeli menilai. */
+export const RATING_LABEL: Record<number, string> = {
+  1: "Sangat buruk",
+  2: "Kurang baik",
+  3: "Cukup",
+  4: "Bagus",
+  5: "Sangat bagus",
+};
 export const REPLY_MIN = 2;
 export const REPLY_MAX = 1000;
 
