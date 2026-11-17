@@ -12,12 +12,13 @@ import { useSiteConfig } from "@/lib/use-site-config";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-/** Halaman tanpa menu bawah: area admin, masuk/reset sandi, dan layar chat penuh yang punya kolom ketik di bawah. */
+/** Halaman tanpa menu bawah: area admin, masuk/reset sandi, layar chat penuh yang punya kolom ketik di bawah, dan detail jasa (bar pesan lengket menggantikan menu bawah). */
 export function useMobileNavVisible() {
   const { pathname } = useLocation();
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return false;
   if (pathname === "/auth" || pathname === "/reset-password") return false;
   if (/^\/gobifeed\/pesan\/[^/]+/.test(pathname)) return false;
+  if (/^\/jasa\/[^/]+\/?$/.test(pathname)) return false;
   return true;
 }
 
