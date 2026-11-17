@@ -23,6 +23,8 @@ import { EscrowBox } from "@/components/escrow-box";
 import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
 import { ServiceOrderSummary } from "@/components/service-order-summary";
 import { ServiceWorkflowPanel } from "@/components/service-workflow-panel";
+import { ServiceCancelPanel } from "@/components/service-cancel-panel";
+import { ServiceReviewBox } from "@/components/service-review-box";
 
 export const Route = createFileRoute("/pesanan/$id")({
   head: () => ({
@@ -75,7 +77,10 @@ function OrderPage() {
     qc.invalidateQueries({ queryKey: ["service-order-detail", id] });
     qc.invalidateQueries({ queryKey: ["service-workflow", id] });
     qc.invalidateQueries({ queryKey: ["service-package", id] });
+    qc.invalidateQueries({ queryKey: ["service-cancel", id] });
+    qc.invalidateQueries({ queryKey: ["service-review", id] });
     qc.invalidateQueries({ queryKey: ["service-seller-orders"] });
+    qc.invalidateQueries({ queryKey: ["service-buyer-orders"] });
   };
 
   if (loading) return null;
@@ -96,6 +101,7 @@ function OrderPage() {
   const isBuyer = user.id === o.buyer_id;
   const isSeller = user.id === o.seller_id;
   const canPay = actions.includes("pay");
+  const isPackage = showWorkflowPanel({ kind, isPackage: pkg.data });
 
   async function run(fn: string, args: Record<string, unknown>, ok: string) {
     const { error } = await supabase.rpc(fn as "cancel_order", args as { _order_id: string });
@@ -125,7 +131,9 @@ function OrderPage() {
         <div><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold text-primary">{o.amount ? formatRupiah(o.amount) : "Belum ditentukan"}</p></div>
       </div>
       {o.brief && <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Kebutuhan client</h2><p className="whitespace-pre-wrap break-words text-sm">{o.brief}</p></section>}
-      {showWorkflowPanel({ kind, isPackage: pkg.data }) && <ServiceWorkflowPanel orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} isAdmin={isAdmin} onChanged={refresh} />}
+      {isPackage && <ServiceWorkflowPanel orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} isAdmin={isAdmin} onChanged={refresh} />}
+      {isPackage && <ServiceCancelPanel orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} onChanged={refresh} />}
+      {isPackage && <ServiceReviewBox orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} onChanged={refresh} />}
       {o.kind === "service" && <ServiceOrderSummary orderId={o.id} />}
       {o.delivery_note && <section className="rounded-lg border border-success/50 bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Catatan hasil dari developer</h2><p className="whitespace-pre-wrap break-words text-sm">{o.delivery_note}</p></section>}
       {o.admin_note && <p className="rounded-md bg-muted p-3 text-sm"><b>Catatan admin:</b> {o.admin_note}</p>}
