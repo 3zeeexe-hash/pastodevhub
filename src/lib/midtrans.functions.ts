@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { MAX_FEE_FLAT, MAX_FEE_PERCENT, computeFee, feeRuleLabel, normalizeFees } from "@/lib/midtrans-shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -13,13 +14,14 @@ const METHOD_ENUM = z.enum(["bca", "bni", "bri", "permata", "qris"]);
 
 // ---------- Buyer ----------
 
-/** Non-secret info the payment pop-up needs. */
+/** Non-secret info the payment pop-up needs. Fees are public: the buyer sees them before paying. */
 export const getMidtransPublicInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const { getMidtransConfig } = await import("@/lib/midtrans.server");
-    const c = await getMidtransConfig();
-    return { enabled: c.enabled && !!c.serverKey, mode: c.mode, methods: c.methods };
+    const m = await import("@/lib/midtrans.server");
+    const c = await m.getMidtransConfig();
+    const { fees } = await m.readFees();
+    return { enabled: c.enabled && !!c.serverKey, mode: c.mode, methods: c.methods, fees };
   });
 
 export const createMidtransCharge = createServerFn({ method: "POST" })
@@ -41,6 +43,10 @@ export const createMidtransCharge = createServerFn({ method: "POST" })
     if (order.status !== "awaiting_payment") throw new Error("Pesanan ini tidak sedang menunggu pembayaran.");
     if (!order.amount || order.amount < 1000) throw new Error("Nominal pesanan belum valid.");
 
+    // Biaya admin dihitung di server dari pengaturan admin; angka dari browser tidak pernah dipercaya.
+    const { fees } = await m.readFees();
+    const feeAmount = computeFee(fees[data.method], order.amount);
+
     const { data: prof } = await context.supabase.from("profiles").select("username,display_name").eq("id", context.userId).maybeSingle();
     const email = (context.claims as Record<string, unknown>)["email"];
     const midtransOrderId = `PD-${order.number}-${Date.now().toString(36).toUpperCase()}`;
@@ -48,6 +54,7 @@ export const createMidtransCharge = createServerFn({ method: "POST" })
     const charge = await m.createCharge(active, {
       midtransOrderId,
       amount: order.amount,
+      feeAmount,
       method: data.method,
       itemName: order.title,
       customerName: prof?.display_name || prof?.username || "Pelanggan",
@@ -56,7 +63,7 @@ export const createMidtransCharge = createServerFn({ method: "POST" })
 
     let recorded: { id: string; superseded: string[] };
     try {
-      recorded = await m.recordCharge({ orderId: order.id, buyerId: context.userId, midtransOrderId, method: data.method, amount: order.amount, mode: cfg.mode, charge });
+      recorded = await m.recordCharge({ orderId: order.id, buyerId: context.userId, midtransOrderId, method: data.method, amount: order.amount, feeAmount, mode: cfg.mode, charge });
     } catch (e) {
       await m.cancelTransaction(active, midtransOrderId); // do not leave an unrecorded payable transaction behind
       throw e;
@@ -71,6 +78,8 @@ export const createMidtransCharge = createServerFn({ method: "POST" })
       qrUrl: charge.qrUrl,
       expiresAt: charge.expiresAt,
       amount: order.amount,
+      feeAmount,
+      total: order.amount + feeAmount,
     };
   });
 
@@ -156,6 +165,26 @@ const keyField = (prefix: string, label: string) =>
     }),
   );
 
+/** Satu aturan biaya: nominal tetap (Rp) + persen dari nominal pesanan. 0 dan 0 = tanpa biaya. */
+const feeRuleField = (label: string) =>
+  z.object({
+    flat: z.number({ invalid_type_error: `Biaya tetap ${label} harus berupa angka.` })
+      .int(`Biaya tetap ${label} harus bilangan bulat (Rp).`)
+      .min(0, `Biaya tetap ${label} tidak boleh negatif.`)
+      .max(MAX_FEE_FLAT, `Biaya tetap ${label} paling banyak Rp${MAX_FEE_FLAT.toLocaleString("id-ID")}.`),
+    percent: z.number({ invalid_type_error: `Persen ${label} harus berupa angka.` })
+      .min(0, `Persen ${label} tidak boleh negatif.`)
+      .max(MAX_FEE_PERCENT, `Persen ${label} paling banyak ${MAX_FEE_PERCENT}%.`),
+  });
+
+const feesSchema = z.object({
+  bca: feeRuleField("VA BCA"),
+  bni: feeRuleField("VA BNI"),
+  bri: feeRuleField("VA BRI"),
+  permata: feeRuleField("VA Permata"),
+  qris: feeRuleField("QRIS"),
+});
+
 const midtransSettingsSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(["sandbox", "production"]),
@@ -164,6 +193,7 @@ const midtransSettingsSchema = z.object({
   sandboxClientKey: keyField("SB-Mid-client-", "Client key sandbox"),
   productionServerKey: keyField("Mid-server-", "Server key produksi"),
   productionClientKey: keyField("Mid-client-", "Client key produksi"),
+  fees: feesSchema.optional(),
 });
 
 export const saveAdminMidtransSettings = createServerFn({ method: "POST" })
@@ -171,6 +201,7 @@ export const saveAdminMidtransSettings = createServerFn({ method: "POST" })
   .inputValidator((input: {
     enabled: boolean; mode: string; methods: string[];
     sandboxServerKey: string; sandboxClientKey: string; productionServerKey: string; productionClientKey: string;
+    fees?: Record<string, { flat: number; percent: number }>;
   }) => {
     const r = midtransSettingsSchema.safeParse(input);
     // Tampilkan pesan pertama saja, bukan daftar galat zod mentah.
@@ -187,11 +218,23 @@ export const saveAdminMidtransSettings = createServerFn({ method: "POST" })
       : current.hasSandboxKey || !!data.sandboxServerKey;
     if (data.enabled && !hasKey) throw new Error(`Isi Server Key mode ${data.mode === "production" ? "produksi" : "sandbox"} dulu sebelum mengaktifkan.`);
     if (data.enabled && data.methods.length === 0) throw new Error("Pilih minimal satu metode pembayaran.");
-    await m.writeMidtransSettings(data);
+
+    const { fees: feeInput, ...settings } = data;
+    const fees = feeInput ? normalizeFees(feeInput) : null;
+    const anyFee = !!fees && Object.values(fees).some((r) => r.flat > 0 || r.percent > 0);
+    // Kolom biaya baru ada setelah SQL 003. Kalau belum dan admin mengisi biaya, tolak SEBELUM menyimpan apa pun.
+    if (anyFee && !current.feesReady) {
+      throw new Error("Kolom biaya admin belum ada di database. Jalankan docs/sql/midtrans-escrow/003_biaya_pembayaran.sql dulu, lalu coba lagi.");
+    }
+
+    await m.writeMidtransSettings(settings);
+    if (fees && current.feesReady) await m.writeFees(fees);
+
     // Never log key values; only the non-secret summary.
+    const feeNote = fees ? `, biaya=${Object.entries(fees).map(([id, r]) => `${id}:${feeRuleLabel(r)}`).join("|")}` : "";
     await context.supabase.rpc("admin_log_event" as never, {
       _action: "midtrans_settings", _target_type: "settings", _target_id: "midtrans",
-      _note: `aktif=${data.enabled}, mode=${data.mode}, metode=${data.methods.join(",")}`,
+      _note: `aktif=${data.enabled}, mode=${data.mode}, metode=${data.methods.join(",")}${feeNote}`,
     } as never).then(() => undefined, () => undefined);
     return { ok: true };
   });

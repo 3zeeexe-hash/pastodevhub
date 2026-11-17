@@ -4,7 +4,10 @@ import { getRequest } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptConnectionKey, encryptConnectionKey } from "@/lib/connectionKeyCrypto.server";
 import { resolveSiteOrigin } from "@/lib/site-url";
-import { MIDTRANS_METHOD_IDS, midtransBaseUrl, type MidtransMethodId, type MidtransMode } from "@/lib/midtrans-shared";
+import {
+  MIDTRANS_METHOD_IDS, emptyFees, midtransBaseUrl, normalizeFees,
+  type MidtransFees, type MidtransMethodId, type MidtransMode,
+} from "@/lib/midtrans-shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LooseDb = SupabaseClient<any>;
@@ -71,6 +74,33 @@ export async function getMidtransConfig(): Promise<MidtransConfig> {
   return { enabled: false, mode: "sandbox", serverKey: null, clientKey: null, methods: [...MIDTRANS_METHOD_IDS], source: "none" };
 }
 
+// ---------- Biaya admin per metode ----------
+
+/**
+ * Biaya admin tiap metode (kolom platform_secrets.midtrans_fees, jsonb).
+ * Dibaca terpisah dari kunci Midtrans: kalau kolom belum ada (SQL 003 belum dijalankan) hasilnya "tanpa biaya"
+ * dan pembayaran yang sudah berjalan tidak terganggu.
+ */
+export async function readFees(): Promise<{ fees: MidtransFees; ready: boolean }> {
+  try {
+    const d = await db();
+    const { data, error } = await d.from("platform_secrets").select("midtrans_fees").eq("id", 1).maybeSingle();
+    if (error) return { fees: emptyFees(), ready: false };
+    return { fees: normalizeFees((data as Obj | null)?.["midtrans_fees"]), ready: true };
+  } catch (e) {
+    console.error("Reading Midtrans fees failed", e);
+    return { fees: emptyFees(), ready: false };
+  }
+}
+
+export async function writeFees(fees: MidtransFees) {
+  const d = await db();
+  const { error } = await d.from("platform_secrets")
+    .update({ midtrans_fees: normalizeFees(fees), updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) throw new Error(`Biaya admin gagal disimpan: ${error.message}. Pastikan docs/sql/midtrans-escrow/003_biaya_pembayaran.sql sudah dijalankan.`);
+}
+
 export type MidtransAdminSettings = {
   schemaReady: boolean;
   schemaError: string | null;
@@ -83,6 +113,8 @@ export type MidtransAdminSettings = {
   productionClientKey: string;
   updatedAt: string | null;
   envFallback: boolean;
+  fees: MidtransFees;
+  feesReady: boolean;
 };
 
 export async function readMidtransSettingsForAdmin(): Promise<MidtransAdminSettings> {
@@ -90,12 +122,14 @@ export async function readMidtransSettingsForAdmin(): Promise<MidtransAdminSetti
     schemaReady: true, schemaError: null, enabled: false, mode: "sandbox", methods: [...MIDTRANS_METHOD_IDS],
     hasSandboxKey: false, hasProductionKey: false, sandboxClientKey: "", productionClientKey: "", updatedAt: null,
     envFallback: !!process.env["MIDTRANS_SERVER_KEY"],
+    fees: emptyFees(), feesReady: false,
   };
   const d = await db();
   const { data, error } = await d.from("platform_secrets").select(SECRET_COLUMNS).eq("id", 1).maybeSingle();
   if (error) return { ...base, schemaReady: false, schemaError: error.message };
+  const f = await readFees();
   const row = data as Obj | null;
-  if (!row) return base;
+  if (!row) return { ...base, fees: f.fees, feesReady: f.ready };
   return {
     ...base,
     enabled: !!row["midtrans_enabled"],
@@ -106,6 +140,8 @@ export async function readMidtransSettingsForAdmin(): Promise<MidtransAdminSetti
     sandboxClientKey: row["midtrans_sandbox_client_key"] ?? "",
     productionClientKey: row["midtrans_production_client_key"] ?? "",
     updatedAt: row["updated_at"] ?? null,
+    fees: f.fees,
+    feesReady: f.ready,
   };
 }
 
@@ -173,7 +209,10 @@ function wibToIso(s: unknown): string | null {
 
 export type ChargeInput = {
   midtransOrderId: string;
+  /** Nominal pesanan (tanpa biaya admin). */
   amount: number;
+  /** Biaya admin metode ini, ditambahkan ke gross_amount sebagai item terpisah. */
+  feeAmount?: number | undefined;
   method: MidtransMethodId;
   itemName: string;
   customerName: string;
@@ -185,9 +224,13 @@ export type ChargeResult = { vaNumber: string | null; bank: string | null; qrUrl
 /** Core API charge. Every request carries its own notification URL (X-Override-Notification). */
 export async function createCharge(cfg: ActiveConfig, input: ChargeInput, notifyUrl: string): Promise<ChargeResult> {
   const amount = Math.round(input.amount);
+  const fee = Math.max(0, Math.round(input.feeAmount ?? 0));
+  const items: Obj[] = [{ id: "pesanan", price: amount, quantity: 1, name: input.itemName.slice(0, 50) || "Pesanan GoBi" }];
+  if (fee > 0) items.push({ id: "biaya-admin", price: fee, quantity: 1, name: "Biaya admin pembayaran" });
   const body: Obj = {
-    transaction_details: { order_id: input.midtransOrderId, gross_amount: amount },
-    item_details: [{ id: "pesanan", price: amount, quantity: 1, name: input.itemName.slice(0, 50) || "Pesanan GoBi" }],
+    // Jumlah item_details harus sama dengan gross_amount, kalau tidak Midtrans menolak.
+    transaction_details: { order_id: input.midtransOrderId, gross_amount: amount + fee },
+    item_details: items,
     customer_details: { first_name: input.customerName.slice(0, 50) || "Pelanggan", ...(input.customerEmail ? { email: input.customerEmail } : {}) },
   };
   let minutes = 24 * 60;
@@ -246,16 +289,24 @@ export function verifySignature(body: Record<string, unknown>, serverKey: string
 
 // ---------- Database (through the server proof) ----------
 
+/**
+ * `amount` = nominal pesanan, `feeAmount` = biaya admin. Yang disimpan sebagai payments.gross_amount adalah
+ * total yang dibayar pembeli (amount + biaya), sama dengan gross_amount di Midtrans.
+ * Tanpa biaya, `_fee` tidak dikirim sehingga fungsi SQL lama (sebelum 003) tetap bisa dipakai.
+ */
 export async function recordCharge(p: {
-  orderId: string; buyerId: string; midtransOrderId: string; method: string; amount: number; mode: MidtransMode; charge: ChargeResult;
+  orderId: string; buyerId: string; midtransOrderId: string; method: string; amount: number; feeAmount?: number;
+  mode: MidtransMode; charge: ChargeResult;
 }): Promise<{ id: string; superseded: string[] }> {
   const d = await db();
+  const fee = Math.max(0, Math.round(p.feeAmount ?? 0));
   const { data, error } = await d.rpc("midtrans_record_charge", {
     _order_id: p.orderId,
     _buyer_id: p.buyerId,
     _midtrans_order_id: p.midtransOrderId,
     _method: p.method,
-    _amount: Math.round(p.amount),
+    _amount: Math.round(p.amount) + fee,
+    ...(fee > 0 ? { _fee: fee } : {}),
     _mode: p.mode,
     _va: p.charge.vaNumber,
     _bank: p.charge.bank,
