@@ -6,8 +6,10 @@ import { Check, CreditCard, Download, Eye, MessageCircle, Send, ShieldCheck, X }
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { openChatDock } from "@/lib/chat-dock";
+import { looseDb } from "@/lib/escrow-db";
 import { errMsg, formatRupiah, orderActions, type OrderStatus } from "@/lib/market";
 import { downloadProduct } from "@/lib/downloads";
+import { pageActions, showWorkflowPanel } from "@/lib/services-order-page";
 import { Button } from "@/components/ui/button";
 import { RupiahInput } from "@/components/rupiah-input";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import { OrderProgress } from "@/components/order-progress";
 import { EscrowBox } from "@/components/escrow-box";
 import { MidtransPayDialog } from "@/components/midtrans-pay-dialog";
 import { ServiceOrderSummary } from "@/components/service-order-summary";
+import { ServiceWorkflowPanel } from "@/components/service-workflow-panel";
 
 export const Route = createFileRoute("/pesanan/$id")({
   head: () => ({
@@ -51,6 +54,18 @@ function OrderPage() {
       return { o: o.data as (NonNullable<typeof o.data> & { buyer: Party | null; seller: Party | null; product: { id: string; file_path: string | null; file_name: string | null } | null }) | null };
     },
   });
+  // Pesanan paket (punya baris service_orders) diproses lewat panel alur kerja. Fungsi lama deliver_order / complete_order /
+  // request_revision ditolak database untuk pesanan itu (SQL 007), jadi tombol lamanya disembunyikan.
+  const pkg = useQuery({
+    queryKey: ["service-package", id],
+    enabled: !!user,
+    retry: 1,
+    queryFn: async () => {
+      const { data: rows, error } = await looseDb.from("service_orders").select("order_id").eq("order_id", id).limit(1);
+      if (error) throw error;
+      return ((rows ?? []) as unknown[]).length > 0;
+    },
+  });
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["order", id] });
     qc.invalidateQueries({ queryKey: ["order-messages", id] });
@@ -58,6 +73,9 @@ function OrderPage() {
     qc.invalidateQueries({ queryKey: ["escrow", id] });
     qc.invalidateQueries({ queryKey: ["pay-active", id] });
     qc.invalidateQueries({ queryKey: ["service-order-detail", id] });
+    qc.invalidateQueries({ queryKey: ["service-workflow", id] });
+    qc.invalidateQueries({ queryKey: ["service-package", id] });
+    qc.invalidateQueries({ queryKey: ["service-seller-orders"] });
   };
 
   if (loading) return null;
@@ -70,7 +88,11 @@ function OrderPage() {
     </main>
   );
   const { o } = data;
-  const actions = orderActions({ kind: o.kind as "product" | "service", status: o.status as OrderStatus, buyer_id: o.buyer_id, seller_id: o.seller_id }, { id: user.id, isAdmin });
+  const kind = o.kind as "product" | "service";
+  const actions = pageActions(
+    orderActions({ kind, status: o.status as OrderStatus, buyer_id: o.buyer_id, seller_id: o.seller_id }, { id: user.id, isAdmin }),
+    { kind, isPackage: pkg.data, loading: pkg.isLoading },
+  );
   const isBuyer = user.id === o.buyer_id;
   const isSeller = user.id === o.seller_id;
   const canPay = actions.includes("pay");
@@ -103,6 +125,7 @@ function OrderPage() {
         <div><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-bold text-primary">{o.amount ? formatRupiah(o.amount) : "Belum ditentukan"}</p></div>
       </div>
       {o.brief && <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Kebutuhan client</h2><p className="whitespace-pre-wrap break-words text-sm">{o.brief}</p></section>}
+      {showWorkflowPanel({ kind, isPackage: pkg.data }) && <ServiceWorkflowPanel orderId={o.id} buyerId={o.buyer_id} sellerId={o.seller_id} isAdmin={isAdmin} onChanged={refresh} />}
       {o.kind === "service" && <ServiceOrderSummary orderId={o.id} />}
       {o.delivery_note && <section className="rounded-lg border border-success/50 bg-card p-4"><h2 className="mb-1 text-sm font-semibold">Catatan hasil dari developer</h2><p className="whitespace-pre-wrap break-words text-sm">{o.delivery_note}</p></section>}
       {o.admin_note && <p className="rounded-md bg-muted p-3 text-sm"><b>Catatan admin:</b> {o.admin_note}</p>}
