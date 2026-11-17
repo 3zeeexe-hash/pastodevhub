@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg, formatRupiah } from "@/lib/market";
-import { MIDTRANS_METHODS, methodLabel } from "@/lib/midtrans-shared";
+import { MIDTRANS_METHODS, computeFee, feeRuleLabel, methodLabel } from "@/lib/midtrans-shared";
 import { createMidtransCharge, getMidtransPublicInfo, syncMidtransPayment } from "@/lib/midtrans.functions";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,17 @@ function countdown(ms: number) {
   const sec = s % 60;
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+}
+
+/** Baris rincian: nominal pesanan, biaya admin (jika ada), total. */
+function Breakdown({ amount, fee }: { amount: number; fee: number }) {
+  return (
+    <div className="space-y-1 rounded-lg bg-muted p-3 text-sm">
+      <div className="flex items-center justify-between"><span>Pesanan</span><span>{formatRupiah(amount)}</span></div>
+      {fee > 0 && <div className="flex items-center justify-between"><span>Biaya admin pembayaran</span><span>{formatRupiah(fee)}</span></div>}
+      <div className="flex items-center justify-between border-t border-border pt-1"><span>Total bayar</span><b>{formatRupiah(amount + fee)}</b></div>
+    </div>
+  );
 }
 
 /** Pop-up pembayaran Midtrans Core API: pilih metode -> kode VA / QRIS -> status otomatis. */
@@ -106,14 +117,19 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
   }
 
   const methods = MIDTRANS_METHODS.filter((m) => info.data?.methods.includes(m.id));
+  const fees = info.data?.fees;
+  const feeFor = (id: string) => (fees ? computeFee(fees[id as keyof typeof fees], amount) : 0);
   const showPicker = !pay || changing;
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Disalin"); };
+  // Biaya pada pembayaran yang sudah dibuat = total dikurangi nominal pesanan (tanpa perlu kolom baru).
+  const payFee = pay ? Math.max(0, Math.round(Number(pay.gross_amount) - amount)) : 0;
+  const total = pay && !changing ? Number(pay.gross_amount) : amount + (method ? feeFor(method) : 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Bayar {formatRupiah(amount)}</DialogTitle>
+          <DialogTitle>Bayar {formatRupiah(total)}</DialogTitle>
           <DialogDescription>Dana disimpan di escrow dan langsung diteruskan ke developer begitu kamu menerima hasil pekerjaan.</DialogDescription>
         </DialogHeader>
 
@@ -127,13 +143,20 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
           <div className="space-y-3">
             <p className="text-sm font-medium">Pilih metode pembayaran</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              {methods.map((m) => (
-                <button key={m.id} type="button" aria-pressed={method === m.id} onClick={() => setMethod(m.id)}
-                  className={cn("rounded-lg border px-3 py-2 text-left text-sm hover:border-primary/60", method === m.id ? "border-primary bg-primary/10 font-medium" : "border-border")}>
-                  {m.label}
-                </button>
-              ))}
+              {methods.map((m) => {
+                const fee = feeFor(m.id);
+                return (
+                  <button key={m.id} type="button" aria-pressed={method === m.id} onClick={() => setMethod(m.id)}
+                    className={cn("rounded-lg border px-3 py-2 text-left text-sm hover:border-primary/60", method === m.id ? "border-primary bg-primary/10 font-medium" : "border-border")}>
+                    {m.label}
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                      {fee > 0 ? `Biaya admin ${formatRupiah(fee)}` : "Tanpa biaya admin"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+            {method && <Breakdown amount={amount} fee={feeFor(method)} />}
             <div className="flex flex-wrap gap-2">
               <Button onClick={create} disabled={busy || !method}>{busy && <Loader2 className="animate-spin" />} Buat pembayaran</Button>
               {pay && <Button variant="ghost" onClick={() => setChanging(false)}>Kembali</Button>}
@@ -162,11 +185,10 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
                 <img src={pay.qr_url} alt="Kode QRIS" className="size-56 object-contain" />
               </div>
             )}
-            <div className="flex items-center justify-between rounded-lg bg-muted p-3 text-sm">
-              <span>Total bayar</span>
-              <b>{formatRupiah(pay.gross_amount)}</b>
-            </div>
-            <p className="text-xs text-muted-foreground">Setelah membayar, halaman ini menutup otomatis saat pembayaran terdeteksi.</p>
+            <Breakdown amount={Number(pay.gross_amount) - payFee} fee={payFee} />
+            <p className="text-xs text-muted-foreground">
+              Bayar tepat sesuai total{payFee > 0 ? ` (sudah termasuk biaya admin ${feeRuleLabel(fees?.[pay.method as keyof typeof fees])})` : ""}. Halaman ini menutup otomatis saat pembayaran terdeteksi.
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={checkNow} disabled={checking}>{checking ? <Loader2 className="animate-spin" /> : <RefreshCw />} Cek status</Button>
               <Button variant="ghost" onClick={() => { setMethod(""); setChanging(true); }}>Ganti metode</Button>
