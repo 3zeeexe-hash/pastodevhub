@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, Clock, FileText, ListOrdered, MessageCircle,
@@ -81,6 +81,33 @@ function useIsDesktop() {
   );
 }
 
+// Gerak masuk bertahap untuk setiap blok halaman. Dimatikan otomatis bila pengguna memilih "kurangi gerakan".
+const RISE = "animate-in fade-in-0 slide-in-from-bottom-3 duration-500 fill-mode-both motion-reduce:animate-none";
+const delay = (n: number) => ({ animationDelay: `${n * 70}ms` });
+const EASE = "ease-[cubic-bezier(0.22,1,0.36,1)]";
+// Tombol bulat di atas gambar: sama dengan tombol Favorit supaya satu keluarga.
+const FLOAT_BTN = "flex size-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition hover:bg-accent active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** Geser kiri/kanan di layar sentuh. Hanya bereaksi pada gerakan mendatar yang jelas, jadi gulir vertikal tidak terganggu. */
+function useSwipe(onPrev: () => void, onNext: () => void) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      start.current = { x: t.clientX, y: t.clientY };
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const s0 = start.current;
+      start.current = null;
+      if (!s0) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - s0.x;
+      const dy = t.clientY - s0.y;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) (dx < 0 ? onNext : onPrev)();
+    },
+  };
+}
+
 function Stars({ value }: { value: number }) {
   return (
     <span className="inline-flex" aria-label={`${value} dari 5 bintang`}>
@@ -89,32 +116,226 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-/** Bagian halaman berbentuk kartu. `id` dipakai bilah navigasi bagian di atas konten. */
-function Section({ id, title, Icon, children }: { id: string; title: string; Icon: LucideIcon; children: ReactNode }) {
+/** Buka-tutup dengan tinggi yang beranimasi. Isi yang tertutup tidak bisa difokus (inert) dan tidak dibaca pembaca layar. */
+function Collapse({ open, id, children }: { open: boolean; id?: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-28 rounded-2xl border border-border bg-card p-4 sm:p-6">
-      <h2 className="mb-4 flex items-center gap-2.5 text-base font-bold sm:text-lg">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Icon className="size-4" /></span>
-        {title}
-      </h2>
-      {children}
+    <div id={id} inert={!open} className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none", open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+/** Kartu bagian yang bisa dibuka-tutup (dropdown). */
+function Disclosure({ id, title, Icon, badge, defaultOpen = false, className, style, children }: {
+  id: string; title: string; Icon: LucideIcon; badge?: ReactNode; defaultOpen?: boolean; className?: string; style?: React.CSSProperties; children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = `${id}-isi`;
+  return (
+    <section id={id} style={style} className={cn("scroll-mt-20 rounded-2xl border bg-card transition-[border-color,box-shadow] duration-300", open ? "border-primary/40 shadow-sm" : "border-border", className)}>
+      <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 rounded-2xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5">
+        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-300", open ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary")}><Icon className="size-4" /></span>
+        <span className="min-w-0 flex-1 text-base font-bold">{title}</span>
+        {badge && <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">{badge}</span>}
+        <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform duration-300", open && "rotate-180 text-primary")} aria-hidden />
+      </button>
+      <Collapse open={open} id={bodyId}>
+        <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
+      </Collapse>
     </section>
   );
 }
 
-function HeroStat({ value, label }: { value: ReactNode; label: string }) {
+/** Baris dropdown kecil di dalam kartu (ketentuan, FAQ). */
+function Row({ title, Icon, defaultOpen = false, children }: { title: ReactNode; Icon?: LucideIcon; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
   return (
-    <div className="min-w-0 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-      <p className="flex items-center gap-1 truncate text-base font-bold sm:text-lg">{value}</p>
-      <p className="truncate text-[11px] text-white/60">{label}</p>
+    <div className={cn("rounded-xl border transition-colors duration-300", open ? "border-primary/40 bg-primary/5" : "border-border bg-muted/40")}>
+      <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {Icon && <Icon className="size-4 shrink-0 text-primary" />}
+        <span className="min-w-0 flex-1 break-words">{title}</span>
+        <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-300", open && "rotate-180 text-primary")} aria-hidden />
+      </button>
+      <Collapse open={open} id={bodyId}>
+        <div className="px-3.5 pb-3.5 text-sm text-muted-foreground">{children}</div>
+      </Collapse>
+    </div>
+  );
+}
+
+/** Teks panjang: tampil sebagian dengan pudar di bawah, "Lihat selengkapnya" membuka semuanya, "Sembunyikan" melipat lagi. Tinggi dianimasikan. */
+function Expandable({ children, collapsedHeight = 150 }: { children: ReactNode; collapsedHeight?: number }) {
+  const [open, setOpen] = useState(false);
+  const [full, setFull] = useState(0);
+  const inner = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = inner.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setFull(el.scrollHeight));
+    ro.observe(el);
+    setFull(el.scrollHeight);
+    return () => ro.disconnect();
+  }, []);
+  const needs = full > collapsedHeight + 24;
+  return (
+    <div>
+      <div className={cn("relative overflow-hidden transition-[max-height] duration-500 motion-reduce:transition-none", EASE)} style={needs ? { maxHeight: open ? full : collapsedHeight } : undefined}>
+        <div ref={inner}>{children}</div>
+        {needs && <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent transition-opacity duration-300", open ? "opacity-0" : "opacity-100")} />}
+      </div>
+      {needs && (
+        <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          {open ? "Sembunyikan" : "Lihat selengkapnya"}
+          <ChevronDown className={cn("size-4 transition-transform duration-300", open && "rotate-180")} aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Gambar paling atas: geser di layar sentuh, panah dan thumbnail di layar lebar. `controls` = tombol kembali/favorit/bagikan di atas gambar. */
+function Gallery({ images, title, controls }: { images: string[]; title: string; controls: ReactNode }) {
+  const [i, setI] = useState(0);
+  const n = images.length;
+  const cur = Math.min(i, Math.max(n - 1, 0));
+  const go = (d: number) => setI((c) => (Math.min(c, n - 1) + d + n) % n);
+  const swipe = useSwipe(() => n > 1 && go(-1), () => n > 1 && go(1));
+  return (
+    <section aria-label="Galeri jasa" className="min-w-0">
+      <div {...swipe} className="relative aspect-[4/3] touch-pan-y overflow-hidden bg-hero sm:aspect-video lg:rounded-3xl lg:border lg:border-border">
+        {n > 0 ? (
+          <div className={cn("flex h-full transition-transform duration-500 motion-reduce:transition-none", EASE)} style={{ transform: `translateX(-${cur * 100}%)` }}>
+            {images.map((u, k) => (
+              <img key={u} src={u} alt={k === 0 ? title : `${title} (gambar ${k + 1})`} loading={k === 0 ? "eager" : "lazy"} draggable={false} className="size-full shrink-0 select-none object-cover" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex size-full items-center justify-center"><Wrench className="size-16 text-primary/70" /></div>
+        )}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-navy/45 to-transparent" />
+        {controls}
+        {n > 1 && (
+          <>
+            <button type="button" onClick={() => go(-1)} aria-label="Gambar sebelumnya" className={cn(FLOAT_BTN, "absolute left-3 top-1/2 hidden -translate-y-1/2 sm:flex")}><ChevronLeft className="size-5" /></button>
+            <button type="button" onClick={() => go(1)} aria-label="Gambar berikutnya" className={cn(FLOAT_BTN, "absolute right-3 top-1/2 hidden -translate-y-1/2 sm:flex")}><ChevronRight className="size-5" /></button>
+            <div className="absolute inset-x-0 bottom-9 flex justify-center gap-1.5 lg:bottom-3" role="tablist" aria-label="Pilih gambar">
+              {images.map((u, k) => (
+                <button key={u} type="button" role="tab" aria-selected={k === cur} aria-label={`Gambar ${k + 1}`} onClick={() => setI(k)}
+                  className={cn("h-1.5 rounded-full transition-all duration-300", k === cur ? "w-6 bg-primary" : "w-1.5 bg-white/70 hover:bg-white")} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {n > 1 && (
+        <div className="mt-3 hidden gap-2 overflow-x-auto pb-1 lg:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {images.map((u, k) => (
+            <button key={u} type="button" onClick={() => setI(k)} aria-label={`Lihat gambar ${k + 1}`} aria-current={k === cur}
+              className={cn("aspect-video w-24 shrink-0 overflow-hidden rounded-xl border-2 bg-muted transition-all duration-300", k === cur ? "border-primary" : "border-transparent opacity-60 hover:opacity-100")}>
+              <img src={u} alt="" loading="lazy" className="size-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Tab paket: pil oranye bergeser ke tab yang dipilih, panelnya ikut meluncur ke samping dan tingginya menyesuaikan. Bisa digeser dengan jari. */
+function PackageTabs({ packages, activeId, onChange, onOrder }: { packages: Pkg[]; activeId: string; onChange: (id: string) => void; onOrder: ((p: Pkg) => void) | null }) {
+  const n = packages.length;
+  const idx = Math.max(0, packages.findIndex((p) => p.id === activeId));
+  const panels = useRef<(HTMLDivElement | null)[]>([]);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    const el = panels.current[idx];
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setHeight(el.offsetHeight));
+    ro.observe(el);
+    setHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [idx, n]);
+  const select = (k: number) => onChange(packages[Math.min(Math.max(k, 0), n - 1)].id);
+  const swipe = useSwipe(() => select(idx - 1), () => select(idx + 1));
+  function onKey(e: React.KeyboardEvent) {
+    if (e.key === "ArrowRight") { e.preventDefault(); select(idx + 1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); select(idx - 1); }
+  }
+  return (
+    <div>
+      <div className="rounded-2xl bg-muted p-1">
+        <div role="tablist" aria-label="Pilihan paket" onKeyDown={onKey} className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+          <span aria-hidden className={cn("absolute inset-y-0 left-0 rounded-xl bg-primary shadow-glow transition-transform duration-500 motion-reduce:transition-none", EASE)}
+            style={{ width: `${100 / n}%`, transform: `translateX(${idx * 100}%)` }} />
+          {packages.map((p, k) => (
+            <button key={p.id} type="button" role="tab" id={`pkg-tab-${p.id}`} aria-selected={k === idx} aria-controls={`pkg-panel-${p.id}`} tabIndex={k === idx ? 0 : -1} onClick={() => select(k)}
+              className={cn("relative z-10 min-w-0 rounded-xl px-1.5 py-2.5 text-center transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", k === idx ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <span className="block truncate text-[11px] font-bold uppercase tracking-wide">{TIER_LABEL[p.tier] ?? p.tier}</span>
+              <span className="block truncate text-[13px] font-bold sm:text-sm">{formatRupiah(p.price, "—")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {n > 1 && <p className="mt-2 text-center text-[11px] text-muted-foreground sm:hidden">Geser ke kiri atau kanan untuk melihat paket lain</p>}
+
+      <div {...swipe} className={cn("mt-3 touch-pan-y overflow-hidden rounded-2xl border border-border bg-card transition-[height] duration-500 motion-reduce:transition-none", EASE)} style={height ? { height } : undefined}>
+        <div className={cn("flex items-start transition-transform duration-500 motion-reduce:transition-none", EASE)} style={{ transform: `translateX(-${idx * 100}%)` }}>
+          {packages.map((p, k) => {
+            const on = k === idx;
+            return (
+              <div key={p.id} ref={(el) => { panels.current[k] = el; }} role="tabpanel" id={`pkg-panel-${p.id}`} aria-labelledby={`pkg-tab-${p.id}`} aria-hidden={!on} inert={!on} className="w-full shrink-0 basis-full">
+                <div className="space-y-4 p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide", TIER_STYLE[p.tier] ?? "bg-secondary text-secondary-foreground")}>{TIER_LABEL[p.tier] ?? p.tier}</span>
+                      <h3 className="mt-1.5 break-words text-lg font-bold leading-snug">{p.name}</h3>
+                    </div>
+                    <p className="shrink-0 text-2xl font-bold text-primary">{formatRupiah(p.price, "—")}</p>
+                  </div>
+                  {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><Clock className="size-3.5" /> {p.delivery_days} hari</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><RefreshCw className="size-3.5" /> {p.revisions} revisi</span>
+                    {p.work_limit && <span className="inline-flex min-w-0 items-start gap-1.5 rounded-2xl bg-muted px-2.5 py-1"><Ruler className="mt-0.5 size-3.5 shrink-0" /><span className="min-w-0 break-words">{p.work_limit}</span></span>}
+                  </div>
+                  {(p.features ?? []).length > 0 && (
+                    <ul className="grid gap-x-4 gap-y-2 border-t border-border pt-4 text-sm sm:grid-cols-2">
+                      {p.features.map((f, fi) => (
+                        <li key={f} className={cn("flex items-start gap-2 transition-all duration-500 motion-reduce:transition-none", on ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")} style={{ transitionDelay: on ? `${150 + fi * 60}ms` : "0ms" }}>
+                          <Check className="mt-0.5 size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {onOrder && <Button type="button" className="h-11 w-full rounded-full" onClick={() => onOrder(p)}><ShoppingBag /> Pesan paket ini</Button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatTile({ Icon, value, label, fill }: { Icon: LucideIcon; value: ReactNode; label: string; fill?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-3 transition-shadow duration-300 hover:shadow-sm">
+      <span className="flex size-7 items-center justify-center rounded-lg bg-primary/15 text-primary"><Icon className={cn("size-4", fill && "fill-primary")} /></span>
+      <p className="mt-2 truncate text-base font-bold leading-tight">{value}</p>
+      <p className="truncate text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }
 
 /** Kartu penjual. Di desktop tampil di kolom samping, di mobile tampil di aliran konten (duplikat tampilan saja, tanpa state). */
-function SellerCard({ owner, stats, portfolio, className }: { owner: Owner; stats: SellerStats | undefined; portfolio: PortfolioItem[]; className?: string }) {
+function SellerCard({ owner, stats, portfolio, className, style }: { owner: Owner; stats: SellerStats | undefined; portfolio: PortfolioItem[]; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={cn("space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5", className)}>
+    <div style={style} className={cn("space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5", className)}>
       <Link to="/$username" params={{ username: owner.username }} className="flex items-center gap-3 hover:text-primary">
         <AvatarMini name={owner.username} url={owner.avatar_url} size={52} />
         <span className="min-w-0">
@@ -149,24 +370,6 @@ function SellerCard({ owner, stats, portfolio, className }: { owner: Owner; stat
   );
 }
 
-/** Menandai bagian yang sedang terlihat di layar untuk bilah navigasi bagian. Hanya jalan di browser. */
-function useActiveSection(ids: string[], ready: boolean) {
-  const [active, setActive] = useState(ids[0] ?? "");
-  const key = ids.join("|");
-  useEffect(() => {
-    if (!ready || typeof IntersectionObserver === "undefined") return;
-    const els = key.split("|").map((i) => document.getElementById(i)).filter((e): e is HTMLElement => !!e);
-    if (!els.length) return;
-    const io = new IntersectionObserver((entries) => {
-      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (vis[0]) setActive(vis[0].target.id);
-    }, { rootMargin: "-112px 0px -55% 0px" });
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
-  }, [key, ready]);
-  return active;
-}
-
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
@@ -178,7 +381,6 @@ function JasaDetail() {
   const isDesktop = useIsDesktop();
   const [asking, setAsking] = useState(false);
   const [pkgId, setPkgId] = useState<string | null>(null);
-  const [img, setImg] = useState(0);
   // Hanya dipakai di mobile: form pesan dibuka dari bar lengket di bawah.
   const [orderOpen, setOrderOpen] = useState(false);
   useEffect(() => {
@@ -228,20 +430,6 @@ function JasaDetail() {
     },
   });
 
-  // Bilah navigasi bagian hanya memuat bagian yang benar-benar ada isinya. Hook ini harus dipanggil sebelum return dini di bawah.
-  const terms = s as (typeof s & Extra) | null | undefined;
-  const hasTerms = !!(terms?.buyer_requirements || terms?.revision_terms || terms?.scope_limits);
-  const navSections = [
-    ...(extra.data?.packages.length ? [{ id: "paket", label: "Paket" }] : []),
-    { id: "deskripsi", label: "Deskripsi" },
-    ...(extra.data?.addons.length ? [{ id: "addon", label: "Add-on" }] : []),
-    ...(hasTerms ? [{ id: "ketentuan", label: "Ketentuan" }] : []),
-    ...(extra.data?.faqs.length ? [{ id: "faq", label: "FAQ" }] : []),
-    { id: "ulasan", label: "Ulasan" },
-    { id: "cara-pesan", label: "Cara pesan" },
-  ];
-  const activeSection = useActiveSection(navSections.map((n) => n.id), !!s && !extra.isLoading);
-
   if (isLoading) return <GobiLoader page />;
   if (!s) return (
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -261,19 +449,20 @@ function JasaDetail() {
   const faqs = extra.data?.faqs ?? [];
   const reviews = extra.data?.reviews ?? [];
   const images = [...(s.cover_url ? [s.cover_url] : []), ...(extra.data?.gallery ?? [])];
-  const cur = images[img] ? img : 0;
-  const goImg = (d: number) => setImg((cur + d + images.length) % images.length);
-  const pkg = packages.find((p) => p.id === pkgId) ?? null;
+  // Selalu ada paket aktif bila jasa punya paket: tab pertama (termurah) terpilih dari awal, jadi harga di bar dan panel pesan langsung terisi.
+  const selectedId = pkgId && packages.some((p) => p.id === pkgId) ? pkgId : (packages[0]?.id ?? null);
+  const pkg = packages.find((p) => p.id === selectedId) ?? null;
   const fromPrice = packages.length ? Math.min(...packages.map((p) => p.price)) : s.price_from;
   const ratingCount = x.rating_count ?? 0;
   const ratingAvg = Number(x.rating_avg ?? 0);
   const skills = x.skills ?? [];
+  const hasTerms = !!(x.buyer_requirements || x.revision_terms || x.scope_limits);
   const hiddenNotice = isOwner && x.status && x.status !== "published";
   const favReady = !user || fav.data !== undefined;
   const priceLabel = pkg ? `Paket ${TIER_LABEL[pkg.tier] ?? pkg.tier}` : "Mulai dari";
   const priceText = formatRupiah(pkg ? pkg.price : fromPrice, "Nego");
 
-  function choosePackage(p: Pkg) {
+  function orderPackage(p: Pkg) {
     setPkgId(p.id);
     // Desktop: panel pesan ada di samping, cukup gulir ke sana. Mobile: buka form pesan sebagai bottom sheet.
     if (isDesktop) scrollToId("order-panel");
@@ -309,7 +498,7 @@ function JasaDetail() {
     <div>
       <div>
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{priceLabel}</p>
-        <p className="mt-0.5 text-3xl font-bold text-primary">{priceText}</p>
+        <p key={priceText} className="mt-0.5 animate-in fade-in-0 slide-in-from-bottom-1 text-3xl font-bold text-primary duration-300 motion-reduce:animate-none">{priceText}</p>
         {pkg && <p className="mt-1 text-xs text-muted-foreground">{pkg.name} · {pkg.delivery_days} hari · {pkg.revisions} revisi</p>}
       </div>
       <div className="mt-4 border-t border-border pt-1">
@@ -319,7 +508,7 @@ function JasaDetail() {
           <div className="mt-4"><SignInCta text="Masuk untuk memesan jasa ini." /></div>
         ) : (
           <>
-            <ServiceOrderPanel service={{ id: s.id, title: s.title }} packages={packages} addons={addons} selectedPkgId={pkgId} onSelectPackage={setPkgId} fromPrice={fromPrice} />
+            <ServiceOrderPanel service={{ id: s.id, title: s.title }} packages={packages} addons={addons} selectedPkgId={selectedId} onSelectPackage={setPkgId} fromPrice={fromPrice} />
             {chatOn && s.owner && (
               <Button type="button" variant="outline" className="mt-3 w-full rounded-full" disabled={asking} onClick={askDeveloper}><MessageCircle /> {asking ? "Membuka chat…" : "Tanya developer dulu"}</Button>
             )}
@@ -337,242 +526,177 @@ function JasaDetail() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-4 sm:py-6 lg:py-8">
-      {hiddenNotice && <p role="status" className="mb-4 rounded-xl border border-warning/40 bg-warning/15 p-3 text-sm">Jasa ini belum tampil di marketplace (status: {x.status}). Hanya kamu yang bisa melihat halaman ini.</p>}
+    <main className="mx-auto max-w-6xl pb-0 lg:px-4 lg:py-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
+        <div className="min-w-0">
+          {/* 1. Gambar paling atas, dengan tombol kembali, favorit, dan bagikan di atasnya (gaya aplikasi). */}
+          <Gallery
+            images={images}
+            title={s.title}
+            controls={
+              <>
+                <Link to="/jasa" aria-label="Kembali ke daftar jasa" className={cn(FLOAT_BTN, "absolute left-3 top-3")}><ChevronLeft className="size-5" /></Link>
+                <div className="absolute right-3 top-3 flex gap-2">
+                  {!isOwner && favReady && <FavoriteButton key={`${id}-${fav.data}`} serviceId={s.id} ownerId={s.owner_id} initial={fav.data ?? false} className="size-9 justify-center p-0 active:scale-95" />}
+                  <button type="button" onClick={share} aria-label="Bagikan jasa" className={FLOAT_BTN}><Share2 className="size-4" /></button>
+                </div>
+              </>
+            }
+          />
 
-      {/* Kepala: kartu biru tua bergaya GOBI dengan judul, ringkasan, angka penting, penjual, dan aksi. Keahlian dipindah ke bagian deskripsi supaya kepala tetap ringkas. */}
-      <header className="relative overflow-hidden rounded-3xl bg-header-gradient p-5 pb-7 text-white shadow-lg ring-1 ring-white/10 sm:p-8 sm:pb-10">
-        <span aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-primary/25 blur-3xl" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-16 size-60 rounded-full bg-navy-soft/40 blur-3xl" />
-        <div className="relative">
-          <nav aria-label="Jejak halaman" className="flex min-w-0 flex-wrap items-center gap-1 text-xs text-white/70">
-            <Link to="/jasa" className="rounded px-0.5 hover:text-white">Jasa</Link>
-            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate font-semibold text-primary-glow">{categoryLabel(s.category)}</span>
-          </nav>
-          <h1 className="mt-3 max-w-3xl text-balance text-xl font-bold leading-tight sm:text-3xl lg:text-4xl">{s.title}</h1>
-          {s.summary && <p className="mt-2 max-w-3xl text-sm text-white/75 sm:mt-3 sm:text-base">{s.summary}</p>}
-
-          <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-xl">
-            <HeroStat
-              value={ratingCount > 0 ? <><Star className="size-4 shrink-0 fill-primary text-primary" />{ratingAvg.toFixed(1)}</> : "Baru"}
-              label={ratingCount > 0 ? `${ratingCount} ulasan` : "Belum ada ulasan"}
-            />
-            <HeroStat value={<><CheckCircle2 className="size-4 shrink-0 text-primary-glow" />{x.orders_completed ?? 0}</>} label="Pesanan selesai" />
-            <HeroStat value={<><Clock className="size-4 shrink-0 text-primary-glow" />{pkg?.delivery_days ?? s.delivery_days} hari</>} label={pkg ? "Estimasi paket" : "Estimasi"} />
+          {/* 2. Judul, ringkasan, dan angka penting tepat di bawah gambar. Di mobile kartu ini menimpa tepi bawah gambar. */}
+          <div className="relative -mt-6 rounded-t-3xl bg-background px-4 pb-1 pt-5 lg:mt-0 lg:rounded-none lg:bg-transparent lg:px-0 lg:pt-6">
+            {hiddenNotice && <p role="status" className="mb-4 rounded-xl border border-warning/40 bg-warning/15 p-3 text-sm">Jasa ini belum tampil di marketplace (status: {x.status}). Hanya kamu yang bisa melihat halaman ini.</p>}
+            <div className={RISE}>
+              <span className="inline-block rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-orange-ink">{categoryLabel(s.category)}</span>
+              <h1 className="mt-2 text-balance text-xl font-bold leading-tight sm:text-2xl lg:text-3xl">{s.title}</h1>
+              {s.owner && (
+                <Link to="/$username" params={{ username: s.owner.username }} className="mt-2 inline-flex max-w-full items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  <AvatarMini name={s.owner.username} url={s.owner.avatar_url} size={22} />
+                  <span className="min-w-0 truncate">Oleh <b className="text-foreground">{s.owner.display_name || s.owner.username}</b></span>
+                  <VerifiedBadge username={s.owner.username} verified={!!(s.owner as { is_verified?: boolean }).is_verified} size={14} />
+                </Link>
+              )}
+              {s.summary && <p className="mt-3 text-sm text-muted-foreground sm:text-base">{s.summary}</p>}
+            </div>
+            <div className={cn("mt-4 grid grid-cols-3 gap-2 sm:gap-3", RISE)} style={delay(1)}>
+              <StatTile Icon={Star} fill={ratingCount > 0} value={ratingCount > 0 ? ratingAvg.toFixed(1) : "Baru"} label={ratingCount > 0 ? `${ratingCount} ulasan` : "Belum ada ulasan"} />
+              <StatTile Icon={CheckCircle2} value={x.orders_completed ?? 0} label="Pesanan selesai" />
+              <StatTile Icon={Clock} value={`${pkg?.delivery_days ?? s.delivery_days} hari`} label={pkg ? "Estimasi paket" : "Estimasi"} />
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            {s.owner ? (
-              <Link to="/$username" params={{ username: s.owner.username }} className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full bg-white/10 py-1 pl-1 pr-4 ring-1 ring-white/10 transition hover:bg-white/15">
-                <AvatarMini name={s.owner.username} url={s.owner.avatar_url} size={32} />
-                <span className="min-w-0 text-sm">
-                  <span className="block text-[11px] leading-none text-white/60">Oleh</span>
-                  <b className="flex items-center gap-1"><span className="truncate">{s.owner.display_name || s.owner.username}</span><VerifiedBadge username={s.owner.username} verified={!!(s.owner as { is_verified?: boolean }).is_verified} size={14} /></b>
-                </span>
-              </Link>
-            ) : <span />}
-            <div className="flex flex-wrap gap-2">
-              {!isOwner && favReady && <FavoriteButton key={`${id}-${fav.data}`} serviceId={s.id} ownerId={s.owner_id} initial={fav.data ?? false} label className="h-9" />}
-              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={share}><Share2 /> Bagikan</Button>
-            </div>
+          <div className="space-y-3 px-4 pt-4 sm:space-y-4 lg:px-0">
+            {/* 3. Menu paket: tab dengan pil yang bergeser. */}
+            {packages.length > 0 && (
+              <section id="paket" aria-label="Pilih paket" className={cn("scroll-mt-20", RISE)} style={delay(2)}>
+                <h2 className="mb-3 flex items-center gap-2.5 text-base font-bold">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><Package className="size-4" /></span>
+                  Pilih paket
+                </h2>
+                <PackageTabs packages={packages} activeId={selectedId!} onChange={setPkgId} onOrder={isOwner ? null : orderPackage} />
+              </section>
+            )}
+
+            {/* 4. Tentang jasa ini: tampil sebagian, bisa dibuka lengkap dan disembunyikan lagi. */}
+            <section id="deskripsi" className={cn("scroll-mt-20 rounded-2xl border border-border bg-card p-4 sm:p-5", RISE)} style={delay(3)}>
+              <h2 className="mb-3 flex items-center gap-2.5 text-base font-bold">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><FileText className="size-4" /></span>
+                Tentang jasa ini
+              </h2>
+              <Expandable>
+                {s.description ? <Markdown>{s.description}</Markdown> : <p className="text-sm text-muted-foreground">Belum ada deskripsi.</p>}
+                {skills.length > 0 && (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Keahlian</p>
+                    <ul className="flex flex-wrap gap-1.5" aria-label="Keahlian">
+                      {skills.map((k) => <li key={k} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{k}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </Expandable>
+            </section>
+
+            {/* Mobile: kenali penjual setelah deskripsi. Desktop memakai kartu di kolom samping. */}
+            {s.owner && <SellerCard owner={s.owner as Owner} stats={seller.data} portfolio={seller.data?.portfolio ?? []} className={cn("lg:hidden", RISE)} style={delay(4)} />}
+
+            {hasTerms && (
+              <Disclosure id="ketentuan" title="Ketentuan pesanan" Icon={ClipboardList} className={RISE} style={delay(5)}>
+                <div className="space-y-2">
+                  {x.buyer_requirements && <Row title="Yang perlu kamu siapkan" Icon={ClipboardList} defaultOpen><p className="whitespace-pre-wrap break-words">{x.buyer_requirements}</p></Row>}
+                  {x.revision_terms && <Row title="Ketentuan revisi" Icon={RefreshCw} defaultOpen><p className="whitespace-pre-wrap break-words">{x.revision_terms}</p></Row>}
+                  {x.scope_limits && <Row title="Batas ruang lingkup" Icon={Ruler} defaultOpen><p className="whitespace-pre-wrap break-words">{x.scope_limits}</p></Row>}
+                </div>
+              </Disclosure>
+            )}
+
+            {addons.length > 0 && (
+              <Disclosure id="addon" title="Add-on" Icon={PlusCircle} badge={addons.length} className={RISE} style={delay(6)}>
+                <ul className="divide-y divide-border text-sm">
+                  {addons.map((a) => (
+                    <li key={a.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                      <span className="min-w-0"><b>{a.name}</b>{a.description && <span className="block text-muted-foreground">{a.description}</span>}</span>
+                      <span className="shrink-0 text-muted-foreground"><b className="text-base text-primary">{formatRupiah(a.price, "—")}</b>{a.extra_days > 0 && ` · +${a.extra_days} hari`}{a.extra_revisions > 0 && ` · +${a.extra_revisions} revisi`}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Disclosure>
+            )}
+
+            {faqs.length > 0 && (
+              <Disclosure id="faq" title="Pertanyaan umum" Icon={CircleHelp} badge={faqs.length} className={RISE} style={delay(7)}>
+                <div className="space-y-2">
+                  {faqs.map((q) => <Row key={q.id} title={q.question}><p className="whitespace-pre-wrap break-words">{q.answer}</p></Row>)}
+                </div>
+              </Disclosure>
+            )}
+
+            <Disclosure id="ulasan" title="Ulasan pembeli" Icon={Star} defaultOpen badge={ratingCount > 0 ? `${ratingAvg.toFixed(1)} · ${ratingCount}` : undefined} className={RISE} style={delay(8)}>
+              {ratingCount > 0 && (
+                <div className="mb-4 flex items-center gap-4 rounded-xl bg-muted p-4">
+                  <p className="text-4xl font-bold text-primary">{ratingAvg.toFixed(1)}</p>
+                  <div>
+                    <Stars value={Math.round(ratingAvg)} />
+                    <p className="mt-1 text-xs text-muted-foreground">dari {ratingCount} ulasan</p>
+                  </div>
+                </div>
+              )}
+              {reviews.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada ulasan. Ulasan hanya datang dari pembeli yang pesanannya sudah selesai.</p> : (
+                <ul className="divide-y divide-border">
+                  {reviews.map((r) => (
+                    <li key={r.id} className="py-4 text-sm first:pt-0 last:pb-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <AvatarMini name={r.buyer?.username ?? "?"} url={r.buyer?.avatar_url ?? null} size={28} />
+                        <b className="min-w-0 truncate">{r.buyer?.display_name || r.buyer?.username || "Pembeli"}</b>
+                        <Stars value={r.rating} />
+                        <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      </div>
+                      {r.comment && <p className="mt-2 whitespace-pre-wrap break-words">{r.comment}</p>}
+                      {r.seller_reply && <p className="mt-2 rounded-lg border-l-2 border-primary bg-muted p-3 text-muted-foreground"><b className="text-foreground">Balasan penjual:</b> {r.seller_reply}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Disclosure>
+
+            <Disclosure id="cara-pesan" title="Cara pesan di GoBi" Icon={ListOrdered} className={RISE} style={delay(9)}>
+              <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-3.5 before:top-3 before:w-px before:bg-border">
+                {STEPS.map((st, i) => (
+                  <li key={st.title} className="relative flex gap-3">
+                    <span className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground ring-4 ring-card">{i + 1}</span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-sm font-semibold">{st.title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{st.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Disclosure>
           </div>
         </div>
-        <div aria-hidden className="batik-line absolute inset-x-0 bottom-0" />
-      </header>
 
-      <div className="mt-5 grid gap-x-8 gap-y-5 sm:mt-6 sm:gap-y-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Galeri */}
-        <section aria-label="Galeri jasa" className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-hero">
-            {images[cur] ? <img src={images[cur]} alt={s.title} className="size-full object-cover" /> : <div className="flex size-full items-center justify-center"><Wrench className="size-16 text-primary/70" /></div>}
-            {images.length > 1 && (
-              <>
-                <button type="button" onClick={() => goImg(-1)} aria-label="Gambar sebelumnya" className="absolute left-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-navy/70 text-white backdrop-blur transition hover:bg-navy"><ChevronLeft className="size-5" /></button>
-                <button type="button" onClick={() => goImg(1)} aria-label="Gambar berikutnya" className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-navy/70 text-white backdrop-blur transition hover:bg-navy"><ChevronRight className="size-5" /></button>
-                <span className="absolute bottom-2 right-2 rounded-full bg-navy/70 px-2.5 py-1 font-mono text-xs text-white backdrop-blur">{cur + 1}/{images.length}</span>
-              </>
-            )}
-          </div>
-          {images.length > 1 && (
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {images.map((u, i) => (
-                <button key={u} type="button" onClick={() => setImg(i)} aria-label={`Gambar ${i + 1}`} aria-current={i === cur}
-                  className={cn("aspect-video w-20 shrink-0 overflow-hidden rounded-lg border-2 bg-muted transition sm:w-24", i === cur ? "border-primary" : "border-transparent opacity-70 hover:opacity-100")}>
-                  <img src={u} alt="" loading="lazy" className="size-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Kolom samping hanya untuk desktop: panel pesan lengket + kartu penjual. Di mobile panel pesan ada di bottom sheet dan kartu penjual masuk ke aliran konten. */}
-        <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto">
+        {/* Kolom samping hanya untuk desktop: panel pesan lengket + kartu penjual. Di mobile panel pesan ada di bottom sheet. */}
+        <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto">
           {isDesktop && (
-            <div id="order-panel" className="scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-glow">
+            <div id="order-panel" className={cn("scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-glow", RISE)} style={delay(2)}>
               {orderBody}
             </div>
           )}
-          {s.owner && <SellerCard owner={s.owner as Owner} stats={seller.data} portfolio={seller.data?.portfolio ?? []} />}
+          {s.owner && <SellerCard owner={s.owner as Owner} stats={seller.data} portfolio={seller.data?.portfolio ?? []} className={RISE} style={delay(3)} />}
         </aside>
-
-        <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-start-1 lg:row-start-2">
-          {/* Navigasi bagian: lengket di bawah header situs, bisa digeser ke samping di layar sempit. */}
-          <nav aria-label="Bagian halaman" className="sticky top-14 z-20 -mx-1 flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card/95 p-1.5 shadow-sm backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {navSections.map((n) => (
-              <button key={n.id} type="button" onClick={() => scrollToId(n.id)} aria-current={activeSection === n.id ? "true" : undefined}
-                className={cn("shrink-0 rounded-xl px-3.5 py-1.5 text-sm font-semibold transition", activeSection === n.id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
-                {n.label}
-              </button>
-            ))}
-          </nav>
-
-          {packages.length > 0 && (
-            <Section id="paket" title="Pilih paket" Icon={Package}>
-              <ul className="space-y-3">
-                {packages.map((p) => {
-                  const on = pkgId === p.id;
-                  return (
-                    <li key={p.id} className={cn("rounded-2xl border p-4 transition sm:p-5", on ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "border-border hover:border-primary/50")}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide", TIER_STYLE[p.tier] ?? "bg-secondary text-secondary-foreground")}>{TIER_LABEL[p.tier] ?? p.tier}</span>
-                          <h3 className="mt-1.5 break-words font-semibold">{p.name}</h3>
-                        </div>
-                        <p className="shrink-0 text-xl font-bold text-primary sm:text-2xl">{formatRupiah(p.price, "—")}</p>
-                      </div>
-                      {p.description && <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>}
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><Clock className="size-3.5" /> {p.delivery_days} hari</span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><RefreshCw className="size-3.5" /> {p.revisions} revisi</span>
-                        {p.work_limit && <span className="inline-flex min-w-0 items-start gap-1.5 rounded-2xl bg-muted px-2.5 py-1"><Ruler className="mt-0.5 size-3.5 shrink-0" /><span className="min-w-0 break-words">{p.work_limit}</span></span>}
-                      </div>
-                      {(p.features ?? []).length > 0 && (
-                        <ul className="mt-3 grid gap-x-4 gap-y-1.5 border-t border-border pt-3 text-sm sm:grid-cols-2">
-                          {p.features.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{f}</span></li>)}
-                        </ul>
-                      )}
-                      {!isOwner && (
-                        <Button type="button" variant={on ? "default" : "outline"} className="mt-4 w-full rounded-full sm:w-auto" onClick={() => choosePackage(p)}>
-                          {on ? <><Check /> Terpilih</> : "Pilih paket"}
-                        </Button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Section>
-          )}
-
-          <Section id="deskripsi" title="Tentang jasa ini" Icon={FileText}>
-            {s.description ? <Markdown>{s.description}</Markdown> : <p className="text-sm text-muted-foreground">Belum ada deskripsi.</p>}
-            {skills.length > 0 && (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">Keahlian</p>
-                <ul className="flex flex-wrap gap-1.5" aria-label="Keahlian">
-                  {skills.map((k) => <li key={k} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{k}</li>)}
-                </ul>
-              </div>
-            )}
-          </Section>
-
-          {/* Mobile: kenali penjual tepat setelah deskripsi. Desktop memakai kartu di kolom samping. */}
-          {s.owner && <SellerCard owner={s.owner as Owner} stats={seller.data} portfolio={seller.data?.portfolio ?? []} className="lg:hidden" />}
-
-          {addons.length > 0 && (
-            <Section id="addon" title="Add-on" Icon={PlusCircle}>
-              <ul className="divide-y divide-border text-sm">
-                {addons.map((a) => (
-                  <li key={a.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-                    <span className="min-w-0"><b>{a.name}</b>{a.description && <span className="block text-muted-foreground">{a.description}</span>}</span>
-                    <span className="shrink-0 text-muted-foreground"><b className="text-base text-primary">{formatRupiah(a.price, "—")}</b>{a.extra_days > 0 && ` · +${a.extra_days} hari`}{a.extra_revisions > 0 && ` · +${a.extra_revisions} revisi`}</span>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-
-          {hasTerms && (
-            <Section id="ketentuan" title="Ketentuan pesanan" Icon={ClipboardList}>
-              <div className="grid gap-3 text-sm">
-                {x.buyer_requirements && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><ClipboardList className="size-4 text-primary" /> Yang perlu kamu siapkan</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.buyer_requirements}</p></div>}
-                {x.revision_terms && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><RefreshCw className="size-4 text-primary" /> Ketentuan revisi</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.revision_terms}</p></div>}
-                {x.scope_limits && <div className="rounded-xl bg-muted p-4"><h3 className="flex items-center gap-2 font-semibold"><Ruler className="size-4 text-primary" /> Batas ruang lingkup</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-muted-foreground">{x.scope_limits}</p></div>}
-              </div>
-            </Section>
-          )}
-
-          {faqs.length > 0 && (
-            <Section id="faq" title="Pertanyaan umum" Icon={CircleHelp}>
-              <div className="divide-y divide-border">
-                {faqs.map((q) => (
-                  <details key={q.id} className="group py-3 first:pt-0 last:pb-0">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
-                      <span className="min-w-0 break-words">{q.question}</span>
-                      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition group-open:rotate-180" aria-hidden />
-                    </summary>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{q.answer}</p>
-                  </details>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          <Section id="ulasan" title="Ulasan pembeli" Icon={Star}>
-            {ratingCount > 0 && (
-              <div className="mb-4 flex items-center gap-4 rounded-xl bg-muted p-4">
-                <p className="text-4xl font-bold text-primary">{ratingAvg.toFixed(1)}</p>
-                <div>
-                  <Stars value={Math.round(ratingAvg)} />
-                  <p className="mt-1 text-xs text-muted-foreground">dari {ratingCount} ulasan</p>
-                </div>
-              </div>
-            )}
-            {reviews.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada ulasan. Ulasan hanya datang dari pembeli yang pesanannya sudah selesai.</p> : (
-              <ul className="divide-y divide-border">
-                {reviews.map((r) => (
-                  <li key={r.id} className="py-4 text-sm first:pt-0 last:pb-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <AvatarMini name={r.buyer?.username ?? "?"} url={r.buyer?.avatar_url ?? null} size={28} />
-                      <b className="min-w-0 truncate">{r.buyer?.display_name || r.buyer?.username || "Pembeli"}</b>
-                      <Stars value={r.rating} />
-                      <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
-                    </div>
-                    {r.comment && <p className="mt-2 whitespace-pre-wrap break-words">{r.comment}</p>}
-                    {r.seller_reply && <p className="mt-2 rounded-lg border-l-2 border-primary bg-muted p-3 text-muted-foreground"><b className="text-foreground">Balasan penjual:</b> {r.seller_reply}</p>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-
-          <Section id="cara-pesan" title="Cara pesan di GoBi" Icon={ListOrdered}>
-            <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-3.5 before:top-3 before:w-px before:bg-border">
-              {STEPS.map((st, i) => (
-                <li key={st.title} className="relative flex gap-3">
-                  <span className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground ring-4 ring-card">{i + 1}</span>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-semibold">{st.title}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{st.text}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Section>
-        </div>
       </div>
 
       {/* Mobile: bar pesan lengket di dasar layar (sticky di dalam <main>, jadi ikut berakhir sebelum footer). Menu bawah global disembunyikan di halaman ini. */}
-      <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-border bg-card/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_-12px_rgb(10_26_69/0.35)] backdrop-blur lg:hidden">
+      <div className="sticky bottom-0 z-30 mt-6 animate-in fade-in-0 slide-in-from-bottom-4 border-t border-border bg-card/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_-12px_rgb(10_26_69/0.35)] backdrop-blur duration-500 motion-reduce:animate-none lg:hidden">
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] text-muted-foreground">{pkg ? `${priceLabel} · ${pkg.delivery_days} hari` : priceLabel}</p>
-            <p className="truncate text-lg font-bold leading-tight text-primary">{priceText}</p>
+            <p key={priceText} className="animate-in fade-in-0 slide-in-from-bottom-1 truncate text-lg font-bold leading-tight text-primary duration-300 motion-reduce:animate-none">{priceText}</p>
           </div>
           {isOwner ? (
             <Button asChild className="h-11 shrink-0 rounded-full px-6"><Link to="/studio/jasa/$id" params={{ id: s.id }}><Pencil /> Edit jasa</Link></Button>
           ) : (
-            <Button type="button" className="h-11 shrink-0 rounded-full px-7" onClick={() => setOrderOpen(true)}><ShoppingBag /> Pesan</Button>
+            <Button type="button" className="h-11 shrink-0 rounded-full px-7 active:scale-95" onClick={() => setOrderOpen(true)}><ShoppingBag /> Pesan</Button>
           )}
         </div>
       </div>
