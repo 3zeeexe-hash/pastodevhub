@@ -122,7 +122,7 @@ function VerificationQueuePage() {
         })}
         {data && data.length === 0 && <li className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Tidak ada pengajuan.</li>}
       </ul>
-      <p className="text-xs text-muted-foreground">Mau mencabut centang yang sudah diberikan? Buka Pengguna, pilih akunnya, lalu “Cabut centang biru”.</p>
+      <p className="text-xs text-muted-foreground">Setujui pengajuan memberi centang biru. Untuk centang hijau (akun resmi), merah (pemilik), atau mencabut centang, buka Pengguna, pilih akunnya, lalu atur “Centang verifikasi”.</p>
     </div>
   );
 }

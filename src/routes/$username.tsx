@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarMini } from "@/components/avatar-mini";
-import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifiedBadge, VerifiedTierLabel } from "@/components/verified-badge";
 import { RepoCard, type RepoCardData } from "@/components/repo-card";
 import { ContributionGraph } from "@/components/contribution-graph";
 import { Markdown } from "@/components/markdown";
@@ -172,6 +172,7 @@ function Profile() {
               </h1>
               <p className="mt-1 flex items-center gap-2 font-mono text-base font-semibold text-muted-foreground">
                 <span className="min-w-0 truncate">@{p.username}</span>
+                <VerifiedTierLabel username={p.username} />
                 <button type="button" onClick={copyLink} aria-label="Salin tautan profil" title="Salin tautan profil" className="rounded-md p-1 transition hover:bg-accent hover:text-foreground"><Copy className="size-4" /></button>
               </p>
               {p.headline && <p className="mt-3 text-lg font-bold leading-snug">{p.headline}</p>}

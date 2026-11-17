@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { BadgeCheck, Ban, ChevronLeft, ChevronRight, Eye, ExternalLink, MoreHorizontal, Search, ShieldCheck, UserCog } from "lucide-react";
+import { Ban, ChevronLeft, ChevronRight, Eye, ExternalLink, MoreHorizontal, Search, ShieldCheck, UserCog } from "lucide-react";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { ago, cnt, DAY, num, rows, sb } from "@/lib/admin-db";
 import { useUserActions, type UserRow } from "@/lib/admin-users";
 import { cn } from "@/lib/utils";
 import { AvatarMini } from "@/components/avatar-mini";
-import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifiedBadge, useVerifiedTiers } from "@/components/verified-badge";
+import { VerifiedTierItems } from "@/components/verified-tier-menu";
+import type { VerifiedTier } from "@/lib/verification-tier";
 import { UserDetailSheet } from "@/components/admin-user-detail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +35,7 @@ type Ban = { reason: string; created_at: string };
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "Semua" }, { key: "developer", label: "Developer" }, { key: "client", label: "Client" }, { key: "none", label: "Belum pilih jenis" },
-  { key: "verified", label: "Centang biru" }, { key: "admin", label: "Admin" }, { key: "banned", label: "Diblokir" }, { key: "new", label: "Baru 7 hari" },
+  { key: "verified", label: "Bercentang" }, { key: "admin", label: "Admin" }, { key: "banned", label: "Diblokir" }, { key: "new", label: "Baru 7 hari" },
 ];
 
 function typeLabel(t: string | null) {
@@ -43,6 +45,9 @@ function typeLabel(t: string | null) {
 function UsersPage() {
   const { user: me } = useAuth();
   const actions = useUserActions();
+  const tiers = useVerifiedTiers().data;
+  /** Tingkat centang akun ini; centang lama tanpa tingkat dianggap biru. */
+  const tierOf = (u: UserRow): VerifiedTier | null => tiers?.get(u.username) ?? (u.is_verified ? "verified" : null);
   const [text, setText] = useState("");
   const [term, setTerm] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -178,7 +183,7 @@ function UsersPage() {
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-semibold">
                       <span className="truncate">{u.display_name || u.username}</span>
-                      <VerifiedBadge verified={!!u.is_verified} size={15} />
+                      <VerifiedBadge username={u.username} verified={!!u.is_verified} size={15} />
                       {isAdmin && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">Admin</span>}
                       {banned && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">Diblokir</span>}
                       {isMe && <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">Kamu</span>}
@@ -199,9 +204,8 @@ function UsersPage() {
                     <DropdownMenuItem onClick={() => setSelected(u.id)}><Eye /> Lihat detail dan aktivitas</DropdownMenuItem>
                     <DropdownMenuItem asChild><ALink to="/$username" params={{ username: u.username }}><ExternalLink /> Buka profil publik</ALink></DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {u.account_type === "developer" && (
-                      <DropdownMenuItem onClick={() => actions.toggleVerified(u)}><BadgeCheck /> {u.is_verified ? "Cabut centang biru" : "Beri centang biru"}</DropdownMenuItem>
-                    )}
+                    <VerifiedTierItems current={tierOf(u)} onPick={(t) => actions.setTier(u, t)} />
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => actions.setType(u, u.account_type === "developer" ? "client" : "developer")}><UserCog /> Jadikan {u.account_type === "developer" ? "Client" : "Developer"}</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem disabled={isMe} onClick={() => actions.toggleAdmin(u, isAdmin)}><ShieldCheck /> {isAdmin ? "Cabut role admin" : "Jadikan admin"}</DropdownMenuItem>
