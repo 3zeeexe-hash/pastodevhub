@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { looseDb } from "@/lib/escrow-db";
 import { errMsg, formatRupiah } from "@/lib/market";
-import { MIDTRANS_METHODS, computeFee, feeRuleLabel, methodLabel } from "@/lib/midtrans-shared";
+import { MIDTRANS_METHODS, computeFee, methodLabel } from "@/lib/midtrans-shared";
 import { createMidtransCharge, getMidtransPublicInfo, syncMidtransPayment } from "@/lib/midtrans.functions";
 import { cn } from "@/lib/utils";
 
@@ -186,9 +186,7 @@ export function MidtransPayDialog({ orderId, amount, open, onOpenChange, onPaid 
               </div>
             )}
             <Breakdown amount={Number(pay.gross_amount) - payFee} fee={payFee} />
-            <p className="text-xs text-muted-foreground">
-              Bayar tepat sesuai total{payFee > 0 ? ` (sudah termasuk biaya admin ${feeRuleLabel(fees?.[pay.method as keyof typeof fees])})` : ""}. Halaman ini menutup otomatis saat pembayaran terdeteksi.
-            </p>
+            <p className="text-xs text-muted-foreground">Bayar tepat sesuai total{payFee > 0 ? " (sudah termasuk biaya admin)" : ""}. Halaman ini menutup otomatis saat pembayaran terdeteksi.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={checkNow} disabled={checking}>{checking ? <Loader2 className="animate-spin" /> : <RefreshCw />} Cek status</Button>
               <Button variant="ghost" onClick={() => { setMethod(""); setChanging(true); }}>Ganti metode</Button>
