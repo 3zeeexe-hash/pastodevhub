@@ -10,6 +10,7 @@ import { SERVICE_STATUS_LABEL, type ServiceStatus } from "@/lib/services";
 import { OWNER_ACTION_LABEL, OWNER_ACTION_TARGET, serviceOwnerActions, type OwnerAction } from "@/lib/services-owner";
 import { SERVICE_LIST_SELECT, serviceRpc, useSellerProfile, type ServiceListRow } from "@/lib/services-db";
 import { SellerActivationCard } from "@/components/service-seller";
+import { SellerOrders, useSellerNeedsAction } from "@/components/service-seller-orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,12 @@ function SellerDashboard() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   const seller = useSellerProfile(user?.id);
+  const [view, setView] = useState<"services" | "orders">("services");
   const [filter, setFilter] = useState<"all" | ServiceStatus>("all");
   const [editProfile, setEditProfile] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const sellerActive = !!seller.data?.is_active && !seller.data?.suspended_at;
+  const needsAction = useSellerNeedsAction(sellerActive);
 
   const list = useQuery({
     queryKey: ["services", "mine-v2", user?.id],
@@ -112,9 +116,10 @@ function SellerDashboard() {
   }
 
   if (!user || !profile || seller.isLoading) return <div className="space-y-3"><Skeleton className="h-8 w-48" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
-  if (seller.error) return <Alert variant="destructive"><AlertDescription>Fitur GOBI SERVICES belum siap: {errMsg(seller.error)}. Pastikan SQL 001 sampai 003 sudah diterapkan.</AlertDescription></Alert>;
+  if (seller.error) return <Alert variant="destructive"><AlertDescription>Fitur GOBI SERVICES belum siap: {errMsg(seller.error)}. Pastikan SQL 001 sampai 007 sudah diterapkan.</AlertDescription></Alert>;
 
-  const active = !!seller.data?.is_active && !seller.data.suspended_at;
+  const active = sellerActive;
+  const pending = needsAction.data ?? 0;
 
   return (
     <div className="space-y-5">
@@ -138,6 +143,17 @@ function SellerDashboard() {
       )}
 
       {active && (
+        <div className="flex gap-2 border-b border-border pb-2" role="tablist" aria-label="Bagian dashboard penjual">
+          <Button role="tab" aria-selected={view === "services"} size="sm" variant={view === "services" ? "default" : "ghost"} onClick={() => setView("services")}>Jasa</Button>
+          <Button role="tab" aria-selected={view === "orders"} size="sm" variant={view === "orders" ? "default" : "ghost"} onClick={() => setView("orders")}>
+            Pesanan masuk{pending > 0 && <span className="ml-1.5 min-w-5 rounded-full bg-destructive px-1.5 text-center text-[11px] leading-5 text-destructive-foreground">{pending > 99 ? "99+" : pending}</span>}
+          </Button>
+        </div>
+      )}
+
+      {active && view === "orders" && <SellerOrders />}
+
+      {active && view === "services" && (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[["Total jasa", rows.length], ["Terbit", count("published")], ["Ditinjau", count("pending_review")], ["Draft", count("draft")]].map(([l, v]) => (
