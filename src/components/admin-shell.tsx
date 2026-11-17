@@ -12,13 +12,13 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 /**
  * Kerangka halaman /admin: sidebar admin sendiri (kartu biru tua, sama gayanya dengan sidebar linimasa) di layar md ke atas,
  * dan tombol "Menu admin" yang membuka laci kiri di ponsel. Isi menunya sama persis (`ADMIN_NAV`) dan bisa dicari.
- * Kepala halaman (judul + keterangan) diambil dari menu yang aktif, jadi halaman anak tidak perlu membuat judul besar sendiri.
+ * Kepala halaman (judul + keterangan) diambil dari menu yang aktif (termasuk tab yang dipilih lewat `?tab=`), jadi halaman anak tidak perlu membuat judul besar sendiri.
  * Gaya tab di dalam halaman dibuat bisa digeser ke samping supaya tidak menumpuk berbaris-baris di layar sempit.
  */
 export function AdminShell({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [open, setOpen] = useState(false);
-  const meta = adminMeta(pathname);
+  const meta = adminMeta(pathname, search as Record<string, unknown>);
   const Icon = meta?.Icon ?? ShieldCheck;
 
   return (
