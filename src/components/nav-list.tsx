@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FeatureKey } from "@/lib/features";
@@ -10,6 +10,8 @@ import { capabilityForPath, roleCan, type Capability, type Role } from "@/lib/ro
  * `params`: parameter rute dinamis (mis. `/$username`). `match`: jalur asli untuk menandai menu aktif kalau `to` berisi parameter.
  * `caps`: menu hanya tampil untuk peran yang punya salah satu kemampuan ini (lihat ROLE_CAPS di lib/roles). Tanpa `caps`, kemampuan
  * dibaca dari jalurnya (ROLE_PATHS, mis. /studio/karya butuh "karya"); kalau jalurnya juga tidak dibatasi, menu terbuka untuk semua peran.
+ * `matchSearch`: beberapa menu menuju halaman yang sama dengan tab berbeda (mis. /admin/jasa?tab=transaksi). Dengan `matchSearch`, menu aktif
+ * hanya kalau parameter `search`-nya juga cocok dengan URL. `searchDefault`: menu ini juga aktif saat parameternya tidak ada di URL (tab bawaan halaman).
  */
 export type NavItem = {
   to: string;
@@ -22,13 +24,19 @@ export type NavItem = {
   feature?: FeatureKey;
   caps?: readonly Capability[];
   Badge?: ComponentType;
+  matchSearch?: boolean;
+  searchDefault?: boolean;
 };
 export type NavGroup = { group: string; items: NavItem[] };
 
-export function isActive(pathname: string, item: NavItem) {
+export function isActive(pathname: string, item: NavItem, search?: Record<string, unknown>) {
   const base = item.match ?? item.to;
-  if (item.exact) return pathname === base || pathname === `${base}/`;
-  return pathname === base || pathname.startsWith(`${base}/`);
+  const onPath = item.exact ? pathname === base || pathname === `${base}/` : pathname === base || pathname.startsWith(`${base}/`);
+  if (!onPath || !item.matchSearch || !item.search) return onPath;
+  return Object.entries(item.search).every(([k, v]) => {
+    const cur = search?.[k];
+    return cur === undefined || cur === null || cur === "" ? !!item.searchDefault : String(cur) === v;
+  });
 }
 
 /** Apakah peran ini boleh melihat menu tersebut (hanya soal tampilan; hak akses sebenarnya tetap di database). */
@@ -51,13 +59,14 @@ export function filterNavGroups(nav: NavGroup[], query: string): NavGroup[] {
 
 /** navy = kartu biru tua di layar lebar (aktif: gradasi oranye); tanpa navy = tampilan terang untuk laci di ponsel. */
 export function NavList({ nav, pathname, onNavigate, navy }: { nav: NavGroup[]; pathname: string; onNavigate?: () => void; navy?: boolean }) {
+  const { search } = useLocation();
   return (
     <nav className="flex flex-col gap-4" aria-label="Menu">
       {nav.map(({ group, items }) => (
         <div key={group} className="flex flex-col gap-0.5">
           <p className={cn("px-2.5 pb-1 text-xs font-semibold uppercase tracking-wider", navy ? "text-white/50" : "text-muted-foreground")}>{group}</p>
           {items.map((item) => {
-            const active = isActive(pathname, item);
+            const active = isActive(pathname, item, search as Record<string, unknown>);
             return (
               <Link key={item.to + item.label} to={item.to} params={item.params as never} search={item.search as never} onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
