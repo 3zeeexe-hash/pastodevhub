@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, CreditCard, Loader2, PlugZap } from "lucide-react";
 import { timeAgo } from "@/lib/auth";
-import { errMsg } from "@/lib/market";
-import { MIDTRANS_METHODS, type MidtransMode } from "@/lib/midtrans-shared";
+import { errMsg, formatRupiah } from "@/lib/market";
+import {
+  MAX_FEE_FLAT, MAX_FEE_PERCENT, MIDTRANS_METHODS, computeFee,
+  type MidtransFees, type MidtransMethodId, type MidtransMode,
+} from "@/lib/midtrans-shared";
 import { getAdminMidtransSettings, saveAdminMidtransSettings, testAdminMidtrans } from "@/lib/midtrans.functions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +24,27 @@ export const Route = createFileRoute("/admin/midtrans")({
   component: MidtransAdminPage,
 });
 
+/** Nilai kolom biaya disimpan sebagai teks supaya admin bebas mengetik "0,7" atau "0.7". */
+type FeeDraft = Record<MidtransMethodId, { flat: string; percent: string }>;
+const SAMPLE_AMOUNT = 100_000;
+
+function feesToDraft(f: MidtransFees): FeeDraft {
+  return Object.fromEntries(
+    MIDTRANS_METHODS.map((m) => [m.id, {
+      flat: f[m.id].flat ? String(f[m.id].flat) : "",
+      percent: f[m.id].percent ? String(f[m.id].percent).replace(".", ",") : "",
+    }]),
+  ) as FeeDraft;
+}
+
+/** Kosong = 0. Mengembalikan null kalau teks bukan angka (dipakai untuk menandai kolom yang salah). */
+function parseNum(s: string): number | null {
+  const t = s.trim().replace(",", ".");
+  if (t === "") return 0;
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
+  return Number(t);
+}
+
 function MidtransAdminPage() {
   const ask = useAskAdmin();
   const load = useServerFn(getAdminMidtransSettings);
@@ -31,6 +55,7 @@ function MidtransAdminPage() {
   const [enabled, setEnabled] = useState(false);
   const [mode, setMode] = useState<MidtransMode>("sandbox");
   const [methods, setMethods] = useState<string[]>([]);
+  const [fees, setFees] = useState<FeeDraft>(() => feesToDraft({ bca: { flat: 0, percent: 0 }, bni: { flat: 0, percent: 0 }, bri: { flat: 0, percent: 0 }, permata: { flat: 0, percent: 0 }, qris: { flat: 0, percent: 0 } }));
   const [sbServer, setSbServer] = useState("");
   const [sbClient, setSbClient] = useState("");
   const [prodServer, setProdServer] = useState("");
@@ -43,16 +68,34 @@ function MidtransAdminPage() {
     setEnabled(data.enabled);
     setMode(data.mode);
     setMethods(data.methods);
+    setFees(feesToDraft(data.fees));
     setSbClient(data.sandboxClientKey);
     setProdClient(data.productionClientKey);
   }, [data?.updatedAt, data?.schemaReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Periksa kolom biaya dulu supaya pesan galatnya jelas menyebut metodenya.
+    const parsedFees = {} as Record<MidtransMethodId, { flat: number; percent: number }>;
+    for (const m of MIDTRANS_METHODS) {
+      const flat = parseNum(fees[m.id].flat);
+      const percent = parseNum(fees[m.id].percent);
+      if (flat === null || !Number.isInteger(flat) || flat > MAX_FEE_FLAT) {
+        toast.error(`Biaya tetap ${m.label} harus bilangan bulat 0–${MAX_FEE_FLAT.toLocaleString("id-ID")}.`);
+        return;
+      }
+      if (percent === null || percent > MAX_FEE_PERCENT) {
+        toast.error(`Persen ${m.label} harus angka 0–${MAX_FEE_PERCENT} (maksimal dua desimal, mis. 0,7).`);
+        return;
+      }
+      parsedFees[m.id] = { flat, percent };
+    }
+
     if (enabled && mode === "production" && !(await ask({ title: "Aktifkan mode produksi?", description: "Mode produksi memakai uang asli. Pastikan kunci produksi sudah benar.", confirmLabel: "Simpan mode produksi", destructive: true }))) return;
     setBusy(true);
     try {
-      await save({ data: { enabled, mode, methods, sandboxServerKey: sbServer.trim(), sandboxClientKey: sbClient.trim(), productionServerKey: prodServer.trim(), productionClientKey: prodClient.trim() } });
+      await save({ data: { enabled, mode, methods, sandboxServerKey: sbServer.trim(), sandboxClientKey: sbClient.trim(), productionServerKey: prodServer.trim(), productionClientKey: prodClient.trim(), fees: parsedFees } });
       setSbServer(""); setProdServer("");
       toast.success("Pengaturan Midtrans disimpan");
       qc.invalidateQueries({ queryKey: ["admin-midtrans"] });
@@ -77,6 +120,14 @@ function MidtransAdminPage() {
   }
 
   const toggleMethod = (id: string, on: boolean) => setMethods((cur) => (on ? [...new Set([...cur, id])] : cur.filter((m) => m !== id)));
+  const setFee = (id: MidtransMethodId, field: "flat" | "percent", value: string) =>
+    setFees((cur) => ({ ...cur, [id]: { ...cur[id], [field]: value } }));
+  const sampleFee = (id: MidtransMethodId) => {
+    const flat = parseNum(fees[id].flat);
+    const percent = parseNum(fees[id].percent);
+    if (flat === null || percent === null) return null;
+    return computeFee({ flat, percent }, SAMPLE_AMOUNT);
+  };
   const modeBtn = (m: MidtransMode, label: string) => (
     <button type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
       className={cn("rounded-md border px-4 py-2 text-sm", mode === m ? "border-primary bg-primary/10 font-semibold" : "border-border")}>{label}</button>
@@ -133,6 +184,56 @@ function MidtransAdminPage() {
             </label>
           ))}
         </div>
+      </div>
+
+      <div>
+        <Label>Biaya admin per metode pembayaran</Label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Ditambahkan di atas harga pesanan dan dibayar pembeli; dana escrow developer tetap sebesar harga pesanan.
+          Isi biaya tetap (Rp), persen dari harga pesanan, atau keduanya. Kosongkan untuk gratis.
+          Contoh: VA Rp4.000 dan QRIS 0,7%.
+        </p>
+        {data && !data.feesReady && data.schemaReady && (
+          <p role="alert" className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
+            Kolom biaya admin belum ada di database. Jalankan <code>docs/sql/midtrans-escrow/003_biaya_pembayaran.sql</code> di SQL editor, lalu muat ulang halaman ini.
+          </p>
+        )}
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-1 pr-3 font-medium">Metode</th>
+                <th className="py-1 pr-3 font-medium">Biaya tetap (Rp)</th>
+                <th className="py-1 pr-3 font-medium">Persen (%)</th>
+                <th className="py-1 font-medium">Contoh pesanan {formatRupiah(SAMPLE_AMOUNT)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MIDTRANS_METHODS.map((m) => {
+                const sample = sampleFee(m.id);
+                return (
+                  <tr key={m.id} className="border-t border-border align-middle">
+                    <td className="py-2 pr-3">{m.label}</td>
+                    <td className="py-2 pr-3">
+                      <Input inputMode="numeric" aria-label={`Biaya tetap ${m.label} (Rp)`} placeholder="0" className="w-32"
+                        value={fees[m.id].flat} onChange={(e) => setFee(m.id, "flat", e.target.value)} disabled={!!data && !data.feesReady} maxLength={7} autoComplete="off" />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Input inputMode="decimal" aria-label={`Persen ${m.label} (%)`} placeholder="0" className="w-24"
+                        value={fees[m.id].percent} onChange={(e) => setFee(m.id, "percent", e.target.value)} disabled={!!data && !data.feesReady} maxLength={5} autoComplete="off" />
+                    </td>
+                    <td className="py-2 text-xs text-muted-foreground">
+                      {sample === null ? <span className="text-destructive">Angka tidak valid</span>
+                        : sample > 0 ? <>Biaya {formatRupiah(sample)} · total <b className="text-foreground">{formatRupiah(SAMPLE_AMOUNT + sample)}</b></>
+                        : "Gratis"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">Persen dihitung dari harga pesanan dan dibulatkan ke atas ke rupiah penuh. Perubahan berlaku untuk pembayaran baru; pembayaran yang sudah dibuat tidak berubah.</p>
       </div>
 
       {data?.notificationUrl && (
