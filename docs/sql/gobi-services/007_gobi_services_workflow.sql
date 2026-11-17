@@ -206,66 +206,64 @@ revoke all on function public.service_approve_work(uuid) from public, anon;
 grant execute on function public.service_approve_work(uuid) to authenticated;
 
 -- ============ 7. Daftar pesanan masuk penjual ============
--- _group: needs_action | working | submitted | issues | done | closed (kosong = semua). Pesanan yang belum dibayar tidak ditampilkan ke penjual.
+-- _group: needs_action | working | submitted | issues | done | closed (kosong = semua). Pesanan yang belum dibayar tidak ditampilkan.
+-- Mengembalikan {counts: {all, needs_action, working, submitted, issues, done, closed}, total, rows[]}.
 create or replace function public.service_seller_orders(_group text default null, _limit int default 25, _offset int default 0)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
 declare
   uid uuid := auth.uid();
   lim int := least(greatest(coalesce(_limit, 25), 1), 50);
   off int := greatest(coalesce(_offset, 0), 0);
-  grp text := nullif(_group, '');
-  counts jsonb; total bigint; rows jsonb;
+  wanted text := nullif(_group, '');
+  result jsonb;
 begin
   perform public._service_guard();
-  if grp is not null and grp not in ('needs_action', 'working', 'submitted', 'issues', 'done', 'closed') then raise exception 'Kelompok tidak valid'; end if;
+  if wanted is not null and wanted not in ('needs_action', 'working', 'submitted', 'issues', 'done', 'closed') then
+    raise exception 'Kelompok tidak valid';
+  end if;
 
   with mine as (
-    select o.*, so.stage, so.due_at, so.accepted_at, so.delivery_days, so.revisions_included, so.revisions_used, so.package_snapshot,
+    select o.id, o.number, o.title, o.amount, o.fee_amount, o.status as order_status, o.created_at, o.buyer_id,
+      so.stage, so.due_at, so.accepted_at, so.delivery_days, so.revisions_included, so.revisions_used, so.package_snapshot,
       case when so.stage in ('pending_seller_acceptance', 'revision_requested') then 'needs_action'
            when so.stage in ('paid', 'in_progress') then 'working'
            when so.stage = 'submitted' then 'submitted'
            when so.stage in ('cancel_requested', 'disputed') then 'issues'
            when so.stage = 'completed' then 'done'
-           else 'closed' end as grp
+           else 'closed' end as bucket
     from public.orders o join public.service_orders so on so.order_id = o.id
     where o.seller_id = uid and o.kind = 'service' and so.stage not in ('awaiting_payment', 'payment_processing')
+  ),
+  ordered as (
+    select m.*, row_number() over (order by
+        case when m.bucket in ('done', 'closed') then m.created_at end desc nulls last,
+        case when m.bucket not in ('done', 'closed') then coalesce(m.due_at, m.created_at) end asc nulls last,
+        m.created_at desc) as rn
+    from mine m where wanted is null or m.bucket = wanted
   )
   select jsonb_build_object(
-      'all', count(*), 'needs_action', count(*) filter (where grp = 'needs_action'), 'working', count(*) filter (where grp = 'working'),
-      'submitted', count(*) filter (where grp = 'submitted'), 'issues', count(*) filter (where grp = 'issues'),
-      'done', count(*) filter (where grp = 'done'), 'closed', count(*) filter (where grp = 'closed')),
-    count(*) filter (where grp is not distinct from coalesce(grp_filter.g, grp))
-  into counts, total
-  from mine, (select grp as g) as grp_filter;
-
-  select coalesce(jsonb_agg(t.x order by t.rn), '[]'::jsonb) into rows from (
-    select row_number() over (order by
-        case when m.grp in ('done', 'closed') then m.created_at end desc nulls last,
-        case when m.grp not in ('done', 'closed') then coalesce(m.due_at, m.created_at) end asc nulls last,
-        m.created_at desc) as rn,
-      jsonb_build_object(
-        'id', m.id, 'number', m.number, 'title', m.title, 'amount', m.amount, 'fee', m.fee_amount,
-        'net', greatest(coalesce(m.amount, 0) - coalesce(m.fee_amount, 0), 0),
-        'order_status', m.status, 'stage', m.stage, 'group', m.grp, 'due_at', m.due_at, 'accepted_at', m.accepted_at,
-        'created_at', m.created_at, 'delivery_days', m.delivery_days,
-        'revisions_included', m.revisions_included, 'revisions_used', m.revisions_used, 'package', m.package_snapshot ->> 'name',
-        'buyer', jsonb_build_object('id', b.id, 'username', b.username, 'display_name', b.display_name, 'avatar_url', b.avatar_url)) as x
-    from (select * from public.orders o join public.service_orders so on so.order_id = o.id where false) z, lateral (select 1) l, (select 1) dummy
-    right join (
-      select o.*, so.stage, so.due_at, so.accepted_at, so.delivery_days, so.revisions_included, so.revisions_used, so.package_snapshot,
-        case when so.stage in ('pending_seller_acceptance', 'revision_requested') then 'needs_action'
-             when so.stage in ('paid', 'in_progress') then 'working'
-             when so.stage = 'submitted' then 'submitted'
-             when so.stage in ('cancel_requested', 'disputed') then 'issues'
-             when so.stage = 'completed' then 'done'
-             else 'closed' end as grp
-      from public.orders o join public.service_orders so on so.order_id = o.id
-      where o.seller_id = uid and o.kind = 'service' and so.stage not in ('awaiting_payment', 'payment_processing')
-    ) m on true
-    join public.profiles b on b.id = m.buyer_id
-    where grp is null or m.grp = grp
-    limit lim offset off
-  ) t;
-
-  return jsonb_build_object('counts', counts, 'total', total, 'rows', rows);
+    'counts', (select jsonb_build_object(
+        'all', count(*),
+        'needs_action', count(*) filter (where bucket = 'needs_action'),
+        'working', count(*) filter (where bucket = 'working'),
+        'submitted', count(*) filter (where bucket = 'submitted'),
+        'issues', count(*) filter (where bucket = 'issues'),
+        'done', count(*) filter (where bucket = 'done'),
+        'closed', count(*) filter (where bucket = 'closed')) from mine),
+    'total', (select count(*) from ordered),
+    'rows', coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'id', p.id, 'number', p.number, 'title', p.title, 'amount', p.amount, 'fee', p.fee_amount,
+          'net', greatest(coalesce(p.amount, 0) - coalesce(p.fee_amount, 0), 0),
+          'order_status', p.order_status, 'stage', p.stage, 'group', p.bucket, 'due_at', p.due_at, 'accepted_at', p.accepted_at,
+          'created_at', p.created_at, 'delivery_days', p.delivery_days,
+          'revisions_included', p.revisions_included, 'revisions_used', p.revisions_used, 'package', p.package_snapshot ->> 'name',
+          'buyer', jsonb_build_object('id', b.id, 'username', b.username, 'display_name', b.display_name, 'avatar_url', b.avatar_url))
+        order by p.rn)
+      from ordered p join public.profiles b on b.id = p.buyer_id
+      where p.rn > off and p.rn <= off + lim), '[]'::jsonb))
+  into result;
+  return result;
 end $$;
+revoke all on function public.service_seller_orders(text, int, int) from public, anon;
+grant execute on function public.service_seller_orders(text, int, int) to authenticated;
