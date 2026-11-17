@@ -43,6 +43,7 @@ import { Route as AdminMidtransRouteImport } from './routes/admin.midtrans'
 import { Route as AdminModerasiRouteImport } from './routes/admin.moderasi'
 import { Route as AdminPantauRouteImport } from './routes/admin.pantau'
 import { Route as AdminPembayaranRouteImport } from './routes/admin.pembayaran'
+import { Route as AdminPengaturanRouteImport } from './routes/admin.pengaturan'
 import { Route as AdminPenggunaRouteImport } from './routes/admin.pengguna'
 import { Route as AdminVerifikasiRouteImport } from './routes/admin.verifikasi'
 import { Route as DiscussIndexRouteImport } from './routes/discuss.index'
@@ -277,6 +278,11 @@ const AdminPantauRoute = AdminPantauRouteImport.update({
 const AdminPembayaranRoute = AdminPembayaranRouteImport.update({
   id: '/pembayaran',
   path: '/pembayaran',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPengaturanRoute = AdminPengaturanRouteImport.update({
+  id: '/pengaturan',
+  path: '/pengaturan',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPenggunaRoute = AdminPenggunaRouteImport.update({
@@ -635,6 +641,7 @@ export interface FileRoutesByFullPath {
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
   '/admin/pembayaran': typeof AdminPembayaranRoute
+  '/admin/pengaturan': typeof AdminPengaturanRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$': typeof DiscussSplatRoute
@@ -731,6 +738,7 @@ export interface FileRoutesByTo {
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
   '/admin/pembayaran': typeof AdminPembayaranRoute
+  '/admin/pengaturan': typeof AdminPengaturanRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$': typeof DiscussSplatRoute
@@ -832,6 +840,7 @@ export interface FileRoutesById {
   '/admin/moderasi': typeof AdminModerasiRoute
   '/admin/pantau': typeof AdminPantauRoute
   '/admin/pembayaran': typeof AdminPembayaranRoute
+  '/admin/pengaturan': typeof AdminPengaturanRoute
   '/admin/pengguna': typeof AdminPenggunaRoute
   '/admin/verifikasi': typeof AdminVerifikasiRoute
   '/discuss/$': typeof DiscussSplatRoute
@@ -934,6 +943,7 @@ export interface FileRouteTypes {
     | '/admin/moderasi'
     | '/admin/pantau'
     | '/admin/pembayaran'
+    | '/admin/pengaturan'
     | '/admin/pengguna'
     | '/admin/verifikasi'
     | '/discuss/$'
@@ -1030,6 +1040,7 @@ export interface FileRouteTypes {
     | '/admin/moderasi'
     | '/admin/pantau'
     | '/admin/pembayaran'
+    | '/admin/pengaturan'
     | '/admin/pengguna'
     | '/admin/verifikasi'
     | '/discuss/$'
@@ -1130,6 +1141,7 @@ export interface FileRouteTypes {
     | '/admin/moderasi'
     | '/admin/pantau'
     | '/admin/pembayaran'
+    | '/admin/pengaturan'
     | '/admin/pengguna'
     | '/admin/verifikasi'
     | '/discuss/$'
@@ -1484,6 +1496,13 @@ declare module '@tanstack/react-router' {
       path: '/pembayaran'
       fullPath: '/admin/pembayaran'
       preLoaderRoute: typeof AdminPembayaranRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pengaturan': {
+      id: '/admin/pengaturan'
+      path: '/pengaturan'
+      fullPath: '/admin/pengaturan'
+      preLoaderRoute: typeof AdminPengaturanRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pengguna': {
@@ -1948,6 +1967,7 @@ interface AdminRouteChildren {
   AdminModerasiRoute: typeof AdminModerasiRoute
   AdminPantauRoute: typeof AdminPantauRoute
   AdminPembayaranRoute: typeof AdminPembayaranRoute
+  AdminPengaturanRoute: typeof AdminPengaturanRoute
   AdminPenggunaRoute: typeof AdminPenggunaRoute
   AdminVerifikasiRoute: typeof AdminVerifikasiRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1964,6 +1984,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminModerasiRoute: AdminModerasiRoute,
   AdminPantauRoute: AdminPantauRoute,
   AdminPembayaranRoute: AdminPembayaranRoute,
+  AdminPengaturanRoute: AdminPengaturanRoute,
   AdminPenggunaRoute: AdminPenggunaRoute,
   AdminVerifikasiRoute: AdminVerifikasiRoute,
   AdminIndexRoute: AdminIndexRoute,
