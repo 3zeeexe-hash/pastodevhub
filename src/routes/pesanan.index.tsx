@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ChevronRight, PackageOpen, Search, Star } from "lucide-react";
+import { BellRing, CheckCircle2, ChevronRight, Hourglass, PackageOpen, Search, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, timeAgo } from "@/lib/auth";
 import { looseDb } from "@/lib/escrow-db";
@@ -41,6 +41,14 @@ const GROUPS: { key: Group; label: string }[] = [
   { key: "done", label: "Selesai" },
   { key: "closed", label: "Ditutup" },
 ];
+
+/** Warna garis aksen di tepi kiri kartu, menurut kelompok status. */
+const ACCENT: Record<Exclude<Group, "all">, string> = {
+  action: "border-l-primary",
+  running: "border-l-link",
+  done: "border-l-success",
+  closed: "border-l-border",
+};
 
 /** Kelompok pesanan menurut status dan sisi: tindakan client (bayar, periksa hasil) berbeda dari tindakan developer (jawab, kerjakan). */
 function groupOf(status: OrderStatus, side: Side): Exclude<Group, "all"> {
@@ -127,14 +135,31 @@ function Orders() {
 
   const pendingReviews = reviewable.data?.pending.size ?? 0;
 
+  // Ubin ringkasan: satu ketukan memfilter daftar.
+  const tiles: { key: Exclude<Group, "all" | "closed">; label: string; icon: typeof BellRing; tone: string }[] = [
+    { key: "action", label: "Perlu tindakan", icon: BellRing, tone: "bg-primary/15 text-primary" },
+    { key: "running", label: "Berjalan", icon: Hourglass, tone: "bg-link/10 text-link" },
+    { key: "done", label: "Selesai", icon: CheckCircle2, tone: "bg-success/15 text-success" },
+  ];
+
   return (
     <AccountSideNav>
-      <div className="mx-auto w-full max-w-3xl pb-24 md:pb-6">
-        <h1 className="text-xl font-bold sm:text-2xl">Pesanan</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">{side === "sell" ? "Permintaan dan pesanan yang masuk ke kamu." : "Pembelian karya dan pesanan jasa kamu."}</p>
+      <div className="mx-auto w-full max-w-4xl pb-24 md:pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold sm:text-2xl">Pesanan</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{side === "sell" ? "Permintaan dan pesanan yang masuk ke kamu." : "Pembelian karya dan pesanan jasa kamu."}</p>
+          </div>
+          {side === "buy" && (
+            <div className="flex gap-2">
+              <Button asChild size="sm" variant="outline"><Link to="/jasa">Cari jasa</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/karya">Lihat karya</Link></Button>
+            </div>
+          )}
+        </div>
 
         {isDev && (
-          <div className="mt-4 grid grid-cols-2 rounded-xl bg-muted p-1" role="tablist" aria-label="Sisi pesanan">
+          <div className="mt-4 grid grid-cols-2 rounded-xl bg-muted p-1 sm:max-w-sm" role="tablist" aria-label="Sisi pesanan">
             {([["buy", "Saya beli"], ["sell", "Pesanan masuk"]] as const).map(([k, label]) => (
               <button
                 key={k}
@@ -149,6 +174,31 @@ function Orders() {
           </div>
         )}
 
+        {/* Ringkasan status */}
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          {tiles.map((t) => {
+            const on = group === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setGroup(on ? "all" : t.key)}
+                className={cn(
+                  "flex flex-col items-start gap-2 rounded-2xl border bg-card p-3 text-left transition hover:border-primary/50 active:scale-[0.98] sm:flex-row sm:items-center sm:gap-3 sm:p-4",
+                  on ? "border-primary ring-2 ring-primary/25" : "border-border",
+                )}
+              >
+                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-10", t.tone)}><t.icon className="size-5" /></span>
+                <span className="min-w-0">
+                  <span className="block text-xl font-bold leading-none tabular-nums sm:text-2xl">{isLoading ? "–" : counts[t.key]}</span>
+                  <span className="mt-1 block truncate text-xs text-muted-foreground">{t.label}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {side === "buy" && pendingReviews > 0 && (
           <div className="mt-4 flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-3 text-sm">
             <Star className="size-5 shrink-0 fill-primary text-primary" />
@@ -161,11 +211,11 @@ function Orders() {
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari judul, nomor, atau nama" className="h-11 rounded-xl pl-9" aria-label="Cari pesanan" />
         </div>
 
-        <div className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="group" aria-label="Filter status pesanan">
+        <div className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filter status pesanan">
           {GROUPS.map((g) => (
             <Button key={g.key} size="sm" variant={group === g.key ? "default" : "secondary"} className="h-9 shrink-0 rounded-full" onClick={() => setGroup(g.key)}>
               {g.label}
-              <span className={cn("ml-1.5 text-xs", group === g.key ? "opacity-80" : "text-muted-foreground")}>{counts[g.key]}</span>
+              <span className={cn("ml-1.5 text-xs tabular-nums", group === g.key ? "opacity-80" : "text-muted-foreground")}>{counts[g.key]}</span>
             </Button>
           ))}
         </div>
@@ -175,7 +225,8 @@ function Orders() {
           {shown.map((o) => {
             const other = side === "buy" ? o.seller : o.buyer;
             const step = nextStep(o.status, side);
-            const urgent = groupOf(o.status, side) === "action";
+            const grp = groupOf(o.status, side);
+            const urgent = grp === "action";
             const needsReview = side === "buy" && !!reviewable.data?.pending.has(o.id);
             const reviewed = side === "buy" && !!reviewable.data?.reviewed.has(o.id);
             return (
@@ -183,29 +234,32 @@ function Orders() {
                 <Link
                   to="/pesanan/$id"
                   params={{ id: o.id }}
-                  className={cn("block rounded-2xl border bg-card p-3.5 transition hover:bg-accent/40 active:scale-[0.99] sm:p-4", urgent || needsReview ? "border-primary/50" : "border-border")}
+                  className={cn(
+                    "group flex flex-col gap-3 rounded-2xl border border-l-4 bg-card p-3.5 shadow-sm transition hover:bg-accent/40 hover:shadow-md active:scale-[0.99] sm:flex-row sm:items-center sm:gap-5 sm:p-4",
+                    ACCENT[grp],
+                    urgent || needsReview ? "border-y-primary/40 border-r-primary/40" : "border-y-border border-r-border",
+                  )}
                 >
-                  <div className="flex items-start gap-3">
-                    {other ? <AvatarMini name={other.username} url={other.avatar_url} size={40} /> : <span className="size-10 rounded-full bg-muted" />}
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    {other ? <AvatarMini name={other.username} url={other.avatar_url} size={44} /> : <span className="size-11 rounded-full bg-muted" />}
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 break-words font-semibold leading-snug">{o.title}</p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         #{o.number} · {o.kind === "product" ? "Karya" : "Jasa"}{other ? ` · @${other.username}` : ""} · {timeAgo(o.created_at)}
                       </p>
+                      {step && <p className={cn("mt-1.5 text-xs", urgent ? "font-medium text-primary" : "text-muted-foreground")}>{step}</p>}
                     </div>
-                    <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
                   </div>
 
-                  {step && <p className={cn("mt-2.5 text-xs", urgent ? "font-medium text-primary" : "text-muted-foreground")}>{step}</p>}
-
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                    <span className="text-base font-bold">{o.amount ? formatRupiah(o.amount) : "—"}</span>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center justify-between gap-3 border-t border-border pt-3 sm:w-56 sm:shrink-0 sm:flex-col sm:items-end sm:gap-2 sm:border-0 sm:pt-0">
+                    <span className="text-base font-bold tabular-nums">{o.amount ? formatRupiah(o.amount) : "—"}</span>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {needsReview && <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground"><Star className="size-3 fill-current" /> Beri ulasan</span>}
                       {reviewed && <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Star className="size-3 fill-primary text-primary" /> Sudah diulas</span>}
                       <OrderStatusBadge status={o.status} />
                     </div>
                   </div>
+                  <ChevronRight className="hidden size-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground sm:block" aria-hidden />
                 </Link>
               </li>
             );
@@ -213,10 +267,10 @@ function Orders() {
         </ul>
 
         {!isLoading && shown.length === 0 && (
-          <div className="mt-4 flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><PackageOpen className="size-6" /></span>
+          <div className="mt-4 flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><PackageOpen className="size-7" /></span>
             <p className="mt-3 font-semibold">{data.length === 0 ? "Belum ada pesanan" : "Tidak ada pesanan yang cocok"}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               {data.length === 0
                 ? (side === "sell" ? "Pesanan dari client akan muncul di sini." : "Pesan jasa atau beli karya, lalu pantau prosesnya di sini.")
                 : "Coba ubah filter atau kata pencarian."}
