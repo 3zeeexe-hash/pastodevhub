@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/market";
 import { cn } from "@/lib/utils";
 
@@ -41,14 +41,14 @@ export function OrderProgress({ status, isBuyer, isSeller, showSteps = true }: {
 
   if (idx === null) {
     return (
-      <p role="status" className="rounded-lg border border-border bg-muted p-3 text-sm">
+      <p role="status" className="rounded-2xl border border-border bg-muted p-4 text-sm">
         {status === "declined" ? "Developer menolak permintaan ini. Kamu bisa memesan jasa lain." : "Pesanan ini dibatalkan."}
       </p>
     );
   }
 
   return (
-    <section aria-label="Progres pesanan" className="rounded-lg border border-border bg-card p-4">
+    <section aria-label="Progres pesanan" className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
       {showSteps && (
         <ol className="flex items-start">
           {STEPS.map((label, i) => {
@@ -57,22 +57,25 @@ export function OrderProgress({ status, isBuyer, isSeller, showSteps = true }: {
             return (
               <li key={label} className="flex min-w-0 flex-1 flex-col items-center text-center" aria-current={current ? "step" : undefined}>
                 <div className="flex w-full items-center">
-                  <span className={cn("h-0.5 flex-1", i === 0 ? "bg-transparent" : i <= idx ? "bg-primary" : "bg-border")} />
+                  <span className={cn("h-1 flex-1 rounded-full", i === 0 ? "bg-transparent" : i <= idx ? "bg-primary" : "bg-border")} />
                   <span className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                    done ? "bg-primary text-primary-foreground" : current ? "bg-background text-primary ring-2 ring-primary" : "bg-muted text-muted-foreground",
+                    "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition sm:size-9 sm:text-sm",
+                    done ? "bg-primary text-primary-foreground" : current ? "bg-background text-primary shadow-glow ring-2 ring-primary" : "bg-muted text-muted-foreground",
                   )}>
-                    {done ? <Check className="size-4" /> : i + 1}
+                    {done ? <Check className="size-4 sm:size-5" /> : i + 1}
                   </span>
-                  <span className={cn("h-0.5 flex-1", i === STEPS.length - 1 ? "bg-transparent" : i < idx ? "bg-primary" : "bg-border")} />
+                  <span className={cn("h-1 flex-1 rounded-full", i === STEPS.length - 1 ? "bg-transparent" : i < idx ? "bg-primary" : "bg-border")} />
                 </div>
-                <span className={cn("mt-1.5 text-[11px] leading-tight", current ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
+                <span className={cn("mt-2 text-[10px] leading-tight sm:text-xs", current ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</span>
               </li>
             );
           })}
         </ol>
       )}
-      <p className={cn("text-sm", showSteps && "mt-3 border-t border-border pt-3")}><b>Langkah sekarang:</b> {hint(status, isBuyer, isSeller)}</p>
+      <div className={cn("flex items-start gap-2.5 rounded-xl bg-primary/10 p-3 text-sm", showSteps && "mt-4")}>
+        <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+        <p><b>Langkah sekarang:</b> {hint(status, isBuyer, isSeller)}</p>
+      </div>
     </section>
   );
 }
